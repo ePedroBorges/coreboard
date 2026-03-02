@@ -12,8 +12,6 @@ import {
   List,
   ListOrdered,
   CheckSquare,
-  Image,
-  Paintbrush,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -21,7 +19,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 interface BlockEditorProps {
@@ -54,7 +51,6 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     newBlocks.splice(insertAt, 0, newBlock);
     onChange(newBlocks);
 
-    // Focus new block
     setTimeout(() => {
       blockRefs.current[insertAt]?.focus();
     }, 50);
@@ -70,7 +66,6 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     if (blocks.length <= 1) return;
     const newBlocks = blocks.filter((_, i) => i !== index);
     onChange(newBlocks);
-    // Focus previous block
     setTimeout(() => {
       const focusIdx = Math.max(0, index - 1);
       blockRefs.current[focusIdx]?.focus();
@@ -95,7 +90,6 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     }
 
     if (e.key === "ArrowUp" && index > 0) {
-      const el = e.target as HTMLElement;
       const sel = window.getSelection();
       if (sel && sel.anchorOffset === 0) {
         e.preventDefault();
@@ -118,18 +112,12 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
 
   const getBlockClassName = (type: BlockType) => {
     switch (type) {
-      case "heading1":
-        return "text-2xl font-bold";
-      case "heading2":
-        return "text-xl font-semibold";
-      case "heading3":
-        return "text-lg font-medium";
-      case "bullet-list":
-        return "pl-4";
-      case "numbered-list":
-        return "pl-4";
-      default:
-        return "";
+      case "heading1": return "text-xl sm:text-2xl font-bold";
+      case "heading2": return "text-lg sm:text-xl font-semibold";
+      case "heading3": return "text-base sm:text-lg font-medium";
+      case "bullet-list": return "pl-4";
+      case "numbered-list": return "pl-4";
+      default: return "";
     }
   };
 
@@ -138,9 +126,9 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
       <div className="space-y-1">
         <button
           onClick={() => addBlock()}
-          className="flex items-center gap-2 text-muted-foreground/50 hover:text-muted-foreground text-sm py-2 transition-colors"
+          className="flex items-center gap-2 text-muted-foreground/50 hover:text-muted-foreground text-sm py-3 sm:py-2 transition-colors min-h-[44px] sm:min-h-0"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5 sm:h-4 sm:w-4" />
           Comece a escrever ou pressione / para comandos
         </button>
       </div>
@@ -152,11 +140,11 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
       {blocks.map((block, index) => (
         <div key={block.id} className="group/block flex items-start gap-1 relative">
           {/* Drag handle + actions */}
-          <div className="flex items-center gap-0.5 pt-1 opacity-0 group-hover/block:opacity-100 transition-opacity shrink-0">
+          <div className="flex items-center gap-0.5 pt-1 opacity-100 sm:opacity-0 sm:group-hover/block:opacity-100 transition-opacity shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="p-0.5 rounded hover:bg-muted">
-                  <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                <button className="p-1.5 sm:p-0.5 rounded hover:bg-muted min-h-[36px] sm:min-h-0 min-w-[36px] sm:min-w-0 flex items-center justify-center">
+                  <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
@@ -164,6 +152,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                   <DropdownMenuItem
                     key={bt.type}
                     onClick={() => addBlock(bt.type, index)}
+                    className="min-h-[44px] sm:min-h-0"
                   >
                     <bt.icon className="mr-2 h-4 w-4" />
                     {bt.label}
@@ -171,19 +160,19 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <button className="p-0.5 rounded hover:bg-muted cursor-grab">
-              <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+            <button className="p-1.5 sm:p-0.5 rounded hover:bg-muted cursor-grab min-h-[36px] sm:min-h-0 min-w-[36px] sm:min-w-0 flex items-center justify-center">
+              <GripVertical className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
             </button>
           </div>
 
           {/* Block content */}
           <div className="flex-1 min-w-0">
             {block.type === "checklist" ? (
-              <div className="flex items-start gap-2 py-0.5">
+              <div className="flex items-start gap-2 py-1 sm:py-0.5">
                 <Checkbox
                   checked={block.checked}
                   onCheckedChange={(checked) => updateBlock(index, { checked: !!checked })}
-                  className="mt-1"
+                  className="mt-1 h-5 w-5 sm:h-4 sm:w-4"
                 />
                 <div
                   ref={(el) => { blockRefs.current[index] = el; }}
@@ -194,7 +183,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                   }
                   onKeyDown={(e) => handleKeyDown(e, index)}
                   className={cn(
-                    "flex-1 outline-none text-sm py-0.5 min-h-[1.5em]",
+                    "flex-1 outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]",
                     block.checked && "line-through text-muted-foreground"
                   )}
                   data-placeholder="Item..."
@@ -203,7 +192,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                 </div>
               </div>
             ) : block.type === "bullet-list" ? (
-              <div className="flex items-start gap-2 py-0.5">
+              <div className="flex items-start gap-2 py-1 sm:py-0.5">
                 <span className="text-muted-foreground mt-0.5 shrink-0">•</span>
                 <div
                   ref={(el) => { blockRefs.current[index] = el; }}
@@ -213,13 +202,13 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                     updateBlock(index, { content: (e.target as HTMLElement).textContent || "" })
                   }
                   onKeyDown={(e) => handleKeyDown(e, index)}
-                  className="flex-1 outline-none text-sm py-0.5 min-h-[1.5em]"
+                  className="flex-1 outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]"
                   data-placeholder="Item da lista..."
                 />
               </div>
             ) : block.type === "numbered-list" ? (
-              <div className="flex items-start gap-2 py-0.5">
-                <span className="font-mono-accent text-xs text-muted-foreground mt-0.5 shrink-0 w-4 text-right">
+              <div className="flex items-start gap-2 py-1 sm:py-0.5">
+                <span className="font-mono-accent text-sm sm:text-xs text-muted-foreground mt-0.5 shrink-0 w-4 text-right">
                   {index + 1}.
                 </span>
                 <div
@@ -230,7 +219,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                     updateBlock(index, { content: (e.target as HTMLElement).textContent || "" })
                   }
                   onKeyDown={(e) => handleKeyDown(e, index)}
-                  className="flex-1 outline-none text-sm py-0.5 min-h-[1.5em]"
+                  className="flex-1 outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]"
                   data-placeholder="Item..."
                 />
               </div>
@@ -244,16 +233,13 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                 }
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 className={cn(
-                  "outline-none text-sm py-0.5 min-h-[1.5em]",
+                  "outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]",
                   getBlockClassName(block.type)
                 )}
                 data-placeholder={
-                  block.type === "heading1"
-                    ? "Título 1"
-                    : block.type === "heading2"
-                    ? "Título 2"
-                    : block.type === "heading3"
-                    ? "Título 3"
+                  block.type === "heading1" ? "Título 1"
+                    : block.type === "heading2" ? "Título 2"
+                    : block.type === "heading3" ? "Título 3"
                     : "Escreva algo ou pressione / para comandos..."
                 }
               />
@@ -263,9 +249,9 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
           {/* Delete button */}
           <button
             onClick={() => deleteBlock(index)}
-            className="p-0.5 rounded hover:bg-destructive/10 opacity-0 group-hover/block:opacity-100 transition-opacity mt-1 shrink-0"
+            className="p-1.5 sm:p-0.5 rounded hover:bg-destructive/10 opacity-100 sm:opacity-0 sm:group-hover/block:opacity-100 transition-opacity mt-1 shrink-0 min-h-[36px] sm:min-h-0 min-w-[36px] sm:min-w-0 flex items-center justify-center"
           >
-            <Trash2 className="h-3 w-3 text-destructive/60" />
+            <Trash2 className="h-4 w-4 sm:h-3 sm:w-3 text-destructive/60" />
           </button>
 
           {/* Slash menu */}
@@ -275,7 +261,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                 <button
                   key={bt.type}
                   onClick={() => handleSlashSelect(bt.type, index)}
-                  className="flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                  className="flex items-center gap-2 w-full rounded-sm px-2 py-2.5 sm:py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors min-h-[44px] sm:min-h-0"
                 >
                   <bt.icon className="h-4 w-4" />
                   {bt.label}
@@ -289,9 +275,9 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
       {/* Add block at end */}
       <button
         onClick={() => addBlock()}
-        className="flex items-center gap-2 w-full text-muted-foreground/40 hover:text-muted-foreground text-sm py-2 transition-colors"
+        className="flex items-center gap-2 w-full text-muted-foreground/40 hover:text-muted-foreground text-sm py-3 sm:py-2 transition-colors min-h-[44px] sm:min-h-0"
       >
-        <Plus className="h-3.5 w-3.5" />
+        <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         Adicionar bloco
       </button>
     </div>

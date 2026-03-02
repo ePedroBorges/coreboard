@@ -107,11 +107,11 @@ export function AppSidebar({
       <Sidebar collapsible="icon" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-primary/10">
-              <BookOpen className="h-4 w-4 text-primary" />
+            <div className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded bg-primary/10">
+              <BookOpen className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
             </div>
             {!collapsed && (
-              <span className="text-sm font-semibold tracking-tight">SmartNotes</span>
+              <span className="text-base sm:text-sm font-semibold tracking-tight">SmartNotes</span>
             )}
           </div>
         </SidebarHeader>
@@ -121,8 +121,8 @@ export function AppSidebar({
             {/* Favorites */}
             {favorites.length > 0 && (
               <SidebarGroup>
-                <SidebarGroupLabel className="font-mono-accent text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <Star className="mr-1 h-3 w-3" />
+                <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <Star className="mr-1 h-3.5 w-3.5 sm:h-3 sm:w-3" />
                   {!collapsed && "Favoritos"}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -135,11 +135,11 @@ export function AppSidebar({
                             onSelectPage(page.id);
                           }}
                           className={cn(
-                            "text-xs",
+                            "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
                             selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground"
                           )}
                         >
-                          <Star className="h-3 w-3 text-warning fill-warning" />
+                          <Star className="h-4 w-4 sm:h-3 sm:w-3 text-warning fill-warning" />
                           {!collapsed && <span className="truncate">{page.title}</span>}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -152,17 +152,17 @@ export function AppSidebar({
             {/* Notebooks */}
             <SidebarGroup>
               <div className="flex items-center justify-between px-2">
-                <SidebarGroupLabel className="font-mono-accent text-[10px] uppercase tracking-wider text-muted-foreground">
+                <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
                   {!collapsed && "Cadernos"}
                 </SidebarGroupLabel>
                 {!collapsed && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
+                    className="h-9 w-9 sm:h-6 sm:w-6"
                     onClick={() => setNewNotebookMode(true)}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                   </Button>
                 )}
               </div>
@@ -183,7 +183,7 @@ export function AppSidebar({
                             else setNewNotebookMode(false);
                           }}
                           placeholder="Nome do caderno..."
-                          className="h-7 text-xs"
+                          className="h-10 sm:h-7 text-sm sm:text-xs"
                           autoFocus
                         />
                       </div>
@@ -199,14 +199,14 @@ export function AppSidebar({
                         <CollapsibleTrigger asChild>
                           <SidebarMenuButton
                             className={cn(
-                              "group/nb justify-between",
+                              "group/nb justify-between min-h-[44px] sm:min-h-0",
                               selectedNotebookId === notebook.id && "bg-sidebar-accent"
                             )}
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <ChevronRight
                                 className={cn(
-                                  "h-3 w-3 transition-transform shrink-0",
+                                  "h-4 w-4 sm:h-3 sm:w-3 transition-transform shrink-0",
                                   selectedNotebookId === notebook.id && "rotate-90"
                                 )}
                               />
@@ -219,23 +219,23 @@ export function AppSidebar({
                                     if (e.key === "Escape") setRenameId(null);
                                   }}
                                   onBlur={handleRename}
-                                  className="h-5 text-xs py-0 px-1"
+                                  className="h-7 text-xs py-0 px-1"
                                   autoFocus
                                   onClick={(e) => e.stopPropagation()}
                                 />
                               ) : (
-                                <span className="truncate text-xs">{notebook.title}</span>
+                                <span className="truncate text-sm sm:text-xs">{notebook.title}</span>
                               )}
                             </div>
                             {!collapsed && (
-                              <div className="flex items-center gap-1 opacity-0 group-hover/nb:opacity-100 transition-opacity">
-                                <span className="font-mono-accent text-[10px] text-muted-foreground">
+                              <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/nb:opacity-100 transition-opacity">
+                                <span className="font-mono-accent text-[11px] sm:text-[10px] text-muted-foreground">
                                   {notebook.page_count}
                                 </span>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <button className="p-0.5 rounded hover:bg-background/50">
-                                      <MoreHorizontal className="h-3 w-3" />
+                                    <button className="p-1.5 sm:p-0.5 rounded hover:bg-background/50">
+                                      <MoreHorizontal className="h-4 w-4 sm:h-3 sm:w-3" />
                                     </button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-36">
@@ -246,7 +246,7 @@ export function AppSidebar({
                                         setRenameValue(notebook.title);
                                       }}
                                     >
-                                      <Pencil className="mr-2 h-3 w-3" />
+                                      <Pencil className="mr-2 h-4 w-4" />
                                       Renomear
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
@@ -256,7 +256,7 @@ export function AppSidebar({
                                         setDeleteId(notebook.id);
                                       }}
                                     >
-                                      <Trash2 className="mr-2 h-3 w-3" />
+                                      <Trash2 className="mr-2 h-4 w-4" />
                                       Excluir
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -274,22 +274,22 @@ export function AppSidebar({
                                   key={page.id}
                                   onClick={() => onSelectPage(page.id)}
                                   className={cn(
-                                    "flex items-center gap-2 w-full rounded px-2 py-1 text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors",
+                                    "flex items-center gap-2 w-full rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0",
                                     selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                                   )}
                                 >
-                                  <FileText className="h-3 w-3 shrink-0" />
+                                  <FileText className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
                                   <span className="truncate">{page.title}</span>
                                   {page.is_favorite && (
-                                    <Star className="h-2.5 w-2.5 text-warning fill-warning ml-auto shrink-0" />
+                                    <Star className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5 text-warning fill-warning ml-auto shrink-0" />
                                   )}
                                 </button>
                               ))}
                               <button
                                 onClick={onCreatePage}
-                                className="flex items-center gap-2 w-full rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+                                className="flex items-center gap-2 w-full rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0"
                               >
-                                <Plus className="h-3 w-3" />
+                                <Plus className="h-4 w-4 sm:h-3 sm:w-3" />
                                 Nova página
                               </button>
                             </div>
