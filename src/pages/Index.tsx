@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PageEditor } from "@/components/editor/PageEditor";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -81,12 +82,32 @@ const Index = () => {
                 onExitFocus={() => setFocusMode(false)}
               />
             ) : (
-              <EmptyState
-                hasNotebooks={(notebooks.data?.length || 0) > 0}
-                hasSelectedNotebook={!!selectedNotebookId}
-                onCreateNotebook={() => notebooks.createNotebook.mutate("Novo Caderno")}
-                onCreatePage={() => pages.createPage.mutate("Nova Página")}
-              />
+              <div className="flex flex-col h-full">
+                {/* Weekly Task Manager as home screen */}
+                <WeeklyTaskManager />
+
+                {/* Empty state below if no page selected */}
+                {!selectedNotebookId && (
+                  <div className="border-t border-border/30">
+                    <EmptyState
+                      hasNotebooks={(notebooks.data?.length || 0) > 0}
+                      hasSelectedNotebook={!!selectedNotebookId}
+                      onCreateNotebook={() => notebooks.createNotebook.mutate("Novo Caderno")}
+                      onCreatePage={() => pages.createPage.mutate("Nova Página")}
+                    />
+                  </div>
+                )}
+                {selectedNotebookId && !selectedPageId && (
+                  <div className="border-t border-border/30">
+                    <EmptyState
+                      hasNotebooks={true}
+                      hasSelectedNotebook={true}
+                      onCreateNotebook={() => notebooks.createNotebook.mutate("Novo Caderno")}
+                      onCreatePage={() => pages.createPage.mutate("Nova Página")}
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </main>
         </div>

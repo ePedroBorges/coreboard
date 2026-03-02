@@ -210,6 +210,39 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_tasks: {
+        Row: {
+          created_at: string
+          id: string
+          status: Database["public"]["Enums"]["task_status"]
+          task_date: string
+          title: string
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          task_date: string
+          title: string
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: Database["public"]["Enums"]["task_status"]
+          task_date?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -218,7 +251,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      task_status: "added" | "completed" | "pending"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -345,6 +378,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      task_status: ["added", "completed", "pending"],
+    },
   },
 } as const
