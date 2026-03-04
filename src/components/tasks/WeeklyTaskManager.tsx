@@ -1,8 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useWeeklyTasks, useTaskHistory, TaskStatus, WeeklyTask } from "@/hooks/useWeeklyTasks";
 import {
   startOfWeek,
-  endOfWeek,
   addDays,
   addWeeks,
   subWeeks,
@@ -52,12 +51,10 @@ export function WeeklyTaskManager() {
   const { data: tasks = [], createTask, updateTask, deleteTask } = useWeeklyTasks(currentWeekStart);
   const { data: historyTasks = [] } = useTaskHistory();
 
-  // Week days
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   }, [currentWeekStart]);
 
-  // KPIs for current week
   const kpis = useMemo(() => {
     const added = tasks.filter((t) => t.status === "added").length;
     const completed = tasks.filter((t) => t.status === "completed").length;
@@ -65,7 +62,6 @@ export function WeeklyTaskManager() {
     return { added, completed, pending, total: tasks.length };
   }, [tasks]);
 
-  // History grouped by week
   const historyByWeek = useMemo(() => {
     const map = new Map<string, { added: number; completed: number; pending: number }>();
     historyTasks.forEach((t) => {
@@ -78,65 +74,85 @@ export function WeeklyTaskManager() {
       .sort((a, b) => b.week.localeCompare(a.week));
   }, [historyTasks]);
 
-  const handleAddTask = () => {
+  const handleAddTask = useCallback(() => {
     if (!newTaskTitle.trim() || !newTaskDay) return;
-    createTask.mutate({ title: newTaskTitle.trim(), task_date: newTaskDay });
+    try {
+      createTask.mutate({ title: newTaskTitle.trim(), task_date: newTaskDay });
+    } catch (e) {
+      console.error("Error creating task:", e);
+    }
     setNewTaskTitle("");
     setNewTaskDay(null);
-  };
+  }, [newTaskTitle, newTaskDay, createTask]);
 
-  const cycleStatus = (task: WeeklyTask) => {
+  const cycleStatus = useCallback((task: WeeklyTask) => {
     const order: TaskStatus[] = ["added", "pending", "completed"];
     const next = order[(order.indexOf(task.status) + 1) % 3];
-    updateTask.mutate({ id: task.id, status: next as any });
-  };
+    try {
+      updateTask.mutate({ id: task.id, status: next as any });
+    } catch (e) {
+      console.error("Error updating task:", e);
+    }
+  }, [updateTask]);
 
-  const handleEditSave = () => {
+  const handleEditSave = useCallback(() => {
     if (!editingTask || !editTitle.trim()) return;
-    updateTask.mutate({ id: editingTask.id, title: editTitle.trim() });
+    try {
+      updateTask.mutate({ id: editingTask.id, title: editTitle.trim() });
+    } catch (e) {
+      console.error("Error editing task:", e);
+    }
     setEditingTask(null);
-  };
+  }, [editingTask, editTitle, updateTask]);
+
+  const handleDeleteTask = useCallback((id: string) => {
+    try {
+      deleteTask.mutate(id);
+    } catch (e) {
+      console.error("Error deleting task:", e);
+    }
+  }, [deleteTask]);
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold">Tarefas da Semana</h2>
-          <p className="text-xs text-muted-foreground font-mono-accent">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold truncate">Tarefas da Semana</h2>
+          <p className="text-[11px] text-muted-foreground font-mono-accent">
             {format(currentWeekStart, "dd/MM", { locale: ptBR })} — {format(addDays(currentWeekStart, 6), "dd/MM/yyyy", { locale: ptBR })}
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setShowHistory(true)}>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setShowHistory(true)}>
             <History className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setCurrentWeekStart((w) => subWeeks(w, 1))}>
+          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setCurrentWeekStart((w) => subWeeks(w, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs font-mono-accent h-9 px-3"
+            className="text-xs font-mono-accent h-10 px-3"
             onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
           >
             Hoje
           </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setCurrentWeekStart((w) => addWeeks(w, 1))}>
+          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setCurrentWeekStart((w) => addWeeks(w, 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <KpiMini label="Incluídas" value={kpis.added} barColor="bg-primary" />
         <KpiMini label="Concluídas" value={kpis.completed} barColor="bg-success" />
         <KpiMini label="Pendentes" value={kpis.pending} barColor="bg-warning" />
       </div>
 
-      {/* Weekly Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
+      {/* Weekly Grid - stack on mobile, 7 cols on desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2">
         {weekDays.map((day) => {
           const dateStr = format(day, "yyyy-MM-dd");
           const dayTasks = tasks.filter((t) => t.task_date === dateStr);
@@ -146,7 +162,7 @@ export function WeeklyTaskManager() {
             <div
               key={dateStr}
               className={cn(
-                "rounded-md border border-border/50 p-2.5 min-h-[120px] flex flex-col",
+                "rounded-md border border-border/50 p-3 min-h-[80px] sm:min-h-[120px] flex flex-col",
                 isToday && "border-primary/40 bg-primary/[0.03]"
               )}
             >
@@ -154,20 +170,20 @@ export function WeeklyTaskManager() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5">
                   <span className={cn(
-                    "font-mono-accent text-[11px] font-semibold",
+                    "font-mono-accent text-xs font-semibold",
                     isToday ? "text-primary" : "text-muted-foreground"
                   )}>
                     {format(day, "dd/MM")}
                   </span>
-                  <span className="text-[10px] text-muted-foreground/60 capitalize hidden sm:inline">
+                  <span className="text-[11px] text-muted-foreground/60 capitalize">
                     {format(day, "EEE", { locale: ptBR })}
                   </span>
                 </div>
                 <button
                   onClick={() => { setNewTaskDay(dateStr); setNewTaskTitle(""); }}
-                  className="p-1 rounded hover:bg-muted transition-colors"
+                  className="p-2 rounded-md hover:bg-muted transition-colors active:bg-muted/80 min-h-[36px] min-w-[36px] flex items-center justify-center"
                 >
-                  <Plus className="h-3 w-3 text-muted-foreground" />
+                  <Plus className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
 
@@ -182,26 +198,26 @@ export function WeeklyTaskManager() {
                       if (e.key === "Escape") setNewTaskDay(null);
                     }}
                     placeholder="Nova tarefa..."
-                    className="h-7 text-xs flex-1"
+                    className="h-10 text-sm flex-1"
                     autoFocus
                   />
-                  <button onClick={handleAddTask} className="p-1 rounded hover:bg-muted">
-                    <Check className="h-3 w-3 text-success" />
+                  <button onClick={handleAddTask} className="p-2 rounded-md hover:bg-muted min-h-[40px] min-w-[40px] flex items-center justify-center">
+                    <Check className="h-4 w-4 text-success" />
                   </button>
-                  <button onClick={() => setNewTaskDay(null)} className="p-1 rounded hover:bg-muted">
-                    <X className="h-3 w-3 text-muted-foreground" />
+                  <button onClick={() => setNewTaskDay(null)} className="p-2 rounded-md hover:bg-muted min-h-[40px] min-w-[40px] flex items-center justify-center">
+                    <X className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>
               )}
 
               {/* Tasks */}
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 space-y-1.5">
                 {dayTasks.map((task) => (
                   <TaskCard
                     key={task.id}
                     task={task}
                     onCycleStatus={() => cycleStatus(task)}
-                    onDelete={() => deleteTask.mutate(task.id)}
+                    onDelete={() => handleDeleteTask(task.id)}
                     onEdit={() => { setEditingTask(task); setEditTitle(task.title); }}
                   />
                 ))}
@@ -213,7 +229,7 @@ export function WeeklyTaskManager() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-sm">Editar tarefa</DialogTitle>
           </DialogHeader>
@@ -222,7 +238,7 @@ export function WeeklyTaskManager() {
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleEditSave()}
-              className="text-sm"
+              className="text-sm h-11"
               autoFocus
             />
             <div className="flex gap-2">
@@ -230,11 +246,17 @@ export function WeeklyTaskManager() {
                 <button
                   key={s}
                   onClick={() => {
-                    if (editingTask) updateTask.mutate({ id: editingTask.id, status: s as any });
+                    if (editingTask) {
+                      try {
+                        updateTask.mutate({ id: editingTask.id, status: s as any });
+                      } catch (e) {
+                        console.error(e);
+                      }
+                    }
                     setEditingTask(null);
                   }}
                   className={cn(
-                    "flex-1 rounded-md border border-border/50 py-2 text-xs font-medium transition-colors hover:bg-muted",
+                    "flex-1 rounded-md border border-border/50 py-3 text-xs font-medium transition-colors hover:bg-muted active:bg-muted/80 min-h-[48px]",
                     editingTask?.status === s && "border-primary bg-primary/5"
                   )}
                 >
@@ -243,7 +265,7 @@ export function WeeklyTaskManager() {
                 </button>
               ))}
             </div>
-            <Button size="sm" className="w-full" onClick={handleEditSave}>
+            <Button size="lg" className="w-full" onClick={handleEditSave}>
               Salvar
             </Button>
           </div>
@@ -252,7 +274,7 @@ export function WeeklyTaskManager() {
 
       {/* History Dialog */}
       <Dialog open={showHistory} onOpenChange={setShowHistory}>
-        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="text-sm flex items-center gap-2">
               <History className="h-4 w-4" />
@@ -288,7 +310,6 @@ export function WeeklyTaskManager() {
                       {week.pending} pend.
                     </span>
                   </div>
-                  {/* Stacked bar */}
                   {total > 0 && (
                     <div className="flex h-1.5 rounded-full overflow-hidden mt-2">
                       <div className="bg-primary" style={{ width: `${(week.added / total) * 100}%` }} />
@@ -321,39 +342,38 @@ function TaskCard({
 
   return (
     <div className="group/task rounded border border-border/30 overflow-hidden">
-      <div className="flex items-center gap-1 px-1.5 py-1.5">
+      <div className="flex items-center gap-1.5 px-2 py-2">
         <button
           onClick={onCycleStatus}
-          className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+          className="shrink-0 p-1.5 rounded-md hover:bg-muted active:bg-muted/80 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
           title={`Status: ${config.label}`}
         >
           {task.status === "completed" ? (
-            <Check className="h-3 w-3 text-success" />
+            <Check className="h-4 w-4 text-success" />
           ) : task.status === "pending" ? (
-            <Clock className="h-3 w-3 text-warning" />
+            <Clock className="h-4 w-4 text-warning" />
           ) : (
-            <Sparkles className="h-3 w-3 text-primary" />
+            <Sparkles className="h-4 w-4 text-primary" />
           )}
         </button>
         <span
           className={cn(
-            "text-[11px] flex-1 truncate cursor-pointer",
+            "text-sm flex-1 truncate cursor-pointer",
             task.status === "completed" && "line-through text-muted-foreground"
           )}
           onClick={onEdit}
         >
           {task.title}
         </span>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover/task:opacity-100 transition-opacity">
-          <button onClick={onEdit} className="p-0.5 rounded hover:bg-muted">
-            <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
+        <div className="flex items-center gap-0.5">
+          <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-muted active:bg-muted/80 min-h-[36px] min-w-[36px] flex items-center justify-center">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <button onClick={onDelete} className="p-0.5 rounded hover:bg-destructive/10">
-            <Trash2 className="h-2.5 w-2.5 text-destructive/60" />
+          <button onClick={onDelete} className="p-1.5 rounded-md hover:bg-destructive/10 active:bg-destructive/20 min-h-[36px] min-w-[36px] flex items-center justify-center">
+            <Trash2 className="h-3.5 w-3.5 text-destructive/60" />
           </button>
         </div>
       </div>
-      {/* Status color bar */}
       <div className={cn("h-[3px] w-full", config.barColor)} />
     </div>
   );
