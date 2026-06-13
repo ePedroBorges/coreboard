@@ -148,6 +148,8 @@ const Dashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar
+          activeView="diary"
+          onSelectTasks={() => {}}
           notebooks={notebooks.data || []}
           pages={[]}
           favorites={favorites.data || []}
