@@ -1,390 +1,307 @@
-import { useState, useMemo, useCallback } from "react";
-import { useWeeklyTasks, useTaskHistory, TaskStatus, WeeklyTask } from "@/hooks/useWeeklyTasks";
-import {
-  startOfWeek,
-  addDays,
-  addWeeks,
-  subWeeks,
-  format,
-  isSameDay,
-  parseISO,
-} from "date-fns";
+import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Trash2,
   Check,
-  Clock,
-  Sparkles,
+  CheckCircle2,
+  Clock3,
   History,
-  X,
-  Pencil,
+  Loader2,
+  Plus,
+  Trash2,
+  UserRound,
 } from "lucide-react";
+import { useWeeklyTasks, TaskStatus, WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
-const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string; barColor: string }> = {
-  added: { label: "Incluída", color: "text-primary", barColor: "bg-primary" },
-  completed: { label: "Concluída", color: "text-success", barColor: "bg-success" },
-  pending: { label: "Pendente", color: "text-warning", barColor: "bg-warning" },
+const statusLabel: Record<TaskStatus, string> = {
+  pending: "Pendente",
+  completed: "Concluida",
 };
 
 export function WeeklyTaskManager() {
-  const [currentWeekStart, setCurrentWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 1 })
-  );
-  const [newTaskDay, setNewTaskDay] = useState<string | null>(null);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [editingTask, setEditingTask] = useState<WeeklyTask | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
+  const [title, setTitle] = useState("");
+  const [assignee, setAssignee] = useState("");
+  const [filter, setFilter] = useState<"all" | TaskStatus>("pending");
 
-  const { data: tasks = [], createTask, updateTask, deleteTask } = useWeeklyTasks(currentWeekStart);
-  const { data: historyTasks = [] } = useTaskHistory();
+  const {
+    data: tasks = [],
+    isLoading,
+    createTask,
+    updateTask,
+    deleteTask,
+    addPendingReason,
+    completePendingReason,
+  } = useWeeklyTasks();
 
-  const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-  }, [currentWeekStart]);
+  const stats = useMemo(() => {
+    const pending = tasks.filter((task) => task.status === "pending").length;
+    const completed = tasks.filter((task) => task.status === "completed").length;
+    const openReasons = tasks.reduce(
+      (total, task) => total + task.pending_reasons.filter((reason) => !reason.completed_at).length,
+      0
+    );
 
-  const kpis = useMemo(() => {
-    const added = tasks.filter((t) => t.status === "added").length;
-    const completed = tasks.filter((t) => t.status === "completed").length;
-    const pending = tasks.filter((t) => t.status === "pending").length;
-    return { added, completed, pending, total: tasks.length };
+    return { total: tasks.length, pending, completed, openReasons };
   }, [tasks]);
 
-  const historyByWeek = useMemo(() => {
-    const map = new Map<string, { added: number; completed: number; pending: number }>();
-    historyTasks.forEach((t) => {
-      const entry = map.get(t.week_start) || { added: 0, completed: 0, pending: 0 };
-      entry[t.status]++;
-      map.set(t.week_start, entry);
-    });
-    return Array.from(map.entries())
-      .map(([week, stats]) => ({ week, ...stats }))
-      .sort((a, b) => b.week.localeCompare(a.week));
-  }, [historyTasks]);
+  const filteredTasks = useMemo(() => {
+    if (filter === "all") return tasks;
+    return tasks.filter((task) => task.status === filter);
+  }, [filter, tasks]);
 
-  const handleAddTask = useCallback(() => {
-    if (!newTaskTitle.trim() || !newTaskDay) return;
-    try {
-      createTask.mutate({ title: newTaskTitle.trim(), task_date: newTaskDay });
-    } catch (e) {
-      console.error("Error creating task:", e);
-    }
-    setNewTaskTitle("");
-    setNewTaskDay(null);
-  }, [newTaskTitle, newTaskDay, createTask]);
-
-  const cycleStatus = useCallback((task: WeeklyTask) => {
-    const order: TaskStatus[] = ["added", "pending", "completed"];
-    const next = order[(order.indexOf(task.status) + 1) % 3];
-    try {
-      updateTask.mutate({ id: task.id, status: next as any });
-    } catch (e) {
-      console.error("Error updating task:", e);
-    }
-  }, [updateTask]);
-
-  const handleEditSave = useCallback(() => {
-    if (!editingTask || !editTitle.trim()) return;
-    try {
-      updateTask.mutate({ id: editingTask.id, title: editTitle.trim() });
-    } catch (e) {
-      console.error("Error editing task:", e);
-    }
-    setEditingTask(null);
-  }, [editingTask, editTitle, updateTask]);
-
-  const handleDeleteTask = useCallback((id: string) => {
-    try {
-      deleteTask.mutate(id);
-    } catch (e) {
-      console.error("Error deleting task:", e);
-    }
-  }, [deleteTask]);
+  const handleCreateTask = () => {
+    if (!title.trim()) return;
+    createTask.mutate({ title: title.trim(), assignee: assignee.trim() });
+    setTitle("");
+    setAssignee("");
+  };
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <h2 className="text-lg font-bold truncate">Tarefas da Semana</h2>
-          <p className="text-[11px] text-muted-foreground font-mono-accent">
-            {format(currentWeekStart, "dd/MM", { locale: ptBR })} — {format(addDays(currentWeekStart, 6), "dd/MM/yyyy", { locale: ptBR })}
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Task Manager</h1>
+          <p className="text-sm text-muted-foreground">
+            Controle tarefas, responsaveis e motivos de pendencia da equipe.
           </p>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0">
-          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setShowHistory(true)}>
-            <History className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setCurrentWeekStart((w) => subWeeks(w, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs font-mono-accent h-10 px-3"
-            onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-          >
-            Hoje
-          </Button>
-          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setCurrentWeekStart((w) => addWeeks(w, 1))}>
-            <ChevronRight className="h-4 w-4" />
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <Metric label="Total" value={stats.total} />
+          <Metric label="Pendentes" value={stats.pending} tone="warning" />
+          <Metric label="Concluidas" value={stats.completed} tone="success" />
+          <Metric label="Pendencias" value={stats.openReasons} tone="warning" />
+        </div>
+      </div>
+
+      <div className="rounded-md border border-border/60 bg-card p-3 sm:p-4">
+        <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
+            placeholder="Titulo da tarefa"
+            className="h-11"
+          />
+          <Input
+            value={assignee}
+            onChange={(event) => setAssignee(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
+            placeholder="Responsavel"
+            className="h-11"
+          />
+          <Button onClick={handleCreateTask} className="h-11 gap-2" disabled={!title.trim() || createTask.isPending}>
+            {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Criar tarefa
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <KpiMini label="Incluídas" value={kpis.added} barColor="bg-primary" />
-        <KpiMini label="Concluídas" value={kpis.completed} barColor="bg-success" />
-        <KpiMini label="Pendentes" value={kpis.pending} barColor="bg-warning" />
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { value: "pending", label: "Pendentes" },
+          { value: "completed", label: "Concluidas" },
+          { value: "all", label: "Todas" },
+        ].map((item) => (
+          <Button
+            key={item.value}
+            variant={filter === item.value ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setFilter(item.value as typeof filter)}
+            className="shrink-0"
+          >
+            {item.label}
+          </Button>
+        ))}
       </div>
 
-      {/* Weekly Grid - stack on mobile, 7 cols on desktop */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2">
-        {weekDays.map((day) => {
-          const dateStr = format(day, "yyyy-MM-dd");
-          const dayTasks = tasks.filter((t) => t.task_date === dateStr);
-          const isToday = isSameDay(day, new Date());
-
-          return (
-            <div
-              key={dateStr}
-              className={cn(
-                "rounded-md border border-border/50 p-3 min-h-[80px] sm:min-h-[120px] flex flex-col",
-                isToday && "border-primary/40 bg-primary/[0.03]"
-              )}
-            >
-              {/* Day header */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <span className={cn(
-                    "font-mono-accent text-xs font-semibold",
-                    isToday ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    {format(day, "dd/MM")}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground/60 capitalize">
-                    {format(day, "EEE", { locale: ptBR })}
-                  </span>
-                </div>
-                <button
-                  onClick={() => { setNewTaskDay(dateStr); setNewTaskTitle(""); }}
-                  className="p-2 rounded-md hover:bg-muted transition-colors active:bg-muted/80 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                >
-                  <Plus className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
-
-              {/* Add task inline */}
-              {newTaskDay === dateStr && (
-                <div className="flex gap-1 mb-2">
-                  <Input
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddTask();
-                      if (e.key === "Escape") setNewTaskDay(null);
-                    }}
-                    placeholder="Nova tarefa..."
-                    className="h-10 text-sm flex-1"
-                    autoFocus
-                  />
-                  <button onClick={handleAddTask} className="p-2 rounded-md hover:bg-muted min-h-[40px] min-w-[40px] flex items-center justify-center">
-                    <Check className="h-4 w-4 text-success" />
-                  </button>
-                  <button onClick={() => setNewTaskDay(null)} className="p-2 rounded-md hover:bg-muted min-h-[40px] min-w-[40px] flex items-center justify-center">
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </div>
-              )}
-
-              {/* Tasks */}
-              <div className="flex-1 space-y-1.5">
-                {dayTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onCycleStatus={() => cycleStatus(task)}
-                    onDelete={() => handleDeleteTask(task.id)}
-                    onEdit={() => { setEditingTask(task); setEditTitle(task.title); }}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-sm">Editar tarefa</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleEditSave()}
-              className="text-sm h-11"
-              autoFocus
+      {isLoading ? (
+        <div className="flex min-h-52 items-center justify-center">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        </div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          Nenhuma tarefa neste filtro.
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {filteredTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onStatusChange={(status) => updateTask.mutate({ id: task.id, status })}
+              onDelete={() => deleteTask.mutate(task.id)}
+              onAddReason={(reason, responsible) =>
+                addPendingReason.mutate({ taskId: task.id, reason, responsible })
+              }
+              onCompleteReason={(id) => completePendingReason.mutate(id)}
             />
-            <div className="flex gap-2">
-              {(["added", "pending", "completed"] as TaskStatus[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => {
-                    if (editingTask) {
-                      try {
-                        updateTask.mutate({ id: editingTask.id, status: s as any });
-                      } catch (e) {
-                        console.error(e);
-                      }
-                    }
-                    setEditingTask(null);
-                  }}
-                  className={cn(
-                    "flex-1 rounded-md border border-border/50 py-3 text-xs font-medium transition-colors hover:bg-muted active:bg-muted/80 min-h-[48px]",
-                    editingTask?.status === s && "border-primary bg-primary/5"
-                  )}
-                >
-                  <div className={cn("h-1.5 w-6 rounded-full mx-auto mb-1.5", STATUS_CONFIG[s].barColor)} />
-                  {STATUS_CONFIG[s].label}
-                </button>
-              ))}
-            </div>
-            <Button size="lg" className="w-full" onClick={handleEditSave}>
-              Salvar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* History Dialog */}
-      <Dialog open={showHistory} onOpenChange={setShowHistory}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[80vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle className="text-sm flex items-center gap-2">
-              <History className="h-4 w-4" />
-              Histórico de KPIs
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            {historyByWeek.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhum histórico</p>
-            )}
-            {historyByWeek.map((week) => {
-              const ws = parseISO(week.week);
-              const total = week.added + week.completed + week.pending;
-              return (
-                <div key={week.week} className="rounded-md border border-border/30 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono-accent text-[11px] text-muted-foreground">
-                      {format(ws, "dd/MM")} — {format(addDays(ws, 6), "dd/MM/yyyy")}
-                    </span>
-                    <span className="font-mono-accent text-[11px] text-foreground font-medium">{total}</span>
-                  </div>
-                  <div className="flex gap-3 text-[11px]">
-                    <span className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-primary" />
-                      {week.added} incl.
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-success" />
-                      {week.completed} concl.
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-warning" />
-                      {week.pending} pend.
-                    </span>
-                  </div>
-                  {total > 0 && (
-                    <div className="flex h-1.5 rounded-full overflow-hidden mt-2">
-                      <div className="bg-primary" style={{ width: `${(week.added / total) * 100}%` }} />
-                      <div className="bg-success" style={{ width: `${(week.completed / total) * 100}%` }} />
-                      <div className="bg-warning" style={{ width: `${(week.pending / total) * 100}%` }} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 function TaskCard({
   task,
-  onCycleStatus,
+  onStatusChange,
   onDelete,
-  onEdit,
+  onAddReason,
+  onCompleteReason,
 }: {
   task: WeeklyTask;
-  onCycleStatus: () => void;
+  onStatusChange: (status: TaskStatus) => void;
   onDelete: () => void;
-  onEdit: () => void;
+  onAddReason: (reason: string, responsible: string) => void;
+  onCompleteReason: (id: string) => void;
 }) {
-  const config = STATUS_CONFIG[task.status];
+  const [reason, setReason] = useState("");
+  const [responsible, setResponsible] = useState("");
+  const openReasons = task.pending_reasons.filter((item) => !item.completed_at).length;
+
+  const handleAddReason = () => {
+    if (!reason.trim()) return;
+    onAddReason(reason.trim(), responsible.trim());
+    setReason("");
+    setResponsible("");
+  };
 
   return (
-    <div className="group/task rounded border border-border/30 overflow-hidden">
-      <div className="flex items-center gap-1.5 px-2 py-2">
-        <button
-          onClick={onCycleStatus}
-          className="shrink-0 p-1.5 rounded-md hover:bg-muted active:bg-muted/80 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center"
-          title={`Status: ${config.label}`}
-        >
-          {task.status === "completed" ? (
-            <Check className="h-4 w-4 text-success" />
-          ) : task.status === "pending" ? (
-            <Clock className="h-4 w-4 text-warning" />
-          ) : (
-            <Sparkles className="h-4 w-4 text-primary" />
-          )}
-        </button>
-        <span
-          className={cn(
-            "text-sm flex-1 truncate cursor-pointer",
-            task.status === "completed" && "line-through text-muted-foreground"
-          )}
-          onClick={onEdit}
-        >
-          {task.title}
-        </span>
-        <div className="flex items-center gap-0.5">
-          <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-muted active:bg-muted/80 min-h-[36px] min-w-[36px] flex items-center justify-center">
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          <button onClick={onDelete} className="p-1.5 rounded-md hover:bg-destructive/10 active:bg-destructive/20 min-h-[36px] min-w-[36px] flex items-center justify-center">
-            <Trash2 className="h-3.5 w-3.5 text-destructive/60" />
-          </button>
+    <article className="rounded-md border border-border/60 bg-card p-3 shadow-sm sm:p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className={cn(
+                "gap-1",
+                task.status === "completed"
+                  ? "border-success/40 text-success"
+                  : "border-warning/40 text-warning"
+              )}
+            >
+              {task.status === "completed" ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}
+              {statusLabel[task.status]}
+            </Badge>
+            {openReasons > 0 && <Badge variant="secondary">{openReasons} pendencia(s) aberta(s)</Badge>}
+          </div>
+
+          <h2
+            className={cn(
+              "break-words text-base font-semibold",
+              task.status === "completed" && "text-muted-foreground line-through"
+            )}
+          >
+            {task.title}
+          </h2>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <UserRound className="h-3.5 w-3.5" />
+              {task.assignee || "Sem responsavel"}
+            </span>
+            <span>Criada em {format(new Date(task.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+            {task.completed_at && (
+              <span>Concluida em {format(new Date(task.completed_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2 lg:shrink-0">
+          <Button
+            variant={task.status === "completed" ? "outline" : "secondary"}
+            size="sm"
+            onClick={() => onStatusChange(task.status === "completed" ? "pending" : "completed")}
+            className="flex-1 gap-2 lg:flex-none"
+          >
+            <Check className="h-4 w-4" />
+            {task.status === "completed" ? "Reabrir" : "Concluir"}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
-      <div className={cn("h-[3px] w-full", config.barColor)} />
-    </div>
+
+      {task.status === "pending" && (
+        <div className="mt-4 rounded-md border border-border/50 bg-background/40 p-3">
+          <div className="grid gap-2 lg:grid-cols-[1fr_200px_auto]">
+            <Textarea
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="Motivo da pendencia"
+              className="min-h-20 resize-none"
+            />
+            <Input
+              value={responsible}
+              onChange={(event) => setResponsible(event.target.value)}
+              placeholder="Responsavel pela pendencia"
+              className="h-11"
+            />
+            <Button onClick={handleAddReason} disabled={!reason.trim()} className="h-11 gap-2">
+              <Plus className="h-4 w-4" />
+              Adicionar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {task.pending_reasons.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <History className="h-3.5 w-3.5" />
+            Historico de pendencias
+          </div>
+          {task.pending_reasons.map((item) => (
+            <div key={item.id} className="rounded-md border border-border/40 p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className={cn("break-words text-sm", item.completed_at && "text-muted-foreground line-through")}>
+                    {item.reason}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                    <span>Adicionada em {format(new Date(item.created_at), "dd/MM/yyyy HH:mm")}</span>
+                    <span>Responsavel: {item.responsible || "Nao informado"}</span>
+                    {item.completed_at && (
+                      <span>Concluida em {format(new Date(item.completed_at), "dd/MM/yyyy HH:mm")}</span>
+                    )}
+                  </div>
+                </div>
+                {!item.completed_at && (
+                  <Button variant="outline" size="sm" onClick={() => onCompleteReason(item.id)} className="gap-2">
+                    <Check className="h-4 w-4" />
+                    Resolver
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </article>
   );
 }
 
-function KpiMini({ label, value, barColor }: { label: string; value: number; barColor: string }) {
+function Metric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: "success" | "warning";
+}) {
   return (
-    <div className="rounded-md border border-border/50 p-3 text-center">
-      <div className="text-xl font-bold">{value}</div>
-      <div className="text-[10px] text-muted-foreground font-mono-accent uppercase tracking-wider mb-1.5">{label}</div>
-      <div className={cn("h-1 w-10 rounded-full mx-auto", barColor)} />
+    <div className="rounded-md border border-border/60 bg-card px-3 py-2 text-center">
+      <div className={cn("text-lg font-bold", tone === "success" && "text-success", tone === "warning" && "text-warning")}>
+        {value}
+      </div>
+      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
   );
 }

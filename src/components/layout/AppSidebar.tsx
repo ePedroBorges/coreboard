@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   BookOpen,
+  ClipboardList,
   Plus,
   Star,
   FileText,
@@ -53,8 +54,10 @@ interface AppSidebarProps {
   notebooks: Notebook[];
   pages: Page[];
   favorites: Page[];
+  activeView: "tasks" | "diary";
   selectedNotebookId: string | null;
   selectedPageId: string | null;
+  onSelectTasks: () => void;
   onSelectNotebook: (id: string) => void;
   onSelectPage: (id: string) => void;
   onCreateNotebook: (title: string) => void;
@@ -68,8 +71,10 @@ export function AppSidebar({
   notebooks,
   pages,
   favorites,
+  activeView,
   selectedNotebookId,
   selectedPageId,
+  onSelectTasks,
   onSelectNotebook,
   onSelectPage,
   onCreateNotebook,
@@ -108,16 +113,35 @@ export function AppSidebar({
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded bg-primary/10">
-              <BookOpen className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
+              <ClipboardList className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
             </div>
             {!collapsed && (
-              <span className="text-base sm:text-sm font-semibold tracking-tight">SmartNotes</span>
+              <span className="text-base sm:text-sm font-semibold tracking-tight">VISTA Task Control</span>
             )}
           </div>
         </SidebarHeader>
 
         <SidebarContent>
           <ScrollArea className="flex-1">
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={onSelectTasks}
+                      className={cn(
+                        "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
+                        activeView === "tasks" && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <ClipboardList className="h-4 w-4 sm:h-3 sm:w-3" />
+                      {!collapsed && <span>Task Manager</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
             {/* Favorites */}
             {favorites.length > 0 && (
               <SidebarGroup>
@@ -153,7 +177,7 @@ export function AppSidebar({
             <SidebarGroup>
               <div className="flex items-center justify-between px-2">
                 <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {!collapsed && "Cadernos"}
+                  {!collapsed && "Diario"}
                 </SidebarGroupLabel>
                 {!collapsed && (
                   <Button
@@ -182,7 +206,7 @@ export function AppSidebar({
                             if (newTitle.trim()) handleCreateNotebook();
                             else setNewNotebookMode(false);
                           }}
-                          placeholder="Nome do caderno..."
+                          placeholder="Nome do diario..."
                           className="h-10 sm:h-7 text-sm sm:text-xs"
                           autoFocus
                         />
@@ -269,28 +293,35 @@ export function AppSidebar({
                         <CollapsibleContent>
                           {selectedNotebookId === notebook.id && (
                             <div className="ml-4 border-l border-sidebar-border pl-2 py-1 space-y-0.5">
-                              {pages.map((page) => (
-                                <button
-                                  key={page.id}
-                                  onClick={() => onSelectPage(page.id)}
-                                  className={cn(
-                                    "flex items-center gap-2 w-full rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0",
-                                    selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                  )}
-                                >
-                                  <FileText className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
-                                  <span className="truncate">{page.title}</span>
-                                  {page.is_favorite && (
-                                    <Star className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5 text-warning fill-warning ml-auto shrink-0" />
-                                  )}
-                                </button>
+                              {groupPagesByDate(pages).map((group) => (
+                                <div key={group.key} className="space-y-0.5">
+                                  <div className="px-2 pt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                    {group.label}
+                                  </div>
+                                  {group.pages.map((page) => (
+                                    <button
+                                      key={page.id}
+                                      onClick={() => onSelectPage(page.id)}
+                                      className={cn(
+                                        "flex items-center gap-2 w-full rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0",
+                                        selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                      )}
+                                    >
+                                      <FileText className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
+                                      <span className="truncate">{formatDiaryEntryTitle(page)}</span>
+                                      {page.is_favorite && (
+                                        <Star className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5 text-warning fill-warning ml-auto shrink-0" />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
                               ))}
                               <button
                                 onClick={onCreatePage}
                                 className="flex items-center gap-2 w-full rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0"
                               >
                                 <Plus className="h-4 w-4 sm:h-3 sm:w-3" />
-                                Nova página
+                                Nova entrada
                               </button>
                             </div>
                           )}
@@ -306,7 +337,7 @@ export function AppSidebar({
 
         <SidebarFooter className="p-2">
           <div className="font-mono-accent text-[9px] text-muted-foreground/50 text-center">
-            SmartNotes v1.0
+            VISTA Task Control v1.0
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -315,9 +346,9 @@ export function AppSidebar({
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir caderno?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir diario?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todas as páginas deste caderno serão excluídas permanentemente.
+              Todas as entradas deste diario serao excluidas permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -336,4 +367,30 @@ export function AppSidebar({
       </AlertDialog>
     </>
   );
+}
+
+function groupPagesByDate(pages: Page[]) {
+  const groups = new Map<string, { key: string; label: string; pages: Page[] }>();
+
+  [...pages]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .forEach((page) => {
+      const date = new Date(page.created_at);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const label = date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const group = groups.get(key) || { key, label, pages: [] };
+      group.pages.push(page);
+      groups.set(key, group);
+    });
+
+  return Array.from(groups.values());
+}
+
+function formatDiaryEntryTitle(page: Page) {
+  const date = new Date(page.created_at).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+
+  return `${date} - ${page.title}`;
 }

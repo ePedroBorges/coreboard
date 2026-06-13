@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
+  const [activeView, setActiveView] = useState<"tasks" | "diary">("tasks");
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
@@ -25,12 +26,20 @@ const Index = () => {
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId);
 
   const handleSelectNotebook = useCallback((id: string) => {
+    setActiveView("diary");
     setSelectedNotebookId(id);
     setSelectedPageId(null);
   }, []);
 
   const handleSelectPage = useCallback((id: string) => {
+    setActiveView("diary");
     setSelectedPageId(id);
+  }, []);
+
+  const handleSelectTasks = useCallback(() => {
+    setActiveView("tasks");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
   }, []);
 
   const handleToggleFocus = useCallback(() => {
