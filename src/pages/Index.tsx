@@ -61,6 +61,8 @@ const Index = () => {
       <div className="min-h-screen flex w-full">
         {!focusMode && (
           <AppSidebar
+            activeView={activeView}
+            onSelectTasks={handleSelectTasks}
             notebooks={notebooks.data || []}
             pages={pages.data || []}
             favorites={favorites.data || []}
