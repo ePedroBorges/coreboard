@@ -61,10 +61,8 @@ const Auth = () => {
           <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 glow-sm">
             <BookOpen className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">SmartNotes</h1>
-          <p className="font-mono-accent text-xs text-muted-foreground">
-            Seu segundo cérebro digital
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">VISTA Task Control</h1>
+          <p className="font-mono-accent text-xs text-muted-foreground">Controle total em suas atividades e ideias</p>
         </div>
 
         <Card className="border-border/50">
@@ -153,10 +151,7 @@ const Auth = () => {
                 </p>
               )}
               {mode === "forgot" && (
-                <button
-                  onClick={() => setMode("login")}
-                  className="text-primary hover:underline"
-                >
+                <button onClick={() => setMode("login")} className="text-primary hover:underline">
                   Voltar ao login
                 </button>
               )}
