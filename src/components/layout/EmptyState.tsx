@@ -21,7 +21,7 @@ export function EmptyState({ hasNotebooks, hasSelectedNotebook, onCreateNotebook
         {!hasNotebooks ? (
           <>
             <div>
-              <h2 className="text-lg font-semibold mb-1">Bem-vindo ao SmartNotes</h2>
+              <h2 className="text-lg font-semibold mb-1">Bem-vindo ao VISTA Task Control</h2>
               <p className="text-sm text-muted-foreground">
                 Crie seu primeiro caderno para começar a organizar suas ideias.
               </p>
@@ -34,17 +34,13 @@ export function EmptyState({ hasNotebooks, hasSelectedNotebook, onCreateNotebook
         ) : !hasSelectedNotebook ? (
           <div>
             <h2 className="text-lg font-semibold mb-1">Selecione um caderno</h2>
-            <p className="text-sm text-muted-foreground">
-              Escolha um caderno no menu lateral para ver suas páginas.
-            </p>
+            <p className="text-sm text-muted-foreground">Escolha um caderno no menu lateral para ver suas páginas.</p>
           </div>
         ) : (
           <>
             <div>
               <h2 className="text-lg font-semibold mb-1">Caderno vazio</h2>
-              <p className="text-sm text-muted-foreground">
-                Crie uma página para começar a escrever.
-              </p>
+              <p className="text-sm text-muted-foreground">Crie uma página para começar a escrever.</p>
             </div>
             <Button onClick={onCreatePage} className="glow-sm">
               <FileText className="mr-2 h-4 w-4" />
