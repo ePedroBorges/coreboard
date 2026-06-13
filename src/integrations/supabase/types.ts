@@ -212,8 +212,6 @@ export type Database = {
       }
       weekly_tasks: {
         Row: {
-          assignee: string | null
-          completed_at: string | null
           created_at: string
           id: string
           status: Database["public"]["Enums"]["task_status"]
@@ -224,8 +222,6 @@ export type Database = {
           week_start: string
         }
         Insert: {
-          assignee?: string | null
-          completed_at?: string | null
           created_at?: string
           id?: string
           status?: Database["public"]["Enums"]["task_status"]
@@ -236,8 +232,6 @@ export type Database = {
           week_start: string
         }
         Update: {
-          assignee?: string | null
-          completed_at?: string | null
           created_at?: string
           id?: string
           status?: Database["public"]["Enums"]["task_status"]
@@ -248,44 +242,6 @@ export type Database = {
           week_start?: string
         }
         Relationships: []
-      }
-      task_pending_reasons: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          id: string
-          reason: string
-          responsible: string | null
-          task_id: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          reason: string
-          responsible?: string | null
-          task_id: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          id?: string
-          reason?: string
-          responsible?: string | null
-          task_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_pending_reasons_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "weekly_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
