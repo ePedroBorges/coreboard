@@ -11,6 +11,9 @@ import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
+
+const defaultNotebookName = () => `${format(new Date(), "MM/yyyy")} - Novo Caderno`;
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
