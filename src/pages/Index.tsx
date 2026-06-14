@@ -11,6 +11,9 @@ import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { format } from "date-fns";
+
+const defaultNotebookName = () => `${format(new Date(), "MM/yyyy")} - Novo Caderno`;
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
@@ -74,6 +77,11 @@ const Index = () => {
             onDeleteNotebook={(id) => notebooks.deleteNotebook.mutate(id)}
             onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
             onCreatePage={() => pages.createPage.mutate("Nova Página")}
+            onRenamePage={(id, title) => pages.updatePage.mutate({ id, title })}
+            onDeletePage={(id) => {
+              if (selectedPageId === id) setSelectedPageId(null);
+              pages.deletePage.mutate(id);
+            }}
             onToggleFavorite={(id, fav) => pages.toggleFavorite.mutate({ id, is_favorite: fav })}
           />
         )}

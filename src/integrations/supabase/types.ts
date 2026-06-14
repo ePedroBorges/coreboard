@@ -215,6 +215,9 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          priority: string
+          progress_current: number
+          progress_target: number | null
           reason: string
           responsible: string | null
           task_id: string
@@ -224,6 +227,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
           reason: string
           responsible?: string | null
           task_id: string
@@ -233,6 +239,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
           reason?: string
           responsible?: string | null
           task_id?: string
@@ -254,6 +263,9 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          priority: string
+          progress_current: number
+          progress_target: number | null
           status: Database["public"]["Enums"]["task_status"]
           task_date: string
           title: string
@@ -266,6 +278,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
           status?: Database["public"]["Enums"]["task_status"]
           task_date: string
           title: string
@@ -278,6 +293,9 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
           status?: Database["public"]["Enums"]["task_status"]
           task_date?: string
           title?: string

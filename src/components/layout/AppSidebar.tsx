@@ -64,6 +64,8 @@ interface AppSidebarProps {
   onDeleteNotebook: (id: string) => void;
   onRenameNotebook: (id: string, title: string) => void;
   onCreatePage: () => void;
+  onRenamePage: (id: string, title: string) => void;
+  onDeletePage: (id: string) => void;
   onToggleFavorite: (id: string, fav: boolean) => void;
 }
 
@@ -81,15 +83,28 @@ export function AppSidebar({
   onDeleteNotebook,
   onRenameNotebook,
   onCreatePage,
+  onRenamePage,
+  onDeletePage,
   onToggleFavorite,
 }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deletePageId, setDeletePageId] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [renamePageId, setRenamePageId] = useState<string | null>(null);
+  const [renamePageValue, setRenamePageValue] = useState("");
   const [newNotebookMode, setNewNotebookMode] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+
+  const handleRenamePage = () => {
+    if (renamePageId && renamePageValue.trim()) {
+      onRenamePage(renamePageId, renamePageValue.trim());
+      setRenamePageId(null);
+      setRenamePageValue("");
+    }
+  };
 
   const handleCreateNotebook = () => {
     if (newTitle.trim()) {
@@ -299,20 +314,63 @@ export function AppSidebar({
                                     {group.label}
                                   </div>
                                   {group.pages.map((page) => (
-                                    <button
-                                      key={page.id}
-                                      onClick={() => onSelectPage(page.id)}
-                                      className={cn(
-                                        "flex items-center gap-2 w-full rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0",
-                                        selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                    <div key={page.id} className="group/page flex items-center gap-1">
+                                      {renamePageId === page.id ? (
+                                        <Input
+                                          autoFocus
+                                          value={renamePageValue}
+                                          onChange={(e) => setRenamePageValue(e.target.value)}
+                                          onBlur={handleRenamePage}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") handleRenamePage();
+                                            if (e.key === "Escape") setRenamePageId(null);
+                                          }}
+                                          className="h-8 text-xs"
+                                          onClick={(e) => e.stopPropagation()}
+                                        />
+                                      ) : (
+                                        <>
+                                          <button
+                                            onClick={() => onSelectPage(page.id)}
+                                            className={cn(
+                                              "flex items-center gap-2 flex-1 min-w-0 rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0",
+                                              selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                            )}
+                                          >
+                                            <FileText className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
+                                            <span className="truncate">{formatDiaryEntryTitle(page)}</span>
+                                            {page.is_favorite && (
+                                              <Star className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5 text-warning fill-warning ml-auto shrink-0" />
+                                            )}
+                                          </button>
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <button className="p-1 rounded hover:bg-background/50 opacity-100 sm:opacity-0 sm:group-hover/page:opacity-100 transition-opacity">
+                                                <MoreHorizontal className="h-3.5 w-3.5" />
+                                              </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-36">
+                                              <DropdownMenuItem
+                                                onClick={() => {
+                                                  setRenamePageId(page.id);
+                                                  setRenamePageValue(page.title);
+                                                }}
+                                              >
+                                                <Pencil className="mr-2 h-4 w-4" />
+                                                Renomear
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem
+                                                className="text-destructive"
+                                                onClick={() => setDeletePageId(page.id)}
+                                              >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Excluir
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        </>
                                       )}
-                                    >
-                                      <FileText className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
-                                      <span className="truncate">{formatDiaryEntryTitle(page)}</span>
-                                      {page.is_favorite && (
-                                        <Star className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5 text-warning fill-warning ml-auto shrink-0" />
-                                      )}
-                                    </button>
+                                    </div>
                                   ))}
                                 </div>
                               ))}
@@ -358,6 +416,29 @@ export function AppSidebar({
               onClick={() => {
                 if (deleteId) onDeleteNotebook(deleteId);
                 setDeleteId(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!deletePageId} onOpenChange={() => setDeletePageId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir página?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta página será excluída permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deletePageId) onDeletePage(deletePageId);
+                setDeletePageId(null);
               }}
             >
               Excluir
