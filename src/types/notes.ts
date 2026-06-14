@@ -47,7 +47,8 @@ export type BlockType =
   | "numbered-list"
   | "checklist"
   | "image"
-  | "drawing";
+  | "drawing"
+  | "attachment";
 
 export interface Block {
   id: string;
@@ -55,5 +56,10 @@ export interface Block {
   content: string;
   checked?: boolean;
   imageUrl?: string;
+  // Attachment fields (PDFs / images)
+  fileUrl?: string;     // signed URL or storage path
+  filePath?: string;    // storage path inside bucket
+  fileName?: string;
+  fileType?: string;    // mime
   meta?: Record<string, unknown>;
 }

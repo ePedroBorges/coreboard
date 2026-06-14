@@ -1,4 +1,4 @@
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Block, BlockType } from "@/types/notes";
 import { cn } from "@/lib/utils";
 import {
@@ -12,6 +12,11 @@ import {
   List,
   ListOrdered,
   CheckSquare,
+  Paperclip,
+  FileText,
+  Image as ImageIcon,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,6 +25,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface BlockEditorProps {
   blocks: Block[];
@@ -36,10 +44,61 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ElementType }[]
   { type: "bullet-list", label: "Lista", icon: List },
   { type: "numbered-list", label: "Lista numerada", icon: ListOrdered },
   { type: "checklist", label: "Checklist", icon: CheckSquare },
+  { type: "attachment", label: "Anexo (PDF/Imagem)", icon: Paperclip },
 ];
 
+/**
+ * Editable text block that preserves cursor position.
+ * Sets initial HTML once on mount (and when block id changes).
+ * Subsequent prop changes do NOT overwrite content while editing.
+ */
+function EditableContent({
+  blockId,
+  initialContent,
+  onInput,
+  onKeyDown,
+  className,
+  placeholder,
+  refCallback,
+}: {
+  blockId: string;
+  initialContent: string;
+  onInput: (text: string) => void;
+  onKeyDown: (e: KeyboardEvent) => void;
+  className?: string;
+  placeholder?: string;
+  refCallback?: (el: HTMLElement | null) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current && ref.current.textContent !== initialContent) {
+      ref.current.textContent = initialContent;
+    }
+    // Only reset content when block identity changes — never on parent re-render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockId]);
+
+  return (
+    <div
+      ref={(el) => {
+        ref.current = el;
+        refCallback?.(el);
+      }}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={(e) => onInput((e.target as HTMLElement).textContent || "")}
+      onKeyDown={onKeyDown}
+      className={className}
+      data-placeholder={placeholder}
+    />
+  );
+}
+
 export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
+  const { user } = useAuth();
   const [slashMenuIndex, setSlashMenuIndex] = useState<number | null>(null);
+  const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const blockRefs = useRef<(HTMLElement | null)[]>([]);
 
   const addBlock = (type: BlockType = "paragraph", afterIndex?: number) => {
@@ -104,10 +163,38 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
   };
 
   const handleSlashSelect = (type: BlockType, index: number) => {
-    updateBlock(index, { type, content: "" });
-    if (type === "checklist") updateBlock(index, { type, content: "", checked: false });
+    const updates: Partial<Block> = { type, content: "" };
+    if (type === "checklist") updates.checked = false;
+    updateBlock(index, updates);
     setSlashMenuIndex(null);
     setTimeout(() => blockRefs.current[index]?.focus(), 50);
+  };
+
+  const handleFileUpload = async (index: number, file: File) => {
+    if (!user) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx 20MB)");
+      return;
+    }
+    setUploadingIdx(index);
+    try {
+      const path = `${user.id}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+      const { error } = await supabase.storage
+        .from("page-attachments")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (error) throw error;
+      updateBlock(index, {
+        filePath: path,
+        fileName: file.name,
+        fileType: file.type,
+        content: file.name,
+      });
+      toast.success("Anexo enviado");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao enviar anexo");
+    } finally {
+      setUploadingIdx(null);
+    }
   };
 
   const getBlockClassName = (type: BlockType) => {
@@ -147,7 +234,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                   <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuContent align="start" className="w-52">
                 {BLOCK_TYPES.map((bt) => (
                   <DropdownMenuItem
                     key={bt.type}
@@ -167,43 +254,43 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
 
           {/* Block content */}
           <div className="flex-1 min-w-0">
-            {block.type === "checklist" ? (
+            {block.type === "attachment" ? (
+              <AttachmentBlock
+                block={block}
+                uploading={uploadingIdx === index}
+                onUpload={(file) => handleFileUpload(index, file)}
+              />
+            ) : block.type === "checklist" ? (
               <div className="flex items-start gap-2 py-1 sm:py-0.5">
                 <Checkbox
                   checked={block.checked}
                   onCheckedChange={(checked) => updateBlock(index, { checked: !!checked })}
                   className="mt-1 h-5 w-5 sm:h-4 sm:w-4"
                 />
-                <div
-                  ref={(el) => { blockRefs.current[index] = el; }}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) =>
-                    updateBlock(index, { content: (e.target as HTMLElement).textContent || "" })
-                  }
+                <EditableContent
+                  blockId={block.id}
+                  initialContent={block.content}
+                  onInput={(text) => updateBlock(index, { content: text })}
                   onKeyDown={(e) => handleKeyDown(e, index)}
+                  refCallback={(el) => { blockRefs.current[index] = el; }}
                   className={cn(
                     "flex-1 outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]",
                     block.checked && "line-through text-muted-foreground"
                   )}
-                  data-placeholder="Item..."
-                >
-                  {block.content}
-                </div>
+                  placeholder="Item..."
+                />
               </div>
             ) : block.type === "bullet-list" ? (
               <div className="flex items-start gap-2 py-1 sm:py-0.5">
                 <span className="text-muted-foreground mt-0.5 shrink-0">•</span>
-                <div
-                  ref={(el) => { blockRefs.current[index] = el; }}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) =>
-                    updateBlock(index, { content: (e.target as HTMLElement).textContent || "" })
-                  }
+                <EditableContent
+                  blockId={block.id}
+                  initialContent={block.content}
+                  onInput={(text) => updateBlock(index, { content: text })}
                   onKeyDown={(e) => handleKeyDown(e, index)}
+                  refCallback={(el) => { blockRefs.current[index] = el; }}
                   className="flex-1 outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]"
-                  data-placeholder="Item da lista..."
+                  placeholder="Item da lista..."
                 />
               </div>
             ) : block.type === "numbered-list" ? (
@@ -211,32 +298,28 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                 <span className="font-mono-accent text-sm sm:text-xs text-muted-foreground mt-0.5 shrink-0 w-4 text-right">
                   {index + 1}.
                 </span>
-                <div
-                  ref={(el) => { blockRefs.current[index] = el; }}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) =>
-                    updateBlock(index, { content: (e.target as HTMLElement).textContent || "" })
-                  }
+                <EditableContent
+                  blockId={block.id}
+                  initialContent={block.content}
+                  onInput={(text) => updateBlock(index, { content: text })}
                   onKeyDown={(e) => handleKeyDown(e, index)}
+                  refCallback={(el) => { blockRefs.current[index] = el; }}
                   className="flex-1 outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]"
-                  data-placeholder="Item..."
+                  placeholder="Item..."
                 />
               </div>
             ) : (
-              <div
-                ref={(el) => { blockRefs.current[index] = el; }}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={(e) =>
-                  updateBlock(index, { content: (e.target as HTMLElement).textContent || "" })
-                }
+              <EditableContent
+                blockId={block.id}
+                initialContent={block.content}
+                onInput={(text) => updateBlock(index, { content: text })}
                 onKeyDown={(e) => handleKeyDown(e, index)}
+                refCallback={(el) => { blockRefs.current[index] = el; }}
                 className={cn(
                   "outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]",
                   getBlockClassName(block.type)
                 )}
-                data-placeholder={
+                placeholder={
                   block.type === "heading1" ? "Título 1"
                     : block.type === "heading2" ? "Título 2"
                     : block.type === "heading3" ? "Título 3"
@@ -280,6 +363,101 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
         <Plus className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
         Adicionar bloco
       </button>
+    </div>
+  );
+}
+
+function AttachmentBlock({
+  block,
+  uploading,
+  onUpload,
+}: {
+  block: Block;
+  uploading: boolean;
+  onUpload: (file: File) => void;
+}) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (block.filePath) {
+      supabase.storage
+        .from("page-attachments")
+        .createSignedUrl(block.filePath, 60 * 60)
+        .then(({ data }) => {
+          if (active && data?.signedUrl) setSignedUrl(data.signedUrl);
+        });
+    } else {
+      setSignedUrl(null);
+    }
+    return () => { active = false; };
+  }, [block.filePath]);
+
+  const isImage = (block.fileType || "").startsWith("image/");
+
+  if (!block.filePath) {
+    return (
+      <div className="my-2 rounded-md border border-dashed border-border p-4 text-center">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onUpload(file);
+          }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {uploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Paperclip className="h-4 w-4" />
+          )}
+          {uploading ? "Enviando..." : "Selecionar PDF ou imagem"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="my-2 rounded-md border border-border bg-card/30 p-3">
+      {isImage && signedUrl ? (
+        <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+          <img
+            src={signedUrl}
+            alt={block.fileName || "Anexo"}
+            className="max-h-96 w-auto rounded mx-auto"
+            loading="lazy"
+          />
+        </a>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {isImage ? <ImageIcon className="h-5 w-5 shrink-0 text-primary" /> : <FileText className="h-5 w-5 shrink-0 text-primary" />}
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{block.fileName}</div>
+              <div className="text-[11px] text-muted-foreground">{block.fileType}</div>
+            </div>
+          </div>
+          {signedUrl && (
+            <a
+              href={signedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent transition-colors"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Abrir
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }

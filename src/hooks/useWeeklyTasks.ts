@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export type TaskStatus = "pending" | "completed";
+export type Priority = "low" | "medium" | "high";
 
 export interface TaskPendingReason {
   id: string;
@@ -12,6 +13,9 @@ export interface TaskPendingReason {
   user_id: string;
   reason: string;
   responsible: string | null;
+  priority: Priority;
+  progress_current: number;
+  progress_target: number | null;
   created_at: string;
   completed_at: string | null;
 }
@@ -24,6 +28,9 @@ export interface WeeklyTask {
   status: TaskStatus;
   week_start: string;
   assignee: string | null;
+  priority: Priority;
+  progress_current: number;
+  progress_target: number | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -33,12 +40,16 @@ export interface WeeklyTask {
 type CreateTaskInput = {
   title: string;
   assignee?: string;
+  priority?: Priority;
+  progress_target?: number | null;
 };
 
 type AddPendingReasonInput = {
   taskId: string;
   reason: string;
   responsible?: string;
+  priority?: Priority;
+  progress_target?: number | null;
 };
 
 const todayKey = () => format(new Date(), "yyyy-MM-dd");
@@ -55,7 +66,6 @@ export function useWeeklyTasks() {
       const { data: tasks, error } = await supabase
         .from("weekly_tasks")
         .select("*")
-        .order("status", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -65,7 +75,7 @@ export function useWeeklyTasks() {
 
       if (taskIds.length > 0) {
         const { data: reasonRows, error: reasonError } = await supabase
-          .from("task_pending_reasons" as any)
+          .from("task_pending_reasons")
           .select("*")
           .in("task_id", taskIds)
           .order("created_at", { ascending: false });
@@ -78,6 +88,9 @@ export function useWeeklyTasks() {
         ...task,
         status: task.status === "completed" ? "completed" : "pending",
         assignee: task.assignee || null,
+        priority: (task.priority || "medium") as Priority,
+        progress_current: task.progress_current ?? 0,
+        progress_target: task.progress_target ?? null,
         completed_at: task.completed_at || null,
         pending_reasons: reasons.filter((reason) => reason.task_id === task.id),
       }));
@@ -87,12 +100,15 @@ export function useWeeklyTasks() {
   const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ["tasks"] });
 
   const createTask = useMutation({
-    mutationFn: async ({ title, assignee }: CreateTaskInput) => {
+    mutationFn: async ({ title, assignee, priority, progress_target }: CreateTaskInput) => {
       const { data, error } = await supabase
         .from("weekly_tasks")
         .insert({
           title,
           assignee: assignee?.trim() || null,
+          priority: priority || "medium",
+          progress_target: progress_target ?? null,
+          progress_current: 0,
           user_id: user!.id,
           task_date: todayKey(),
           week_start: currentWeekKey(),
@@ -132,6 +148,32 @@ export function useWeeklyTasks() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  /** Increments progress; auto-completes when reaching target */
+  const incrementTaskProgress = useMutation({
+    mutationFn: async ({
+      id,
+      delta,
+      current,
+      target,
+    }: {
+      id: string;
+      delta: number;
+      current: number;
+      target: number | null;
+    }) => {
+      const next = Math.max(0, current + delta);
+      const payload: any = { progress_current: next };
+      if (target && next >= target) {
+        payload.status = "completed";
+        payload.completed_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("weekly_tasks").update(payload).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidateTasks,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const deleteTask = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("weekly_tasks").delete().eq("id", id);
@@ -145,12 +187,15 @@ export function useWeeklyTasks() {
   });
 
   const addPendingReason = useMutation({
-    mutationFn: async ({ taskId, reason, responsible }: AddPendingReasonInput) => {
-      const { error } = await supabase.from("task_pending_reasons" as any).insert({
+    mutationFn: async ({ taskId, reason, responsible, priority, progress_target }: AddPendingReasonInput) => {
+      const { error } = await supabase.from("task_pending_reasons").insert({
         task_id: taskId,
         user_id: user!.id,
         reason,
         responsible: responsible?.trim() || null,
+        priority: priority || "medium",
+        progress_target: progress_target ?? null,
+        progress_current: 0,
       } as any);
 
       if (error) throw error;
@@ -162,10 +207,55 @@ export function useWeeklyTasks() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updatePendingReason = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<TaskPendingReason> & { id: string }) => {
+      const { error } = await supabase
+        .from("task_pending_reasons")
+        .update(updates as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidateTasks,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const incrementReasonProgress = useMutation({
+    mutationFn: async ({
+      id,
+      delta,
+      current,
+      target,
+    }: {
+      id: string;
+      delta: number;
+      current: number;
+      target: number | null;
+    }) => {
+      const next = Math.max(0, current + delta);
+      const payload: any = { progress_current: next };
+      if (target && next >= target) {
+        payload.completed_at = new Date().toISOString();
+      }
+      const { error } = await supabase.from("task_pending_reasons").update(payload).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidateTasks,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deletePendingReason = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("task_pending_reasons").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidateTasks,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const completePendingReason = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("task_pending_reasons" as any)
+        .from("task_pending_reasons")
         .update({ completed_at: new Date().toISOString() } as any)
         .eq("id", id);
 
@@ -179,8 +269,12 @@ export function useWeeklyTasks() {
     ...query,
     createTask,
     updateTask,
+    incrementTaskProgress,
     deleteTask,
     addPendingReason,
+    updatePendingReason,
+    incrementReasonProgress,
+    deletePendingReason,
     completePendingReason,
   };
 }
