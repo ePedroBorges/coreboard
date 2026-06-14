@@ -74,6 +74,11 @@ const Index = () => {
             onDeleteNotebook={(id) => notebooks.deleteNotebook.mutate(id)}
             onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
             onCreatePage={() => pages.createPage.mutate("Nova Página")}
+            onRenamePage={(id, title) => pages.updatePage.mutate({ id, title })}
+            onDeletePage={(id) => {
+              if (selectedPageId === id) setSelectedPageId(null);
+              pages.deletePage.mutate(id);
+            }}
             onToggleFavorite={(id, fav) => pages.toggleFavorite.mutate({ id, is_favorite: fav })}
           />
         )}
