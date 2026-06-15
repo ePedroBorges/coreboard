@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -132,7 +132,7 @@ export function WeeklyTaskManager() {
   }, [tasks, tasksForSelectedDay, view]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:p-6">
       {/* Header + KPIs */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -141,7 +141,7 @@ export function WeeklyTaskManager() {
             Visualize tarefas por dia, controle pendências e prioridades.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           <Metric label="Total" value={stats.total} />
           <Metric label="Pendentes" value={stats.pending} tone="warning" />
           <Metric label="Concluídas" value={stats.completed} tone="success" />
@@ -171,7 +171,7 @@ export function WeeklyTaskManager() {
 
       {/* Create task */}
       <div className="rounded-md border border-border/60 bg-card p-3 sm:p-4">
-        <div className="grid gap-2 lg:grid-cols-[1fr_180px_120px_120px_auto]">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_120px_120px_auto]">
           <Input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -201,7 +201,7 @@ export function WeeklyTaskManager() {
             placeholder="Meta (ex: 20)"
             className="h-11"
           />
-          <Button onClick={handleCreateTask} className="h-11 gap-2" disabled={!newTitle.trim() || createTask.isPending}>
+          <Button onClick={handleCreateTask} className="h-11 gap-2 sm:col-span-2 lg:col-span-1" disabled={!newTitle.trim() || createTask.isPending}>
             {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Criar
           </Button>
@@ -211,9 +211,9 @@ export function WeeklyTaskManager() {
       {/* Day picker (only for day view) */}
       {view === "day" && (
         <div className="rounded-md border border-border/60 bg-card p-3 sm:p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
-              <SelectTrigger className="h-10 w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 w-full sm:w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MONTHS.map((m) => (
                   <SelectItem key={m} value={String(m)}>{monthName(m)}</SelectItem>
@@ -221,21 +221,21 @@ export function WeeklyTaskManager() {
               </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
-              <SelectTrigger className="h-10 w-28"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 w-full sm:w-28"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {years.map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={() => {
+            <Button className="col-span-2 sm:col-span-1" variant="outline" size="sm" onClick={() => {
               setYear(today.getFullYear()); setMonth(today.getMonth()); setSelectedDay(today);
             }}>
               Hoje
             </Button>
           </div>
 
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+          <div className="-mx-3 flex snap-x gap-1.5 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
             {monthDays.map((day) => {
               const isSelected = isSameDay(day, selectedDay);
               const isToday = isSameDay(day, today);
@@ -244,7 +244,7 @@ export function WeeklyTaskManager() {
                   key={day.toISOString()}
                   onClick={() => setSelectedDay(day)}
                   className={cn(
-                    "flex min-w-[52px] flex-col items-center rounded-md border px-2 py-2 text-xs transition-colors",
+                    "flex min-w-[52px] snap-start flex-col items-center rounded-md border px-2 py-2 text-xs transition-colors sm:min-w-[56px]",
                     isSelected
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border/50 hover:border-border",
@@ -296,7 +296,7 @@ export function WeeklyTaskManager() {
 }
 
 /* -------------- Task card (collapsed by default) -------------- */
-function TaskCard({
+const TaskCard = memo(function TaskCard({
   task,
   onUpdate,
   onDelete,
@@ -343,7 +343,7 @@ function TaskCard({
     setReason(""); setResponsible(""); setRPriority("medium"); setRTarget("");
   };
 
-  const handleTaskProgress = (value: number) => {
+  const handleTaskProgressCommit = (value: number) => {
     const reachedTarget = !!task.progress_target && value >= task.progress_target;
     onUpdate({
       progress_current: value,
@@ -354,7 +354,7 @@ function TaskCard({
   return (
     <article className="overflow-hidden rounded-md border border-border/60 bg-card shadow-sm">
       {/* Collapsed header */}
-      <div className="flex items-center gap-3 p-3 sm:p-4">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-center sm:p-4">
         <button
           onClick={() => setExpanded((e) => !e)}
           className="shrink-0 rounded p-1 hover:bg-accent"
@@ -407,7 +407,7 @@ function TaskCard({
         <Button
           variant={task.status === "completed" ? "outline" : "secondary"}
           size="sm"
-          className="shrink-0 gap-1"
+          className="col-span-2 h-10 gap-1 sm:col-span-1 sm:h-9 sm:shrink-0"
           onClick={() => onUpdate({ status: task.status === "completed" ? "pending" : "completed" })}
         >
           <Check className="h-3.5 w-3.5" />
@@ -424,7 +424,7 @@ function TaskCard({
       {expanded && (
         <div className="space-y-4 border-t border-border/40 p-3 sm:p-4">
           {/* Edit row: title + priority + progress */}
-          <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px_auto]">
             {editingTitle ? (
               <Input
                 autoFocus
@@ -465,13 +465,10 @@ function TaskCard({
                   {task.progress_current}/{task.progress_target}
                 </span>
               </div>
-              <input
-                type="range"
-                min={0}
+              <FluidProgressRange
                 max={task.progress_target}
                 value={Math.min(task.progress_current, task.progress_target)}
-                onChange={(e) => handleTaskProgress(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer accent-primary"
+                onCommit={handleTaskProgressCommit}
               />
             </div>
           )}
@@ -496,7 +493,7 @@ function TaskCard({
             </div>
 
             {/* Add form */}
-            <div className="mt-3 grid gap-2 rounded border border-border/50 bg-background/40 p-2 sm:grid-cols-[1fr_140px_120px_100px_auto]">
+            <div className="mt-3 grid gap-2 rounded border border-border/50 bg-background/40 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_140px_120px_100px_auto]">
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -519,7 +516,7 @@ function TaskCard({
                 placeholder="Meta"
                 className="h-10"
               />
-              <Button onClick={handleAddReason} disabled={!reason.trim()} className="h-10 gap-1">
+              <Button onClick={handleAddReason} disabled={!reason.trim()} className="h-10 gap-1 sm:col-span-2 xl:col-span-1">
                 <Plus className="h-4 w-4" /> Adicionar
               </Button>
             </div>
@@ -528,7 +525,7 @@ function TaskCard({
       )}
     </article>
   );
-}
+});
 
 function ReasonRow({
   reason,
@@ -552,7 +549,7 @@ function ReasonRow({
     setEditing(false);
   };
 
-  const handleReasonProgress = (value: number) => {
+  const handleReasonProgressCommit = (value: number) => {
     const reachedTarget = !!reason.progress_target && value >= reason.progress_target;
     onUpdate({
       progress_current: value,
@@ -562,7 +559,7 @@ function ReasonRow({
 
   return (
     <div className="rounded border border-border/40 p-2">
-      <div className="flex flex-wrap items-start gap-2">
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-start">
         <div className="min-w-0 flex-1">
           {editing ? (
             <Input
@@ -619,13 +616,10 @@ function ReasonRow({
             <span className="text-[11px] text-muted-foreground">Progresso</span>
             <span className="text-xs font-semibold">{reason.progress_current}/{reason.progress_target}</span>
           </div>
-          <input
-            type="range"
-            min={0}
+          <FluidProgressRange
             max={reason.progress_target}
             value={Math.min(reason.progress_current, reason.progress_target)}
-            onChange={(e) => handleReasonProgress(Number(e.target.value))}
-            className="h-2 w-full cursor-pointer accent-primary"
+            onCommit={handleReasonProgressCommit}
           />
         </div>
       )}
@@ -641,5 +635,59 @@ function Metric({ label, value, tone }: { label: string; value: number; tone?: "
       </div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
+  );
+}
+
+function FluidProgressRange({
+  value,
+  max,
+  onCommit,
+}: {
+  value: number;
+  max: number;
+  onCommit: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [dragging, setDragging] = useState(false);
+  const draftRef = useRef(value);
+  const lastCommitRef = useRef(value);
+
+  useEffect(() => {
+    if (!dragging) {
+      setDraft(value);
+      draftRef.current = value;
+      lastCommitRef.current = value;
+    }
+  }, [dragging, value]);
+
+  const commit = () => {
+    setDragging(false);
+    const nextValue = draftRef.current;
+    if (nextValue !== lastCommitRef.current) {
+      lastCommitRef.current = nextValue;
+      onCommit(nextValue);
+    }
+  };
+
+  return (
+    <input
+      type="range"
+      min={0}
+      max={max}
+      value={draft}
+      onPointerDown={() => setDragging(true)}
+      onPointerUp={commit}
+      onPointerCancel={commit}
+      onTouchEnd={commit}
+      onMouseUp={commit}
+      onBlur={commit}
+      onKeyUp={commit}
+      onChange={(e) => {
+        const nextValue = Number(e.target.value);
+        draftRef.current = nextValue;
+        setDraft(nextValue);
+      }}
+      className="h-8 w-full cursor-pointer touch-pan-y accent-primary [appearance:auto]"
+    />
   );
 }
