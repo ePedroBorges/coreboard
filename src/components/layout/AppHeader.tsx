@@ -6,6 +6,7 @@ import {
   Sun,
   Moon,
   Maximize2,
+  Minimize2,
   LogOut,
   BarChart3,
 } from "lucide-react";
