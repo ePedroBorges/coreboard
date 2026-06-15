@@ -23,7 +23,7 @@ interface AppHeaderProps {
   focusMode: boolean;
 }
 
-export function AppHeader({ onToggleFocus }: AppHeaderProps) {
+export function AppHeader({ onToggleFocus, focusMode }: AppHeaderProps) {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -47,8 +47,18 @@ export function AppHeader({ onToggleFocus }: AppHeaderProps) {
         >
           <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" onClick={onToggleFocus} title="Modo foco (Ctrl+Shift+F)">
-          <Maximize2 className="h-5 w-5 sm:h-4 sm:w-4" />
+        <Button
+          variant={focusMode ? "secondary" : "ghost"}
+          size="icon"
+          className="h-10 w-10 sm:h-8 sm:w-8"
+          onClick={onToggleFocus}
+          title={focusMode ? "Sair do modo foco" : "Modo foco (Ctrl+Shift+F)"}
+        >
+          {focusMode ? (
+            <Minimize2 className="h-5 w-5 sm:h-4 sm:w-4" />
+          ) : (
+            <Maximize2 className="h-5 w-5 sm:h-4 sm:w-4" />
+          )}
         </Button>
         <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" onClick={toggleTheme}>
           {theme === "dark" ? <Sun className="h-5 w-5 sm:h-4 sm:w-4" /> : <Moon className="h-5 w-5 sm:h-4 sm:w-4" />}

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { BookOpen, Plus, FileText } from "lucide-react";
+import { BookOpen, FileText, Plus } from "lucide-react";
 
 interface EmptyStateProps {
   hasNotebooks: boolean;
@@ -8,12 +8,17 @@ interface EmptyStateProps {
   onCreatePage: () => void;
 }
 
-export function EmptyState({ hasNotebooks, hasSelectedNotebook, onCreateNotebook, onCreatePage }: EmptyStateProps) {
+export function EmptyState({
+  hasNotebooks,
+  hasSelectedNotebook,
+  onCreateNotebook,
+  onCreatePage,
+}: EmptyStateProps) {
   return (
-    <div className="flex flex-1 items-center justify-center h-full p-8">
-      <div className="text-center max-w-md space-y-6">
+    <div className="flex h-full flex-1 items-center justify-center p-8">
+      <div className="max-w-md space-y-6 text-center">
         <div className="flex justify-center">
-          <div className="h-16 w-16 rounded-xl bg-primary/5 flex items-center justify-center glow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary/5 glow-sm">
             <BookOpen className="h-8 w-8 text-primary/60" />
           </div>
         </div>
@@ -21,30 +26,32 @@ export function EmptyState({ hasNotebooks, hasSelectedNotebook, onCreateNotebook
         {!hasNotebooks ? (
           <>
             <div>
-              <h2 className="text-lg font-semibold mb-1">Bem-vindo ao VISTA Task Control</h2>
+              <h2 className="mb-1 text-lg font-semibold">Bem-vindo ao VISTA Task Control</h2>
               <p className="text-sm text-muted-foreground">
-                Crie seu primeiro caderno para começar a organizar suas ideias.
+                Crie seu primeiro diario para organizar as entradas por data.
               </p>
             </div>
             <Button onClick={onCreateNotebook} className="glow-sm">
               <Plus className="mr-2 h-4 w-4" />
-              Criar caderno
+              Criar diario
             </Button>
           </>
         ) : !hasSelectedNotebook ? (
           <div>
-            <h2 className="text-lg font-semibold mb-1">Selecione um caderno</h2>
-            <p className="text-sm text-muted-foreground">Escolha um caderno no menu lateral para ver suas páginas.</p>
+            <h2 className="mb-1 text-lg font-semibold">Selecione um diario</h2>
+            <p className="text-sm text-muted-foreground">
+              Escolha um diario no menu lateral para ver suas entradas.
+            </p>
           </div>
         ) : (
           <>
             <div>
-              <h2 className="text-lg font-semibold mb-1">Caderno vazio</h2>
-              <p className="text-sm text-muted-foreground">Crie uma página para começar a escrever.</p>
+              <h2 className="mb-1 text-lg font-semibold">Diario vazio</h2>
+              <p className="text-sm text-muted-foreground">Crie uma entrada para comecar a escrever.</p>
             </div>
             <Button onClick={onCreatePage} className="glow-sm">
               <FileText className="mr-2 h-4 w-4" />
-              Nova página
+              Nova entrada
             </Button>
           </>
         )}

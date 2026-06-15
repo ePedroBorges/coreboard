@@ -8,7 +8,6 @@ import {
   ChevronUp,
   Clock3,
   Loader2,
-  Minus,
   Pencil,
   Plus,
   Trash2,
@@ -50,7 +49,7 @@ const monthName = (m: number) => format(new Date(2000, m, 1), "LLLL", { locale: 
 
 export function WeeklyTaskManager() {
   const today = new Date();
-  const [view, setView] = useState<"day" | "all">("day");
+  const [view, setView] = useState<"day" | "pending" | "completed" | "all">("day");
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<Date>(today);
@@ -66,11 +65,9 @@ export function WeeklyTaskManager() {
     isLoading,
     createTask,
     updateTask,
-    incrementTaskProgress,
     deleteTask,
     addPendingReason,
     updatePendingReason,
-    incrementReasonProgress,
     deletePendingReason,
     completePendingReason,
   } = useWeeklyTasks();
@@ -127,7 +124,12 @@ export function WeeklyTaskManager() {
 
   const years = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
 
-  const displayedTasks = view === "day" ? tasksForSelectedDay : tasks;
+  const displayedTasks = useMemo(() => {
+    if (view === "day") return tasksForSelectedDay;
+    if (view === "pending") return tasks.filter((task) => task.status === "pending");
+    if (view === "completed") return tasks.filter((task) => task.status === "completed");
+    return tasks;
+  }, [tasks, tasksForSelectedDay, view]);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
@@ -148,13 +150,23 @@ export function WeeklyTaskManager() {
       </div>
 
       {/* View tabs */}
-      <div className="flex gap-2">
-        <Button variant={view === "day" ? "secondary" : "outline"} size="sm" onClick={() => setView("day")}>
-          Por dia
-        </Button>
-        <Button variant={view === "all" ? "secondary" : "outline"} size="sm" onClick={() => setView("all")}>
-          Todas as tarefas
-        </Button>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { value: "day", label: "Por dia" },
+          { value: "pending", label: "Pendentes" },
+          { value: "completed", label: "Concluídas" },
+          { value: "all", label: "Todas as Tarefas" },
+        ].map((item) => (
+          <Button
+            key={item.value}
+            variant={view === item.value ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setView(item.value as typeof view)}
+            className="shrink-0"
+          >
+            {item.label}
+          </Button>
+        ))}
       </div>
 
       {/* Create task */}
@@ -271,14 +283,8 @@ export function WeeklyTaskManager() {
               task={task}
               onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
               onDelete={() => deleteTask.mutate(task.id)}
-              onIncrement={(delta) => incrementTaskProgress.mutate({
-                id: task.id, delta, current: task.progress_current, target: task.progress_target,
-              })}
               onAddReason={(input) => addPendingReason.mutate({ taskId: task.id, ...input })}
               onUpdateReason={(id, updates) => updatePendingReason.mutate({ id, ...updates })}
-              onIncrementReason={(r, delta) => incrementReasonProgress.mutate({
-                id: r.id, delta, current: r.progress_current, target: r.progress_target,
-              })}
               onDeleteReason={(id) => deletePendingReason.mutate(id)}
               onCompleteReason={(id) => completePendingReason.mutate(id)}
             />
@@ -294,20 +300,16 @@ function TaskCard({
   task,
   onUpdate,
   onDelete,
-  onIncrement,
   onAddReason,
   onUpdateReason,
-  onIncrementReason,
   onDeleteReason,
   onCompleteReason,
 }: {
   task: WeeklyTask;
   onUpdate: (updates: Partial<WeeklyTask>) => void;
   onDelete: () => void;
-  onIncrement: (delta: number) => void;
   onAddReason: (input: { reason: string; responsible?: string; priority?: Priority; progress_target?: number | null }) => void;
   onUpdateReason: (id: string, updates: Partial<TaskPendingReason>) => void;
-  onIncrementReason: (r: TaskPendingReason, delta: number) => void;
   onDeleteReason: (id: string) => void;
   onCompleteReason: (id: string) => void;
 }) {
@@ -339,6 +341,14 @@ function TaskCard({
       progress_target: rTarget.trim() ? Math.max(1, parseInt(rTarget, 10)) : null,
     });
     setReason(""); setResponsible(""); setRPriority("medium"); setRTarget("");
+  };
+
+  const handleTaskProgress = (value: number) => {
+    const reachedTarget = !!task.progress_target && value >= task.progress_target;
+    onUpdate({
+      progress_current: value,
+      status: reachedTarget ? "completed" : "pending",
+    });
   };
 
   return (
@@ -448,23 +458,21 @@ function TaskCard({
 
           {/* Progress controls */}
           {task.progress_target && (
-            <div className="flex items-center gap-2 rounded border border-border/50 bg-background/40 p-2">
-              <span className="text-xs text-muted-foreground">Progresso:</span>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onIncrement(-1)} disabled={task.progress_current <= 0}>
-                <Minus className="h-3.5 w-3.5" />
-              </Button>
-              <span className="min-w-[60px] text-center text-sm font-semibold">
-                {task.progress_current}/{task.progress_target}
-              </span>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onIncrement(1)} disabled={task.status === "completed"}>
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-              <div className="ml-2 h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={cn("h-full transition-all", task.status === "completed" ? "bg-success" : "bg-primary")}
-                  style={{ width: `${Math.min(100, (task.progress_current / task.progress_target) * 100)}%` }}
-                />
+            <div className="rounded border border-border/50 bg-background/40 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Progresso da meta</span>
+                <span className="text-sm font-semibold">
+                  {task.progress_current}/{task.progress_target}
+                </span>
               </div>
+              <input
+                type="range"
+                min={0}
+                max={task.progress_target}
+                value={Math.min(task.progress_current, task.progress_target)}
+                onChange={(e) => handleTaskProgress(Number(e.target.value))}
+                className="h-2 w-full cursor-pointer accent-primary"
+              />
             </div>
           )}
 
@@ -477,11 +485,10 @@ function TaskCard({
             {/* List */}
             <div className="space-y-2">
               {task.pending_reasons.map((r) => (
-                <ReasonRow
+              <ReasonRow
                   key={r.id}
                   reason={r}
                   onUpdate={(updates) => onUpdateReason(r.id, updates)}
-                  onIncrement={(delta) => onIncrementReason(r, delta)}
                   onComplete={() => onCompleteReason(r.id)}
                   onDelete={() => onDeleteReason(r.id)}
                 />
@@ -526,13 +533,11 @@ function TaskCard({
 function ReasonRow({
   reason,
   onUpdate,
-  onIncrement,
   onComplete,
   onDelete,
 }: {
   reason: TaskPendingReason;
   onUpdate: (updates: Partial<TaskPendingReason>) => void;
-  onIncrement: (delta: number) => void;
   onComplete: () => void;
   onDelete: () => void;
 }) {
@@ -545,6 +550,14 @@ function ReasonRow({
     const t = draft.trim();
     if (t && t !== reason.reason) onUpdate({ reason: t });
     setEditing(false);
+  };
+
+  const handleReasonProgress = (value: number) => {
+    const reachedTarget = !!reason.progress_target && value >= reason.progress_target;
+    onUpdate({
+      progress_current: value,
+      completed_at: reachedTarget ? new Date().toISOString() : null,
+    });
   };
 
   return (
@@ -601,20 +614,19 @@ function ReasonRow({
       </div>
 
       {reason.progress_target && (
-        <div className="mt-2 flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => onIncrement(-1)} disabled={isDone || reason.progress_current <= 0}>
-            <Minus className="h-3 w-3" />
-          </Button>
-          <span className="min-w-[50px] text-center text-xs font-semibold">{reason.progress_current}/{reason.progress_target}</span>
-          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => onIncrement(1)} disabled={isDone}>
-            <Plus className="h-3 w-3" />
-          </Button>
-          <div className="ml-2 h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className={cn("h-full", isDone ? "bg-success" : "bg-primary")}
-              style={{ width: `${Math.min(100, (reason.progress_current / reason.progress_target) * 100)}%` }}
-            />
+        <div className="mt-2 rounded border border-border/40 bg-background/40 p-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[11px] text-muted-foreground">Progresso</span>
+            <span className="text-xs font-semibold">{reason.progress_current}/{reason.progress_target}</span>
           </div>
+          <input
+            type="range"
+            min={0}
+            max={reason.progress_target}
+            value={Math.min(reason.progress_current, reason.progress_target)}
+            onChange={(e) => handleReasonProgress(Number(e.target.value))}
+            className="h-2 w-full cursor-pointer accent-primary"
+          />
         </div>
       )}
     </div>

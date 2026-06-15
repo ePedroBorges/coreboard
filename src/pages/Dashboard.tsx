@@ -149,6 +149,9 @@ const Dashboard = () => {
       <div className="min-h-screen flex w-full">
         <AppSidebar
           activeView="diary"
+          sidebarPinned
+          onToggleSidebarPinned={() => {}}
+          onMouseLeave={() => {}}
           onSelectTasks={() => {}}
           notebooks={notebooks.data || []}
           pages={[]}

@@ -22,6 +22,8 @@ import {
   MoreHorizontal,
   ChevronRight,
   Pencil,
+  Pin,
+  PinOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,8 +57,11 @@ interface AppSidebarProps {
   pages: Page[];
   favorites: Page[];
   activeView: "tasks" | "diary";
+  sidebarPinned: boolean;
   selectedNotebookId: string | null;
   selectedPageId: string | null;
+  onToggleSidebarPinned: () => void;
+  onMouseLeave: () => void;
   onSelectTasks: () => void;
   onSelectNotebook: (id: string) => void;
   onSelectPage: (id: string) => void;
@@ -74,8 +79,11 @@ export function AppSidebar({
   pages,
   favorites,
   activeView,
+  sidebarPinned,
   selectedNotebookId,
   selectedPageId,
+  onToggleSidebarPinned,
+  onMouseLeave,
   onSelectTasks,
   onSelectNotebook,
   onSelectPage,
@@ -124,7 +132,7 @@ export function AppSidebar({
 
   return (
     <>
-      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded bg-primary/10">
@@ -132,6 +140,17 @@ export function AppSidebar({
             </div>
             {!collapsed && (
               <span className="text-base sm:text-sm font-semibold tracking-tight">VISTA Task Control</span>
+            )}
+            {!collapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto h-8 w-8"
+                onClick={onToggleSidebarPinned}
+                title={sidebarPinned ? "Desafixar menu" : "Fixar menu"}
+              >
+                {sidebarPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+              </Button>
             )}
           </div>
         </SidebarHeader>
@@ -272,8 +291,13 @@ export function AppSidebar({
                                   {notebook.page_count}
                                 </span>
                                 <DropdownMenu>
-                                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <button className="p-1.5 sm:p-0.5 rounded hover:bg-background/50">
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      className="p-1.5 sm:p-0.5 rounded hover:bg-background/50"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                      }}
+                                    >
                                       <MoreHorizontal className="h-4 w-4 sm:h-3 sm:w-3" />
                                     </button>
                                   </DropdownMenuTrigger>
@@ -345,13 +369,19 @@ export function AppSidebar({
                                           </button>
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
-                                              <button className="p-1 rounded hover:bg-background/50 opacity-100 sm:opacity-0 sm:group-hover/page:opacity-100 transition-opacity">
+                                              <button
+                                                className="p-1 rounded hover:bg-background/50 opacity-100 sm:opacity-0 sm:group-hover/page:opacity-100 transition-opacity"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                }}
+                                              >
                                                 <MoreHorizontal className="h-3.5 w-3.5" />
                                               </button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-36">
                                               <DropdownMenuItem
-                                                onClick={() => {
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
                                                   setRenamePageId(page.id);
                                                   setRenamePageValue(page.title);
                                                 }}
@@ -361,7 +391,10 @@ export function AppSidebar({
                                               </DropdownMenuItem>
                                               <DropdownMenuItem
                                                 className="text-destructive"
-                                                onClick={() => setDeletePageId(page.id)}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setDeletePageId(page.id);
+                                                }}
                                               >
                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                 Excluir

@@ -1,6 +1,8 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import { format } from "date-fns";
+import { Navigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useTheme } from "@/hooks/useTheme";
 import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages } from "@/hooks/usePages";
 import { AppSidebar } from "@/components/layout/AppSidebar";
@@ -9,11 +11,8 @@ import { PageEditor } from "@/components/editor/PageEditor";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { Navigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
-import { format } from "date-fns";
 
-const defaultNotebookName = () => `${format(new Date(), "MM/yyyy")} - Novo Caderno`;
+const defaultDiaryName = () => `${format(new Date(), "MM/yyyy")} - Diario`;
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
@@ -21,12 +20,15 @@ const Index = () => {
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
+  const [sidebarHover, setSidebarHover] = useState(false);
 
   const notebooks = useNotebooks();
   const pages = usePages(selectedNotebookId || undefined);
   const favorites = useFavoritePages();
 
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId);
+  const sidebarOpen = !focusMode && (sidebarPinned || sidebarHover);
 
   const handleSelectNotebook = useCallback((id: string) => {
     setActiveView("diary");
@@ -46,8 +48,18 @@ const Index = () => {
   }, []);
 
   const handleToggleFocus = useCallback(() => {
-    setFocusMode((f) => !f);
+    setFocusMode((current) => !current);
   }, []);
+
+  const handleCreatePage = useCallback(() => {
+    if (!selectedNotebookId) return;
+    pages.createPage.mutate("Nova entrada", {
+      onSuccess: (page) => {
+        setActiveView("diary");
+        setSelectedPageId(page.id);
+      },
+    });
+  }, [pages.createPage, selectedNotebookId]);
 
   if (authLoading) {
     return (
@@ -60,11 +72,30 @@ const Index = () => {
   if (!user) return <Navigate to="/auth" replace />;
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      defaultOpen={false}
+      open={sidebarOpen}
+      onOpenChange={(open) => {
+        setSidebarPinned(open);
+        if (!open) setSidebarHover(false);
+      }}
+    >
       <div className="min-h-screen flex w-full">
+        {!focusMode && !sidebarPinned && (
+          <div
+            className="fixed inset-y-0 left-0 z-30 hidden w-3 md:block"
+            onMouseEnter={() => setSidebarHover(true)}
+          />
+        )}
+
         {!focusMode && (
           <AppSidebar
             activeView={activeView}
+            sidebarPinned={sidebarPinned}
+            onToggleSidebarPinned={() => setSidebarPinned((current) => !current)}
+            onMouseLeave={() => {
+              if (!sidebarPinned) setSidebarHover(false);
+            }}
             onSelectTasks={handleSelectTasks}
             notebooks={notebooks.data || []}
             pages={pages.data || []}
@@ -73,10 +104,10 @@ const Index = () => {
             selectedPageId={selectedPageId}
             onSelectNotebook={handleSelectNotebook}
             onSelectPage={handleSelectPage}
-            onCreateNotebook={(title) => notebooks.createNotebook.mutate(title)}
+            onCreateNotebook={(title) => notebooks.createNotebook.mutate(title || defaultDiaryName())}
             onDeleteNotebook={(id) => notebooks.deleteNotebook.mutate(id)}
             onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
-            onCreatePage={() => pages.createPage.mutate("Nova Página")}
+            onCreatePage={handleCreatePage}
             onRenamePage={(id, title) => pages.updatePage.mutate({ id, title })}
             onDeletePage={(id) => {
               if (selectedPageId === id) setSelectedPageId(null);
@@ -85,15 +116,14 @@ const Index = () => {
             onToggleFavorite={(id, fav) => pages.toggleFavorite.mutate({ id, is_favorite: fav })}
           />
         )}
+
         <div className="flex-1 flex flex-col min-w-0">
-          {!focusMode && (
-            <AppHeader
-              onToggleFocus={handleToggleFocus}
-              focusMode={focusMode}
-            />
-          )}
+          <AppHeader onToggleFocus={handleToggleFocus} focusMode={focusMode} />
+
           <main className="flex-1 overflow-auto">
-            {selectedPage ? (
+            {activeView === "tasks" ? (
+              <WeeklyTaskManager />
+            ) : selectedPage ? (
               <PageEditor
                 page={selectedPage}
                 onUpdate={(updates) => pages.updatePage.mutate({ id: selectedPage.id, ...updates })}
@@ -101,30 +131,22 @@ const Index = () => {
                 onExitFocus={() => setFocusMode(false)}
               />
             ) : (
-              <div className="flex flex-col h-full">
-                {/* Weekly Task Manager as home screen */}
-                <WeeklyTaskManager />
-
-                {/* Empty state below if no page selected */}
+              <div className="flex h-full flex-col">
                 {!selectedNotebookId && (
-                  <div className="border-t border-border/30">
-                    <EmptyState
-                      hasNotebooks={(notebooks.data?.length || 0) > 0}
-                      hasSelectedNotebook={!!selectedNotebookId}
-                      onCreateNotebook={() => notebooks.createNotebook.mutate("Novo Caderno")}
-                      onCreatePage={() => pages.createPage.mutate("Nova Página")}
-                    />
-                  </div>
+                  <EmptyState
+                    hasNotebooks={(notebooks.data?.length || 0) > 0}
+                    hasSelectedNotebook={false}
+                    onCreateNotebook={() => notebooks.createNotebook.mutate(defaultDiaryName())}
+                    onCreatePage={handleCreatePage}
+                  />
                 )}
                 {selectedNotebookId && !selectedPageId && (
-                  <div className="border-t border-border/30">
-                    <EmptyState
-                      hasNotebooks={true}
-                      hasSelectedNotebook={true}
-                      onCreateNotebook={() => notebooks.createNotebook.mutate("Novo Caderno")}
-                      onCreatePage={() => pages.createPage.mutate("Nova Página")}
-                    />
-                  </div>
+                  <EmptyState
+                    hasNotebooks
+                    hasSelectedNotebook
+                    onCreateNotebook={() => notebooks.createNotebook.mutate(defaultDiaryName())}
+                    onCreatePage={handleCreatePage}
+                  />
                 )}
               </div>
             )}

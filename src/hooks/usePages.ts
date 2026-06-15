@@ -42,6 +42,8 @@ export function usePages(notebookId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pages", notebookId] });
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
+      queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["all-pages"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -53,6 +55,8 @@ export function usePages(notebookId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pages"] });
+      queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["all-pages"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -65,6 +69,8 @@ export function usePages(notebookId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
+      queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["all-pages"] });
       toast.success("Página excluída!");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -91,6 +97,7 @@ export function usePages(notebookId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
+      queryClient.invalidateQueries({ queryKey: ["all-pages"] });
       toast.success("Página duplicada!");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -101,7 +108,11 @@ export function usePages(notebookId?: string) {
       const { error } = await supabase.from("pages").update({ is_favorite }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["pages"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pages"] });
+      queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
+      queryClient.invalidateQueries({ queryKey: ["all-pages"] });
+    },
   });
 
   return { ...query, createPage, updatePage, deletePage, duplicatePage, toggleFavorite };
