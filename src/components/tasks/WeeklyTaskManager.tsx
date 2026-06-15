@@ -364,9 +364,9 @@ const TaskCard = memo(function TaskCard({
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-start gap-2">
             <h2 className={cn(
-              "truncate text-sm font-semibold sm:text-base",
+              "w-full whitespace-normal break-words text-sm font-semibold leading-snug sm:w-auto sm:min-w-0 sm:flex-1 sm:text-base",
               task.status === "completed" && "text-muted-foreground line-through"
             )}>
               {task.title}
@@ -393,9 +393,10 @@ const TaskCard = memo(function TaskCard({
               </Badge>
             )}
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <UserRound className="h-3 w-3" />{task.assignee || "Sem responsável"}
+          <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+            <span className="flex min-w-0 items-center gap-1 break-words">
+              <UserRound className="h-3 w-3 shrink-0" />
+              <span className="min-w-0 break-words">{task.assignee || "Sem responsável"}</span>
             </span>
             <span>Criada {format(parseISO(task.created_at), "dd/MM/yyyy")}</span>
             {task.completed_at && (
@@ -562,19 +563,19 @@ function ReasonRow({
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-start">
         <div className="min-w-0 flex-1">
           {editing ? (
-            <Input
+            <Textarea
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onBlur={save}
               onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setDraft(reason.reason); setEditing(false); } }}
-              className="h-9"
+              className="min-h-10 resize-none text-sm"
             />
           ) : (
             <button
               onClick={() => !isDone && setEditing(true)}
               className={cn(
-                "block w-full text-left text-sm",
+                "block w-full whitespace-normal break-words text-left text-sm leading-snug",
                 isDone && "text-muted-foreground line-through",
                 !isDone && "hover:underline"
               )}
@@ -582,8 +583,8 @@ function ReasonRow({
               {reason.reason}
             </button>
           )}
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-            <span>Responsável: {reason.responsible || "—"}</span>
+          <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+            <span className="min-w-0 break-words">Responsável: {reason.responsible || "—"}</span>
             <span>Criada {format(parseISO(reason.created_at), "dd/MM/yyyy")}</span>
             {reason.completed_at && <span>Concluída {format(parseISO(reason.completed_at), "dd/MM/yyyy")}</span>}
           </div>
@@ -691,3 +692,4 @@ function FluidProgressRange({
     />
   );
 }
+
