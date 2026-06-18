@@ -115,11 +115,10 @@ export function AppSidebar({
   };
 
   const handleCreateNotebook = () => {
-    if (newTitle.trim()) {
-      onCreateNotebook(newTitle.trim());
-      setNewTitle("");
-      setNewNotebookMode(false);
-    }
+    // Empty title => parent will use default (mês ano - Diario)
+    onCreateNotebook(newTitle.trim());
+    setNewTitle("");
+    setNewNotebookMode(false);
   };
 
   const handleRename = () => {
@@ -236,11 +235,8 @@ export function AppSidebar({
                             if (e.key === "Enter") handleCreateNotebook();
                             if (e.key === "Escape") setNewNotebookMode(false);
                           }}
-                          onBlur={() => {
-                            if (newTitle.trim()) handleCreateNotebook();
-                            else setNewNotebookMode(false);
-                          }}
-                          placeholder="Nome do diario..."
+                          onBlur={handleCreateNotebook}
+                          placeholder="Nome (vazio = mês atual)"
                           className="h-10 sm:h-7 text-sm sm:text-xs"
                           autoFocus
                         />

@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Navigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Linkedin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages } from "@/hooks/usePages";
@@ -12,7 +13,11 @@ import { EmptyState } from "@/components/layout/EmptyState";
 import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
-const defaultDiaryName = () => `${format(new Date(), "MM/yyyy")} - Diario`;
+const defaultDiaryName = () => {
+  const monthName = format(new Date(), "MMMM", { locale: ptBR });
+  const capitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  return `${capitalized} ${format(new Date(), "yyyy")} - Diario`;
+};
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
@@ -151,6 +156,18 @@ const Index = () => {
               </div>
             )}
           </main>
+
+          <footer className="shrink-0 border-t border-border bg-background/60 backdrop-blur px-4 py-2">
+            <a
+              href="https://www.linkedin.com/company/anchorlab"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 font-mono-accent text-[11px] text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Linkedin className="h-3.5 w-3.5" />
+              <span>Desenvolvido por AnchorLab · {new Date().getFullYear()}</span>
+            </a>
+          </footer>
         </div>
       </div>
     </SidebarProvider>

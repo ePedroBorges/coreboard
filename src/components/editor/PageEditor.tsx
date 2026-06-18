@@ -42,7 +42,22 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus }: PageEdito
   const [dirty, setDirty] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
+  const pageIdRef = useRef(page.id);
+  const pendingRef = useRef<{ title: string; blocks: Block[] } | null>(null);
+
   useEffect(() => {
+    // Flush any pending save for the previous page before switching
+    if (pageIdRef.current !== page.id && pendingRef.current) {
+      const prevId = pageIdRef.current;
+      const { title: t, blocks: b } = pendingRef.current;
+      // Save to the previous page id directly
+      import("@/integrations/supabase/client").then(({ supabase }) => {
+        supabase.from("pages").update({ title: t, content: b as any }).eq("id", prevId);
+      });
+      pendingRef.current = null;
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    }
+    pageIdRef.current = page.id;
     setTitle(page.title);
     setBlocks(page.content || []);
     setDirty(false);
@@ -51,11 +66,13 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus }: PageEdito
   const scheduleAutoSave = useCallback(
     (newTitle: string, newBlocks: Block[]) => {
       setDirty(true);
+      pendingRef.current = { title: newTitle, blocks: newBlocks };
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => {
         onUpdate({ title: newTitle, content: newBlocks });
+        pendingRef.current = null;
         setDirty(false);
-      }, 1500);
+      }, 800);
     },
     [onUpdate]
   );
