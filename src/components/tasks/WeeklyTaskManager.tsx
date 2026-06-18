@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isAfter, isBefore } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Check,
@@ -59,6 +59,7 @@ export function WeeklyTaskManager() {
   const [newAssignee, setNewAssignee] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [newTarget, setNewTarget] = useState<string>("");
+  const [newDate, setNewDate] = useState<string>(format(today, "yyyy-MM-dd"));
 
   const {
     data: tasks = [],
@@ -91,21 +92,24 @@ export function WeeklyTaskManager() {
   /**
    * Day rule:
    * - Completed task → appears ONLY on its completion day.
-   * - Pending task → appears on every day from creation date up to today
-   *   (and on `selectedDay` if it falls within that range).
+   * - Pending task → appears on its assigned task_date.
    */
-  const tasksForSelectedDay = useMemo(() => {
-    return tasks.filter((task) => {
-      const created = parseISO(task.created_at);
+  const tasksOnDay = (day: Date) =>
+    tasks.filter((task) => {
       if (task.status === "completed" && task.completed_at) {
-        return isSameDay(parseISO(task.completed_at), selectedDay);
+        return isSameDay(parseISO(task.completed_at), day);
       }
-      // pending: show from creation day onwards, up to today
-      const startOk = !isBefore(selectedDay, new Date(created.getFullYear(), created.getMonth(), created.getDate()));
-      const endOk = !isAfter(selectedDay, new Date(today.getFullYear(), today.getMonth(), today.getDate()));
-      return startOk && endOk;
+      if (task.task_date) {
+        return isSameDay(parseISO(task.task_date), day);
+      }
+      return false;
     });
-  }, [tasks, selectedDay, today]);
+
+  const tasksForSelectedDay = useMemo(
+    () => tasksOnDay(selectedDay),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tasks, selectedDay]
+  );
 
   const handleCreateTask = () => {
     if (!newTitle.trim()) return;
@@ -115,11 +119,13 @@ export function WeeklyTaskManager() {
       assignee: newAssignee.trim(),
       priority: newPriority,
       progress_target: target,
+      task_date: newDate || format(today, "yyyy-MM-dd"),
     });
     setNewTitle("");
     setNewAssignee("");
     setNewPriority("medium");
     setNewTarget("");
+    setNewDate(format(selectedDay, "yyyy-MM-dd"));
   };
 
   const years = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
@@ -171,7 +177,7 @@ export function WeeklyTaskManager() {
 
       {/* Create task */}
       <div className="rounded-md border border-border/60 bg-card p-3 sm:p-4">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_120px_120px_auto]">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_160px_150px_110px_110px_auto]">
           <Input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -184,6 +190,13 @@ export function WeeklyTaskManager() {
             onChange={(e) => setNewAssignee(e.target.value)}
             placeholder="Responsável"
             className="h-11"
+          />
+          <Input
+            type="date"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+            className="h-11"
+            aria-label="Dia da tarefa"
           />
           <Select value={newPriority} onValueChange={(v) => setNewPriority(v as Priority)}>
             <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
@@ -198,7 +211,7 @@ export function WeeklyTaskManager() {
             min={1}
             value={newTarget}
             onChange={(e) => setNewTarget(e.target.value)}
-            placeholder="Meta (ex: 20)"
+            placeholder="Meta"
             className="h-11"
           />
           <Button onClick={handleCreateTask} className="h-11 gap-2 sm:col-span-2 lg:col-span-1" disabled={!newTitle.trim() || createTask.isPending}>
@@ -207,6 +220,7 @@ export function WeeklyTaskManager() {
           </Button>
         </div>
       </div>
+
 
       {/* Day picker (only for day view) */}
       {view === "day" && (
@@ -235,34 +249,77 @@ export function WeeklyTaskManager() {
             </Button>
           </div>
 
-          <div className="-mx-3 flex snap-x gap-1.5 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
-            {monthDays.map((day) => {
-              const isSelected = isSameDay(day, selectedDay);
-              const isToday = isSameDay(day, today);
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDay(day)}
-                  className={cn(
-                    "flex min-w-[52px] snap-start flex-col items-center rounded-md border px-2 py-2 text-xs transition-colors sm:min-w-[56px]",
-                    isSelected
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border/50 hover:border-border",
-                    isToday && !isSelected && "ring-1 ring-primary/40"
-                  )}
-                >
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    {format(day, "EEE", { locale: ptBR })}
-                  </span>
-                  <span className="text-base font-semibold">{format(day, "dd")}</span>
-                </button>
-              );
-            })}
+          {/* Calendar grid (7 columns) */}
+          <div>
+            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
+                <div key={d}>{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {(() => {
+                // Pad with blanks so first day-of-month lines up under its weekday (Mon=0)
+                const first = monthDays[0];
+                const offset = (getDay(first) + 6) % 7; // Mon=0 ... Sun=6
+                const blanks = Array.from({ length: offset });
+                return (
+                  <>
+                    {blanks.map((_, i) => <div key={`b-${i}`} />)}
+                    {monthDays.map((day) => {
+                      const isSelected = isSameDay(day, selectedDay);
+                      const isToday = isSameDay(day, today);
+                      const dayTasks = tasksOnDay(day);
+                      const count = dayTasks.length;
+                      const hasPending = dayTasks.some((t) => t.status === "pending");
+                      const hasCompleted = dayTasks.some((t) => t.status === "completed");
+
+                      const tone = isToday
+                        ? "border-success/60 bg-success/10 text-success"
+                        : hasPending
+                          ? "border-destructive/60 bg-destructive/10 text-destructive"
+                          : hasCompleted
+                            ? "border-primary/60 bg-primary/10 text-primary"
+                            : "border-border/50 text-foreground hover:border-border";
+
+                      return (
+                        <button
+                          key={day.toISOString()}
+                          onClick={() => setSelectedDay(day)}
+                          className={cn(
+                            "relative flex aspect-square min-h-[40px] flex-col items-center justify-center rounded-md border text-xs transition-colors",
+                            tone,
+                            isSelected && "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                          )}
+                        >
+                          <span className="text-sm font-semibold leading-none">{format(day, "dd")}</span>
+                          {count > 0 && (
+                            <span
+                              className={cn(
+                                "mt-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-background",
+                                isToday ? "bg-success" : hasPending ? "bg-destructive" : "bg-primary"
+                              )}
+                            >
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Hoje</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Pendentes</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Concluídas</span>
+            </div>
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>: pendentes se estendem do dia de criação até hoje. Concluídas aparecem apenas no dia em que foram concluídas.
+            Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>
           </div>
+
         </div>
       )}
 
