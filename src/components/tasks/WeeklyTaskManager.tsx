@@ -59,6 +59,7 @@ export function WeeklyTaskManager() {
   const [newAssignee, setNewAssignee] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [newTarget, setNewTarget] = useState<string>("");
+  const [newDate, setNewDate] = useState<string>(format(today, "yyyy-MM-dd"));
 
   const {
     data: tasks = [],
