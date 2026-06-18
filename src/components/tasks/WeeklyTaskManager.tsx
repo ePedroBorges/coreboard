@@ -287,7 +287,7 @@ export function WeeklyTaskManager() {
                           key={day.toISOString()}
                           onClick={() => setSelectedDay(day)}
                           className={cn(
-                            "relative flex aspect-square min-h-[40px] flex-col items-center justify-center rounded-md border text-xs transition-colors",
+                            "relative flex h-12 flex-col items-center justify-center rounded-md border text-xs transition-colors sm:h-14",
                             tone,
                             isSelected && "ring-2 ring-primary ring-offset-1 ring-offset-background"
                           )}
