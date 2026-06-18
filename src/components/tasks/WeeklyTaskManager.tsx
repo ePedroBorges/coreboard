@@ -249,34 +249,77 @@ export function WeeklyTaskManager() {
             </Button>
           </div>
 
-          <div className="-mx-3 flex snap-x gap-1.5 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0">
-            {monthDays.map((day) => {
-              const isSelected = isSameDay(day, selectedDay);
-              const isToday = isSameDay(day, today);
-              return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => setSelectedDay(day)}
-                  className={cn(
-                    "flex min-w-[52px] snap-start flex-col items-center rounded-md border px-2 py-2 text-xs transition-colors sm:min-w-[56px]",
-                    isSelected
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border/50 hover:border-border",
-                    isToday && !isSelected && "ring-1 ring-primary/40"
-                  )}
-                >
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    {format(day, "EEE", { locale: ptBR })}
-                  </span>
-                  <span className="text-base font-semibold">{format(day, "dd")}</span>
-                </button>
-              );
-            })}
+          {/* Calendar grid (7 columns) */}
+          <div>
+            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
+                <div key={d}>{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {(() => {
+                // Pad with blanks so first day-of-month lines up under its weekday (Mon=0)
+                const first = monthDays[0];
+                const offset = (getDay(first) + 6) % 7; // Mon=0 ... Sun=6
+                const blanks = Array.from({ length: offset });
+                return (
+                  <>
+                    {blanks.map((_, i) => <div key={`b-${i}`} />)}
+                    {monthDays.map((day) => {
+                      const isSelected = isSameDay(day, selectedDay);
+                      const isToday = isSameDay(day, today);
+                      const dayTasks = tasksOnDay(day);
+                      const count = dayTasks.length;
+                      const hasPending = dayTasks.some((t) => t.status === "pending");
+                      const hasCompleted = dayTasks.some((t) => t.status === "completed");
+
+                      const tone = isToday
+                        ? "border-success/60 bg-success/10 text-success"
+                        : hasPending
+                          ? "border-destructive/60 bg-destructive/10 text-destructive"
+                          : hasCompleted
+                            ? "border-primary/60 bg-primary/10 text-primary"
+                            : "border-border/50 text-foreground hover:border-border";
+
+                      return (
+                        <button
+                          key={day.toISOString()}
+                          onClick={() => setSelectedDay(day)}
+                          className={cn(
+                            "relative flex aspect-square min-h-[40px] flex-col items-center justify-center rounded-md border text-xs transition-colors",
+                            tone,
+                            isSelected && "ring-2 ring-primary ring-offset-1 ring-offset-background"
+                          )}
+                        >
+                          <span className="text-sm font-semibold leading-none">{format(day, "dd")}</span>
+                          {count > 0 && (
+                            <span
+                              className={cn(
+                                "mt-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-background",
+                                isToday ? "bg-success" : hasPending ? "bg-destructive" : "bg-primary"
+                              )}
+                            >
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </>
+                );
+              })()}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Hoje</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Pendentes</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Concluídas</span>
+            </div>
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>: pendentes se estendem do dia de criação até hoje. Concluídas aparecem apenas no dia em que foram concluídas.
+            Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>
           </div>
+
         </div>
       )}
 
