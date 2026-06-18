@@ -250,80 +250,85 @@ export function AppSidebar({
                       onOpenChange={() => onSelectNotebook(notebook.id)}
                     >
                       <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            className={cn(
-                              "group/nb justify-between min-h-[44px] sm:min-h-0",
-                              selectedNotebookId === notebook.id && "bg-sidebar-accent"
-                            )}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <ChevronRight
-                                className={cn(
-                                  "h-4 w-4 sm:h-3 sm:w-3 transition-transform shrink-0",
-                                  selectedNotebookId === notebook.id && "rotate-90"
-                                )}
-                              />
-                              {renameId === notebook.id ? (
-                                <Input
-                                  value={renameValue}
-                                  onChange={(e) => setRenameValue(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleRename();
-                                    if (e.key === "Escape") setRenameId(null);
-                                  }}
-                                  onBlur={handleRename}
-                                  className="h-7 text-xs py-0 px-1"
-                                  autoFocus
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              ) : (
-                                <span className="truncate text-sm sm:text-xs">{notebook.title}</span>
+                        <div className="relative flex items-center">
+                          <CollapsibleTrigger asChild>
+                            <SidebarMenuButton
+                              className={cn(
+                                "group/nb justify-between min-h-[44px] sm:min-h-0 pr-16",
+                                selectedNotebookId === notebook.id && "bg-sidebar-accent"
                               )}
-                            </div>
-                            {!collapsed && (
-                              <div className="flex items-center gap-1 transition-opacity">
-                                <span className="font-mono-accent text-[11px] sm:text-[10px] text-muted-foreground">
-                                  {notebook.page_count}
-                                </span>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      className="p-1.5 sm:p-0.5 rounded hover:bg-background/50"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                      }}
-                                    >
-                                      <MoreHorizontal className="h-4 w-4 sm:h-3 sm:w-3" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-36">
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setRenameId(notebook.id);
-                                        setRenameValue(notebook.title);
-                                      }}
-                                    >
-                                      <Pencil className="mr-2 h-4 w-4" />
-                                      Renomear
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeleteId(notebook.id);
-                                      }}
-                                    >
-                                      <Trash2 className="mr-2 h-4 w-4" />
-                                      Excluir
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ChevronRight
+                                  className={cn(
+                                    "h-4 w-4 sm:h-3 sm:w-3 transition-transform shrink-0",
+                                    selectedNotebookId === notebook.id && "rotate-90"
+                                  )}
+                                />
+                                {renameId === notebook.id ? (
+                                  <Input
+                                    value={renameValue}
+                                    onChange={(e) => setRenameValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") handleRename();
+                                      if (e.key === "Escape") setRenameId(null);
+                                    }}
+                                    onBlur={handleRename}
+                                    className="h-7 text-xs py-0 px-1"
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : (
+                                  <span className="truncate text-sm sm:text-xs">{notebook.title}</span>
+                                )}
                               </div>
-                            )}
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
+                            </SidebarMenuButton>
+                          </CollapsibleTrigger>
+                          {!collapsed && (
+                            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                              <span className="font-mono-accent text-[11px] sm:text-[10px] text-muted-foreground">
+                                {notebook.page_count}
+                              </span>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="p-1.5 sm:p-1 rounded hover:bg-background/50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                    }}
+                                  >
+                                    <MoreHorizontal className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-36">
+                                  <DropdownMenuItem
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      setRenameId(notebook.id);
+                                      setRenameValue(notebook.title);
+                                    }}
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Renomear
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onSelect={(e) => {
+                                      e.preventDefault();
+                                      setDeleteId(notebook.id);
+                                    }}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
+                        </div>
+
 
                         <CollapsibleContent>
                           {selectedNotebookId === notebook.id && (
