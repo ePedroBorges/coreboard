@@ -177,7 +177,7 @@ export function WeeklyTaskManager() {
 
       {/* Create task */}
       <div className="rounded-md border border-border/60 bg-card p-3 sm:p-4">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_120px_120px_auto]">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_160px_150px_110px_110px_auto]">
           <Input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -190,6 +190,13 @@ export function WeeklyTaskManager() {
             onChange={(e) => setNewAssignee(e.target.value)}
             placeholder="Responsável"
             className="h-11"
+          />
+          <Input
+            type="date"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
+            className="h-11"
+            aria-label="Dia da tarefa"
           />
           <Select value={newPriority} onValueChange={(v) => setNewPriority(v as Priority)}>
             <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
@@ -204,7 +211,7 @@ export function WeeklyTaskManager() {
             min={1}
             value={newTarget}
             onChange={(e) => setNewTarget(e.target.value)}
-            placeholder="Meta (ex: 20)"
+            placeholder="Meta"
             className="h-11"
           />
           <Button onClick={handleCreateTask} className="h-11 gap-2 sm:col-span-2 lg:col-span-1" disabled={!newTitle.trim() || createTask.isPending}>
@@ -213,6 +220,7 @@ export function WeeklyTaskManager() {
           </Button>
         </div>
       </div>
+
 
       {/* Day picker (only for day view) */}
       {view === "day" && (
