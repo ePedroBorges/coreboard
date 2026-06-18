@@ -256,7 +256,8 @@ export function WeeklyTaskManager() {
                 <div key={d}>{d}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="mx-auto grid max-w-md grid-cols-7 gap-1">
+
               {(() => {
                 // Pad with blanks so first day-of-month lines up under its weekday (Mon=0)
                 const first = monthDays[0];
