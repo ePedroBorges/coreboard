@@ -251,7 +251,7 @@ export function WeeklyTaskManager() {
 
           {/* Calendar grid (7 columns) */}
           <div>
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
+            <div className="mx-auto mb-1 grid max-w-md grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
               {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
                 <div key={d}>{d}</div>
               ))}
