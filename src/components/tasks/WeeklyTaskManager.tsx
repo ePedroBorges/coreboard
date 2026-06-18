@@ -92,21 +92,24 @@ export function WeeklyTaskManager() {
   /**
    * Day rule:
    * - Completed task → appears ONLY on its completion day.
-   * - Pending task → appears on every day from creation date up to today
-   *   (and on `selectedDay` if it falls within that range).
+   * - Pending task → appears on its assigned task_date.
    */
-  const tasksForSelectedDay = useMemo(() => {
-    return tasks.filter((task) => {
-      const created = parseISO(task.created_at);
+  const tasksOnDay = (day: Date) =>
+    tasks.filter((task) => {
       if (task.status === "completed" && task.completed_at) {
-        return isSameDay(parseISO(task.completed_at), selectedDay);
+        return isSameDay(parseISO(task.completed_at), day);
       }
-      // pending: show from creation day onwards, up to today
-      const startOk = !isBefore(selectedDay, new Date(created.getFullYear(), created.getMonth(), created.getDate()));
-      const endOk = !isAfter(selectedDay, new Date(today.getFullYear(), today.getMonth(), today.getDate()));
-      return startOk && endOk;
+      if (task.task_date) {
+        return isSameDay(parseISO(task.task_date), day);
+      }
+      return false;
     });
-  }, [tasks, selectedDay, today]);
+
+  const tasksForSelectedDay = useMemo(
+    () => tasksOnDay(selectedDay),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tasks, selectedDay]
+  );
 
   const handleCreateTask = () => {
     if (!newTitle.trim()) return;
