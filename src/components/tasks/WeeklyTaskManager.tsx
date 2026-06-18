@@ -119,11 +119,13 @@ export function WeeklyTaskManager() {
       assignee: newAssignee.trim(),
       priority: newPriority,
       progress_target: target,
+      task_date: newDate || format(today, "yyyy-MM-dd"),
     });
     setNewTitle("");
     setNewAssignee("");
     setNewPriority("medium");
     setNewTarget("");
+    setNewDate(format(selectedDay, "yyyy-MM-dd"));
   };
 
   const years = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
