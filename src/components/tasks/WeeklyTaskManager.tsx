@@ -251,12 +251,13 @@ export function WeeklyTaskManager() {
 
           {/* Calendar grid (7 columns) */}
           <div>
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
+            <div className="mx-auto mb-1 grid max-w-md grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
               {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
                 <div key={d}>{d}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1">
+            <div className="mx-auto grid max-w-md grid-cols-7 gap-1">
+
               {(() => {
                 // Pad with blanks so first day-of-month lines up under its weekday (Mon=0)
                 const first = monthDays[0];
@@ -286,7 +287,7 @@ export function WeeklyTaskManager() {
                           key={day.toISOString()}
                           onClick={() => setSelectedDay(day)}
                           className={cn(
-                            "relative flex aspect-square min-h-[40px] flex-col items-center justify-center rounded-md border text-xs transition-colors",
+                            "relative flex h-12 flex-col items-center justify-center rounded-md border text-xs transition-colors sm:h-14",
                             tone,
                             isSelected && "ring-2 ring-primary ring-offset-1 ring-offset-background"
                           )}
