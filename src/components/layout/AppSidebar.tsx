@@ -282,7 +282,7 @@ export function AppSidebar({
                               )}
                             </div>
                             {!collapsed && (
-                              <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/nb:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1 transition-opacity">
                                 <span className="font-mono-accent text-[11px] sm:text-[10px] text-muted-foreground">
                                   {notebook.page_count}
                                 </span>
@@ -366,7 +366,7 @@ export function AppSidebar({
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                               <button
-                                                className="p-1 rounded hover:bg-background/50 opacity-100 sm:opacity-0 sm:group-hover/page:opacity-100 transition-opacity"
+                                                className="p-1 rounded hover:bg-background/50 opacity-100 transition-opacity"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                 }}
