@@ -371,18 +371,20 @@ export function AppSidebar({
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                               <button
-                                                className="p-1 rounded hover:bg-background/50 opacity-100 transition-opacity"
+                                                type="button"
+                                                className="p-1.5 rounded hover:bg-background/50 opacity-100 transition-opacity"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
+                                                  e.preventDefault();
                                                 }}
                                               >
-                                                <MoreHorizontal className="h-3.5 w-3.5" />
+                                                <MoreHorizontal className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
                                               </button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="w-36">
                                               <DropdownMenuItem
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
+                                                onSelect={(e) => {
+                                                  e.preventDefault();
                                                   setRenamePageId(page.id);
                                                   setRenamePageValue(page.title);
                                                 }}
@@ -392,12 +394,13 @@ export function AppSidebar({
                                               </DropdownMenuItem>
                                               <DropdownMenuItem
                                                 className="text-destructive"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
+                                                onSelect={(e) => {
+                                                  e.preventDefault();
                                                   setDeletePageId(page.id);
                                                 }}
                                               >
                                                 <Trash2 className="mr-2 h-4 w-4" />
+
                                                 Excluir
                                               </DropdownMenuItem>
                                             </DropdownMenuContent>
