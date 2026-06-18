@@ -101,7 +101,8 @@ export function useWeeklyTasks() {
   const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ["tasks"] });
 
   const createTask = useMutation({
-    mutationFn: async ({ title, assignee, priority, progress_target }: CreateTaskInput) => {
+    mutationFn: async ({ title, assignee, priority, progress_target, task_date }: CreateTaskInput) => {
+      const day = task_date || todayKey();
       const { data, error } = await supabase
         .from("weekly_tasks")
         .insert({
@@ -111,8 +112,8 @@ export function useWeeklyTasks() {
           progress_target: progress_target ?? null,
           progress_current: 0,
           user_id: user!.id,
-          task_date: todayKey(),
-          week_start: currentWeekKey(),
+          task_date: day,
+          week_start: format(startOfWeek(parseISO(day), { weekStartsOn: 1 }), "yyyy-MM-dd"),
           status: "pending" as any,
         } as any)
         .select()
