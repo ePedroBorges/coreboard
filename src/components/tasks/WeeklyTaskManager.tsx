@@ -274,11 +274,11 @@ export function WeeklyTaskManager() {
                       const hasCompleted = dayTasks.some((t) => t.status === "completed");
 
                       const tone = isToday
-                        ? "border-success/60 bg-success/10 text-success"
+                        ? "border-primary/60 bg-primary/10 text-primary"
                         : hasPending
                           ? "border-destructive/60 bg-destructive/10 text-destructive"
                           : hasCompleted
-                            ? "border-primary/60 bg-primary/10 text-primary"
+                            ? "border-success/60 bg-success/10 text-success"
                             : "border-border/50 text-foreground hover:border-border";
 
                       return (
@@ -296,7 +296,7 @@ export function WeeklyTaskManager() {
                             <span
                               className={cn(
                                 "mt-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-background",
-                                isToday ? "bg-success" : hasPending ? "bg-destructive" : "bg-primary"
+                                isToday ? "bg-primary" : hasPending ? "bg-destructive" : "bg-success"
                               )}
                             >
                               {count}
@@ -310,9 +310,9 @@ export function WeeklyTaskManager() {
               })()}
             </div>
             <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Hoje</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Hoje</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Pendentes</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Concluídas</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Concluídas</span>
             </div>
           </div>
 
