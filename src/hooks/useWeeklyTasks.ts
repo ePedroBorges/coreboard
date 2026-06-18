@@ -42,6 +42,7 @@ type CreateTaskInput = {
   assignee?: string;
   priority?: Priority;
   progress_target?: number | null;
+  task_date?: string;
 };
 
 type AddPendingReasonInput = {
