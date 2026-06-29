@@ -1,15 +1,21 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
+  CalendarDays,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  CircleAlert,
   Clock3,
+  ListChecks,
   Loader2,
+  NotebookPen,
   Pencil,
   Plus,
+  Sparkles,
+  Target,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -39,9 +45,9 @@ const priorityLabel: Record<Priority, string> = {
 };
 
 const priorityClass: Record<Priority, string> = {
-  low: "border-muted-foreground/30 text-muted-foreground",
-  medium: "border-warning/40 text-warning",
-  high: "border-destructive/50 text-destructive",
+  low: "border-muted-foreground/30 bg-muted/30 text-muted-foreground",
+  medium: "border-warning/35 bg-warning/10 text-warning",
+  high: "border-destructive/45 bg-destructive/10 text-destructive",
 };
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i);
@@ -54,7 +60,6 @@ export function WeeklyTaskManager() {
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState<Date>(today);
 
-  // create-task form
   const [newTitle, setNewTitle] = useState("");
   const [newAssignee, setNewAssignee] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
@@ -77,7 +82,7 @@ export function WeeklyTaskManager() {
     const pending = tasks.filter((task) => task.status === "pending").length;
     const completed = tasks.filter((task) => task.status === "completed").length;
     const openReasons = tasks.reduce(
-      (total, task) => total + task.pending_reasons.filter((r) => !r.completed_at).length,
+      (total, task) => total + task.pending_reasons.filter((reason) => !reason.completed_at).length,
       0
     );
     return { total: tasks.length, pending, completed, openReasons };
@@ -89,11 +94,6 @@ export function WeeklyTaskManager() {
     return eachDayOfInterval({ start, end });
   }, [year, month]);
 
-  /**
-   * Day rule:
-   * - Completed task → appears ONLY on its completion day.
-   * - Pending task → appears on its assigned task_date.
-   */
   const tasksOnDay = (day: Date) =>
     tasks.filter((task) => {
       if (task.status === "completed" && task.completed_at) {
@@ -137,150 +137,220 @@ export function WeeklyTaskManager() {
     return tasks;
   }, [tasks, tasksForSelectedDay, view]);
 
+  const viewTabs: Array<{ value: typeof view; label: string; icon: ReactNode }> = [
+    { value: "day", label: "Por dia", icon: <CalendarDays className="h-3.5 w-3.5" /> },
+    { value: "pending", label: "Pendentes", icon: <Clock3 className="h-3.5 w-3.5" /> },
+    { value: "completed", label: "Concluídas", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+    { value: "all", label: "Todas as tarefas", icon: <ListChecks className="h-3.5 w-3.5" /> },
+  ];
+
+  const focusSummary =
+    tasks.length === 0
+      ? "Tudo limpo por aqui. Crie uma tarefa ou registre uma ideia no diário."
+      : stats.pending > 0
+        ? `Você tem ${stats.pending} ${stats.pending === 1 ? "tarefa pendente" : "tarefas pendentes"}. Escolha uma prioridade e avance agora.`
+        : "Todas as tarefas foram concluídas. Use o diário para capturar o próximo movimento.";
+
+  const emptyMessage =
+    view === "completed"
+      ? "Nenhuma tarefa concluída ainda. Finalize uma tarefa e acompanhe sua evolução."
+      : view === "pending"
+        ? "Nenhuma pendência no momento. Ótimo sinal."
+        : view === "all"
+          ? "Seu espaço de execução está vazio. Crie sua primeira tarefa do dia."
+          : "Nenhuma tarefa para este dia. Planeje algo ou registre uma ideia no diário.";
+
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:p-6">
-      {/* Header + KPIs */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Task Manager</h1>
-          <p className="text-sm text-muted-foreground">
-            Visualize tarefas por dia, controle pendências e prioridades.
-          </p>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:p-6 lg:gap-6">
+      <section className="overflow-hidden rounded-lg border border-border/70 bg-card/80 shadow-sm ring-1 ring-white/5">
+        <div className="border-b border-border/60 p-4 sm:p-5">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                AnchorLab Productivity
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                VISTA Task Control
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
+                Tarefas, diário e execução diária em um só lugar.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
+              <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
+              <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
+              <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
+              <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-          <Metric label="Total" value={stats.total} />
-          <Metric label="Pendentes" value={stats.pending} tone="warning" />
-          <Metric label="Concluídas" value={stats.completed} tone="success" />
-          <Metric label="Pendências" value={stats.openReasons} tone="warning" />
-        </div>
-      </div>
 
-      {/* View tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {[
-          { value: "day", label: "Por dia" },
-          { value: "pending", label: "Pendentes" },
-          { value: "completed", label: "Concluídas" },
-          { value: "all", label: "Todas as Tarefas" },
-        ].map((item) => (
-          <Button
-            key={item.value}
-            variant={view === item.value ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setView(item.value as typeof view)}
-            className="shrink-0"
-          >
-            {item.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Create task */}
-      <div className="rounded-md border border-border/60 bg-card p-3 sm:p-4">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_160px_150px_110px_110px_auto]">
-          <Input
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleCreateTask()}
-            placeholder="Título da tarefa"
-            className="h-11"
-          />
-          <Input
-            value={newAssignee}
-            onChange={(e) => setNewAssignee(e.target.value)}
-            placeholder="Responsável"
-            className="h-11"
-          />
-          <Input
-            type="date"
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
-            className="h-11"
-            aria-label="Dia da tarefa"
-          />
-          <Select value={newPriority} onValueChange={(v) => setNewPriority(v as Priority)}>
-            <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Baixa</SelectItem>
-              <SelectItem value="medium">Média</SelectItem>
-              <SelectItem value="high">Alta</SelectItem>
-            </SelectContent>
-          </Select>
-          <Input
-            type="number"
-            min={1}
-            value={newTarget}
-            onChange={(e) => setNewTarget(e.target.value)}
-            placeholder="Meta"
-            className="h-11"
-          />
-          <Button onClick={handleCreateTask} className="h-11 gap-2 sm:col-span-2 lg:col-span-1" disabled={!newTitle.trim() || createTask.isPending}>
-            {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Criar
-          </Button>
-        </div>
-      </div>
-
-
-      {/* Day picker (only for day view) */}
-      {view === "day" && (
-        <div className="rounded-md border border-border/60 bg-card p-3 sm:p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-            <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v, 10))}>
-              <SelectTrigger className="h-10 w-full sm:w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((m) => (
-                  <SelectItem key={m} value={String(m)}>{monthName(m)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))}>
-              <SelectTrigger className="h-10 w-full sm:w-28"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {years.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button className="col-span-2 sm:col-span-1" variant="outline" size="sm" onClick={() => {
-              setYear(today.getFullYear()); setMonth(today.getMonth()); setSelectedDay(today);
-            }}>
-              Hoje
-            </Button>
+        <div className="space-y-4 p-4 sm:p-5">
+          <div className="rounded-md border border-primary/15 bg-primary/5 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <Target className="h-4 w-4 text-primary" />
+                  Foco do dia
+                </div>
+                <p className="text-sm leading-6 text-muted-foreground">{focusSummary}</p>
+              </div>
+              <div className="rounded-md border border-border/60 bg-background/45 px-3 py-2 text-xs text-muted-foreground">
+                Organize o que precisa ser feito agora.
+              </div>
+            </div>
           </div>
 
-          {/* Calendar grid (7 columns) */}
+          <div className="flex gap-1 overflow-x-auto rounded-md border border-border/60 bg-background/45 p-1">
+            {viewTabs.map((item) => (
+              <Button
+                key={item.value}
+                variant="ghost"
+                size="sm"
+                onClick={() => setView(item.value)}
+                className={cn(
+                  "h-9 shrink-0 gap-2 rounded px-3 text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground",
+                  view === item.value && "bg-secondary text-foreground shadow-sm"
+                )}
+              >
+                {item.icon}
+                {item.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="rounded-md border border-border/60 bg-background/45 p-3 sm:p-4">
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Nova tarefa</h2>
+                <p className="text-xs text-muted-foreground">Capture uma ação clara para hoje ou para outro dia.</p>
+              </div>
+              <span className="text-xs text-muted-foreground">Projeto/Meta é opcional.</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_150px_150px_120px_120px_auto]">
+              <Input
+                value={newTitle}
+                onChange={(event) => setNewTitle(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
+                placeholder="Título da tarefa"
+                className="h-11 bg-card/80"
+              />
+              <Input
+                value={newAssignee}
+                onChange={(event) => setNewAssignee(event.target.value)}
+                placeholder="Responsável"
+                className="h-11 bg-card/60 text-muted-foreground focus:text-foreground"
+              />
+              <Input
+                type="date"
+                value={newDate}
+                onChange={(event) => setNewDate(event.target.value)}
+                className="h-11 bg-card/80"
+                aria-label="Dia da tarefa"
+              />
+              <Select value={newPriority} onValueChange={(value) => setNewPriority(value as Priority)}>
+                <SelectTrigger className="h-11 bg-card/80"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min={1}
+                value={newTarget}
+                onChange={(event) => setNewTarget(event.target.value)}
+                placeholder="Projeto/Meta"
+                className="h-11 bg-card/80"
+              />
+              <Button
+                onClick={handleCreateTask}
+                className="h-11 gap-2 sm:col-span-2 lg:col-span-1"
+                disabled={!newTitle.trim() || createTask.isPending}
+              >
+                {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Nova tarefa
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {view === "day" && (
+        <section className="space-y-3 rounded-lg border border-border/60 bg-card/70 p-3 shadow-sm ring-1 ring-white/5 sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                Planejamento por dia
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+              <Select value={String(month)} onValueChange={(value) => setMonth(parseInt(value, 10))}>
+                <SelectTrigger className="h-10 w-full sm:w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m) => (
+                    <SelectItem key={m} value={String(m)}>{monthName(m)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(year)} onValueChange={(value) => setYear(parseInt(value, 10))}>
+                <SelectTrigger className="h-10 w-full sm:w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                className="col-span-2 sm:col-span-1"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setYear(today.getFullYear());
+                  setMonth(today.getMonth());
+                  setSelectedDay(today);
+                }}
+              >
+                Hoje
+              </Button>
+            </div>
+          </div>
+
           <div>
             <div className="mx-auto mb-1 grid max-w-md grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
-              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => (
-                <div key={d}>{d}</div>
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => (
+                <div key={day}>{day}</div>
               ))}
             </div>
             <div className="mx-auto grid max-w-md grid-cols-7 gap-1">
-
               {(() => {
-                // Pad with blanks so first day-of-month lines up under its weekday (Mon=0)
                 const first = monthDays[0];
-                const offset = (getDay(first) + 6) % 7; // Mon=0 ... Sun=6
+                const offset = (getDay(first) + 6) % 7;
                 const blanks = Array.from({ length: offset });
                 return (
                   <>
-                    {blanks.map((_, i) => <div key={`b-${i}`} />)}
+                    {blanks.map((_, index) => <div key={`blank-${index}`} />)}
                     {monthDays.map((day) => {
                       const isSelected = isSameDay(day, selectedDay);
                       const isToday = isSameDay(day, today);
                       const dayTasks = tasksOnDay(day);
                       const count = dayTasks.length;
-                      const hasPending = dayTasks.some((t) => t.status === "pending");
-                      const hasCompleted = dayTasks.some((t) => t.status === "completed");
+                      const hasPending = dayTasks.some((task) => task.status === "pending");
+                      const hasCompleted = dayTasks.some((task) => task.status === "completed");
 
                       const tone = isToday
                         ? "border-primary/60 bg-primary/10 text-primary"
                         : hasPending
-                          ? "border-destructive/60 bg-destructive/10 text-destructive"
+                          ? "border-warning/60 bg-warning/10 text-warning"
                           : hasCompleted
                             ? "border-success/60 bg-success/10 text-success"
-                            : "border-border/50 text-foreground hover:border-border";
+                            : "border-border/50 text-foreground hover:border-border hover:bg-secondary/40";
 
                       return (
                         <button
@@ -297,7 +367,7 @@ export function WeeklyTaskManager() {
                             <span
                               className={cn(
                                 "mt-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-background",
-                                isToday ? "bg-primary" : hasPending ? "bg-destructive" : "bg-success"
+                                isToday ? "bg-primary" : hasPending ? "bg-warning" : "bg-success"
                               )}
                             >
                               {count}
@@ -310,50 +380,60 @@ export function WeeklyTaskManager() {
                 );
               })()}
             </div>
-            <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+            <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Hoje</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-destructive" /> Pendentes</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> Pendentes</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Concluídas</span>
             </div>
           </div>
+        </section>
+      )}
 
-          <div className="text-xs text-muted-foreground">
-            Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>
+      <section className="space-y-3">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Execução</h2>
+            <p className="text-xs text-muted-foreground">Priorize, conclua e registre bloqueios sem perder o contexto.</p>
           </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <NotebookPen className="h-3.5 w-3.5 text-primary" />
+            Capture ideias no diário e transforme em ação.
+          </div>
+        </div>
 
-        </div>
-      )}
-
-      {/* Task list */}
-      {isLoading ? (
-        <div className="flex min-h-52 items-center justify-center">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
-        </div>
-      ) : displayedTasks.length === 0 ? (
-        <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          Nenhuma tarefa para exibir.
-        </div>
-      ) : (
-        <div className="grid gap-2">
-          {displayedTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
-              onDelete={() => deleteTask.mutate(task.id)}
-              onAddReason={(input) => addPendingReason.mutate({ taskId: task.id, ...input })}
-              onUpdateReason={(id, updates) => updatePendingReason.mutate({ id, ...updates })}
-              onDeleteReason={(id) => deletePendingReason.mutate(id)}
-              onCompleteReason={(id) => completePendingReason.mutate(id)}
-            />
-          ))}
-        </div>
-      )}
+        {isLoading ? (
+          <div className="flex min-h-52 items-center justify-center rounded-lg border border-border/60 bg-card/70">
+            <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          </div>
+        ) : displayedTasks.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <ListChecks className="h-5 w-5" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Tudo limpo por aqui.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{emptyMessage}</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {displayedTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
+                onDelete={() => deleteTask.mutate(task.id)}
+                onAddReason={(input) => addPendingReason.mutate({ taskId: task.id, ...input })}
+                onUpdateReason={(id, updates) => updatePendingReason.mutate({ id, ...updates })}
+                onDeleteReason={(id) => deletePendingReason.mutate(id)}
+                onCompleteReason={(id) => completePendingReason.mutate(id)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
-/* -------------- Task card (collapsed by default) -------------- */
 const TaskCard = memo(function TaskCard({
   task,
   onUpdate,
@@ -375,18 +455,17 @@ const TaskCard = memo(function TaskCard({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(task.title);
 
-  // pending-reason form
   const [reason, setReason] = useState("");
   const [responsible, setResponsible] = useState("");
   const [rPriority, setRPriority] = useState<Priority>("medium");
   const [rTarget, setRTarget] = useState<string>("");
 
-  const openReasons = task.pending_reasons.filter((r) => !r.completed_at).length;
+  const openReasons = task.pending_reasons.filter((pendingReason) => !pendingReason.completed_at).length;
   const statusColor = task.status === "completed" ? "bg-success" : "bg-warning";
 
   const handleSaveTitle = () => {
-    const t = titleDraft.trim();
-    if (t && t !== task.title) onUpdate({ title: t });
+    const title = titleDraft.trim();
+    if (title && title !== task.title) onUpdate({ title });
     setEditingTitle(false);
   };
 
@@ -398,7 +477,10 @@ const TaskCard = memo(function TaskCard({
       priority: rPriority,
       progress_target: rTarget.trim() ? Math.max(1, parseInt(rTarget, 10)) : null,
     });
-    setReason(""); setResponsible(""); setRPriority("medium"); setRTarget("");
+    setReason("");
+    setResponsible("");
+    setRPriority("medium");
+    setRTarget("");
   };
 
   const handleTaskProgressCommit = (value: number) => {
@@ -410,13 +492,13 @@ const TaskCard = memo(function TaskCard({
   };
 
   return (
-    <article className="overflow-hidden rounded-md border border-border/60 bg-card shadow-sm">
-      {/* Collapsed header */}
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-center sm:p-4">
+    <article className="group overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm transition-colors hover:border-primary/25 hover:bg-card">
+      <div className={cn("h-1 w-full", statusColor)} />
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-start sm:p-4">
         <button
-          onClick={() => setExpanded((e) => !e)}
-          className="shrink-0 rounded p-1 hover:bg-accent"
-          aria-label="Expandir"
+          onClick={() => setExpanded((current) => !current)}
+          className="mt-0.5 shrink-0 rounded-md border border-border/50 bg-background/40 p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          aria-label="Expandir tarefa"
         >
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
@@ -424,18 +506,18 @@ const TaskCard = memo(function TaskCard({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-start gap-2">
             <h2 className={cn(
-              "w-full whitespace-normal break-words text-sm font-semibold leading-snug sm:w-auto sm:min-w-0 sm:flex-1 sm:text-base",
+              "w-full whitespace-normal break-words text-sm font-semibold leading-snug text-foreground sm:w-auto sm:min-w-0 sm:flex-1 sm:text-base",
               task.status === "completed" && "text-muted-foreground line-through"
             )}>
               {task.title}
             </h2>
-            <Badge variant="outline" className={cn("gap-1 text-[10px]", priorityClass[task.priority])}>
+            <Badge variant="outline" className={cn("gap-1 rounded text-[10px]", priorityClass[task.priority])}>
               {priorityLabel[task.priority]}
             </Badge>
             <Badge
               variant="outline"
               className={cn(
-                "gap-1 text-[10px]",
+                "gap-1 rounded text-[10px]",
                 task.status === "completed" ? "border-success/40 text-success" : "border-warning/40 text-warning"
               )}
             >
@@ -443,15 +525,15 @@ const TaskCard = memo(function TaskCard({
               {statusLabel[task.status]}
             </Badge>
             {openReasons > 0 && (
-              <Badge variant="secondary" className="text-[10px]">{openReasons} pendência(s)</Badge>
+              <Badge variant="secondary" className="rounded text-[10px]">{openReasons} pendência(s)</Badge>
             )}
             {task.progress_target && (
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="rounded text-[10px]">
                 {task.progress_current}/{task.progress_target}
               </Badge>
             )}
           </div>
-          <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+          <div className="mt-2 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span className="flex min-w-0 items-center gap-1 break-words">
               <UserRound className="h-3 w-3 shrink-0" />
               <span className="min-w-0 break-words">{task.assignee || "Sem responsável"}</span>
@@ -470,39 +552,43 @@ const TaskCard = memo(function TaskCard({
           onClick={() => onUpdate({ status: task.status === "completed" ? "pending" : "completed" })}
         >
           <Check className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">
-            {task.status === "completed" ? "Reabrir" : "Concluir"}
-          </span>
+          <span>{task.status === "completed" ? "Reabrir" : "Concluir"}</span>
         </Button>
       </div>
 
-      {/* Status bar */}
-      <div className={cn("h-1 w-full", statusColor)} />
-
-      {/* Expanded body */}
       {expanded && (
-        <div className="space-y-4 border-t border-border/40 p-3 sm:p-4">
-          {/* Edit row: title + priority + progress */}
+        <div className="space-y-4 border-t border-border/40 bg-background/25 p-3 sm:p-4">
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px_auto]">
             {editingTitle ? (
               <Input
                 autoFocus
                 value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
+                onChange={(event) => setTitleDraft(event.target.value)}
                 onBlur={handleSaveTitle}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSaveTitle();
-                  if (e.key === "Escape") { setTitleDraft(task.title); setEditingTitle(false); }
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleSaveTitle();
+                  if (event.key === "Escape") {
+                    setTitleDraft(task.title);
+                    setEditingTitle(false);
+                  }
                 }}
                 className="h-10"
               />
             ) : (
-              <Button variant="outline" size="sm" className="h-10 justify-start gap-2" onClick={() => { setTitleDraft(task.title); setEditingTitle(true); }}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 justify-start gap-2"
+                onClick={() => {
+                  setTitleDraft(task.title);
+                  setEditingTitle(true);
+                }}
+              >
                 <Pencil className="h-3.5 w-3.5" />
                 Editar título
               </Button>
             )}
-            <Select value={task.priority} onValueChange={(v) => onUpdate({ priority: v as Priority })}>
+            <Select value={task.priority} onValueChange={(value) => onUpdate({ priority: value as Priority })}>
               <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="low">Baixa</SelectItem>
@@ -515,9 +601,8 @@ const TaskCard = memo(function TaskCard({
             </Button>
           </div>
 
-          {/* Progress controls */}
           {task.progress_target && (
-            <div className="rounded border border-border/50 bg-background/40 p-3">
+            <div className="rounded-md border border-border/50 bg-card/70 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground">Progresso da meta</span>
                 <span className="text-sm font-semibold">
@@ -532,35 +617,32 @@ const TaskCard = memo(function TaskCard({
             </div>
           )}
 
-          {/* Pending reasons */}
           <div>
             <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Pendências
             </div>
 
-            {/* List */}
             <div className="space-y-2">
-              {task.pending_reasons.map((r) => (
-              <ReasonRow
-                  key={r.id}
-                  reason={r}
-                  onUpdate={(updates) => onUpdateReason(r.id, updates)}
-                  onComplete={() => onCompleteReason(r.id)}
-                  onDelete={() => onDeleteReason(r.id)}
+              {task.pending_reasons.map((pendingReason) => (
+                <ReasonRow
+                  key={pendingReason.id}
+                  reason={pendingReason}
+                  onUpdate={(updates) => onUpdateReason(pendingReason.id, updates)}
+                  onComplete={() => onCompleteReason(pendingReason.id)}
+                  onDelete={() => onDeleteReason(pendingReason.id)}
                 />
               ))}
             </div>
 
-            {/* Add form */}
-            <div className="mt-3 grid gap-2 rounded border border-border/50 bg-background/40 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_140px_120px_100px_auto]">
+            <div className="mt-3 grid gap-2 rounded-md border border-border/50 bg-card/70 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_140px_120px_120px_auto]">
               <Textarea
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={(event) => setReason(event.target.value)}
                 placeholder="Motivo da pendência"
                 className="min-h-10 resize-none"
               />
-              <Input value={responsible} onChange={(e) => setResponsible(e.target.value)} placeholder="Responsável" className="h-10" />
-              <Select value={rPriority} onValueChange={(v) => setRPriority(v as Priority)}>
+              <Input value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="Responsável" className="h-10" />
+              <Select value={rPriority} onValueChange={(value) => setRPriority(value as Priority)}>
                 <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
@@ -569,9 +651,10 @@ const TaskCard = memo(function TaskCard({
                 </SelectContent>
               </Select>
               <Input
-                type="number" min={1}
+                type="number"
+                min={1}
                 value={rTarget}
-                onChange={(e) => setRTarget(e.target.value)}
+                onChange={(event) => setRTarget(event.target.value)}
                 placeholder="Meta"
                 className="h-10"
               />
@@ -603,8 +686,8 @@ function ReasonRow({
   const isDone = !!reason.completed_at;
 
   const save = () => {
-    const t = draft.trim();
-    if (t && t !== reason.reason) onUpdate({ reason: t });
+    const text = draft.trim();
+    if (text && text !== reason.reason) onUpdate({ reason: text });
     setEditing(false);
   };
 
@@ -617,16 +700,22 @@ function ReasonRow({
   };
 
   return (
-    <div className="rounded border border-border/40 p-2">
+    <div className="rounded-md border border-border/40 bg-background/35 p-2">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-start">
         <div className="min-w-0 flex-1">
           {editing ? (
             <Textarea
               autoFocus
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(event) => setDraft(event.target.value)}
               onBlur={save}
-              onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") { setDraft(reason.reason); setEditing(false); } }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") save();
+                if (event.key === "Escape") {
+                  setDraft(reason.reason);
+                  setEditing(false);
+                }
+              }}
               className="min-h-10 resize-none text-sm"
             />
           ) : (
@@ -642,13 +731,13 @@ function ReasonRow({
             </button>
           )}
           <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-            <span className="min-w-0 break-words">Responsável: {reason.responsible || "—"}</span>
+            <span className="min-w-0 break-words">Responsável: {reason.responsible || "-"}</span>
             <span>Criada {format(parseISO(reason.created_at), "dd/MM/yyyy")}</span>
             {reason.completed_at && <span>Concluída {format(parseISO(reason.completed_at), "dd/MM/yyyy")}</span>}
           </div>
         </div>
 
-        <Select value={reason.priority} onValueChange={(v) => onUpdate({ priority: v as Priority })} disabled={isDone}>
+        <Select value={reason.priority} onValueChange={(value) => onUpdate({ priority: value as Priority })} disabled={isDone}>
           <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="low">Baixa</SelectItem>
@@ -670,7 +759,7 @@ function ReasonRow({
       </div>
 
       {reason.progress_target && (
-        <div className="mt-2 rounded border border-border/40 bg-background/40 p-2">
+        <div className="mt-2 rounded-md border border-border/40 bg-background/40 p-2">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-[11px] text-muted-foreground">Progresso</span>
             <span className="text-xs font-semibold">{reason.progress_current}/{reason.progress_target}</span>
@@ -686,11 +775,30 @@ function ReasonRow({
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: number; tone?: "success" | "warning" }) {
+function Metric({
+  label,
+  value,
+  tone,
+  icon,
+}: {
+  label: string;
+  value: number;
+  tone?: "success" | "warning";
+  icon: ReactNode;
+}) {
   return (
-    <div className="rounded-md border border-border/60 bg-card px-3 py-2 text-center">
-      <div className={cn("text-lg font-bold", tone === "success" && "text-success", tone === "warning" && "text-warning")}>
-        {value}
+    <div className="rounded-md border border-border/60 bg-background/45 p-3 text-left">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary",
+          tone === "success" && "bg-success/10 text-success",
+          tone === "warning" && "bg-warning/10 text-warning"
+        )}>
+          {icon}
+        </span>
+        <div className={cn("text-2xl font-semibold", tone === "success" && "text-success", tone === "warning" && "text-warning")}>
+          {value}
+        </div>
       </div>
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
@@ -741,8 +849,8 @@ function FluidProgressRange({
       onMouseUp={commit}
       onBlur={commit}
       onKeyUp={commit}
-      onChange={(e) => {
-        const nextValue = Number(e.target.value);
+      onChange={(event) => {
+        const nextValue = Number(event.target.value);
         draftRef.current = nextValue;
         setDraft(nextValue);
       }}
@@ -750,4 +858,3 @@ function FluidProgressRange({
     />
   );
 }
-

@@ -1,66 +1,69 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Page, Block, BlockType } from "@/types/notes";
-import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { toast } from "sonner";
 import {
-  Star,
-  Copy,
-  Trash2,
-  Minimize2,
-  Clock,
   Check,
-  MoreHorizontal,
+  Clock,
+  Copy,
   Download,
-  Share2,
+  ListChecks,
   Mail,
+  Minimize2,
+  Pin,
+  Share2,
 } from "lucide-react";
+import { Page, Block } from "@/types/notes";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BlockEditor } from "./BlockEditor";
+import { TagSelector } from "@/components/notes/TagSelector";
+import { LinkifiedText } from "@/components/notes/LinkifiedText";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { toast } from "sonner";
 import { generatePagePdf } from "@/lib/pdfExport";
+import { blocksToText, getNoteTags, setNoteTags } from "@/lib/noteUtils";
+import { Json } from "@/integrations/supabase/types";
 
 interface PageEditorProps {
   page: Page;
   onUpdate: (updates: Partial<Page>) => void;
   focusMode: boolean;
   onExitFocus: () => void;
+  onCreateTaskFromPage?: (page: Page) => void;
 }
 
-export function PageEditor({ page, onUpdate, focusMode, onExitFocus }: PageEditorProps) {
+export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage }: PageEditorProps) {
   const [title, setTitle] = useState(page.title);
   const [blocks, setBlocks] = useState<Block[]>(page.content || []);
   const [dirty, setDirty] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
-
   const pageIdRef = useRef(page.id);
   const pendingRef = useRef<{ title: string; blocks: Block[] } | null>(null);
 
   useEffect(() => {
-    // Flush any pending save for the previous page before switching
     if (pageIdRef.current !== page.id && pendingRef.current) {
       const prevId = pageIdRef.current;
-      const { title: t, blocks: b } = pendingRef.current;
-      // Save to the previous page id directly
+      const { title: pendingTitle, blocks: pendingBlocks } = pendingRef.current;
       import("@/integrations/supabase/client").then(({ supabase }) => {
-        supabase.from("pages").update({ title: t, content: b as any }).eq("id", prevId);
+        supabase.from("pages").update({ title: pendingTitle, content: pendingBlocks as unknown as Json }).eq("id", prevId);
       });
       pendingRef.current = null;
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     }
+
     pageIdRef.current = page.id;
     setTitle(page.title);
     setBlocks(page.content || []);
     setDirty(false);
+    // Only reset local editor state when switching notes; autosave invalidations should not steal the cursor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page.id]);
 
   const scheduleAutoSave = useCallback(
@@ -87,18 +90,28 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus }: PageEdito
     scheduleAutoSave(title, newBlocks);
   };
 
-  const handleForceSave = () => {
+  const handleTagsChange = (tags: string[]) => {
+    const nextBlocks = setNoteTags(blocks, tags);
+    setBlocks(nextBlocks);
+    scheduleAutoSave(title, nextBlocks);
+  };
+
+  const handleForceSave = useCallback(() => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     onUpdate({ title, content: blocks });
+    pendingRef.current = null;
     setDirty(false);
-    toast.success("Salvo!");
-  };
+    toast.success("Salvo");
+  }, [blocks, onUpdate, title]);
+
+  const currentPage = { ...page, title, content: blocks };
+  const tags = getNoteTags(blocks);
 
   const handleDownloadPdf = async () => {
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
-      doc.save(`${title || "pagina"}.pdf`);
-      toast.success("PDF baixado!");
+      doc.save(`${title || "nota"}.pdf`);
+      toast.success("PDF baixado");
     } catch {
       toast.error("Erro ao gerar PDF");
     }
@@ -108,126 +121,191 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus }: PageEdito
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
       const blob = doc.output("blob");
-      const file = new File([blob], `${title || "pagina"}.pdf`, { type: "application/pdf" });
+      const file = new File([blob], `${title || "nota"}.pdf`, { type: "application/pdf" });
+
+      if (navigator.share) {
+        await navigator.share({ title, text: `Confira: ${title}`, files: [file] });
+        return;
+      }
 
       if (method === "email") {
-        // Try Web Share API first, fallback to mailto
-        if (navigator.share) {
-          await navigator.share({ title, files: [file] });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue em anexo a página: " + title)}`;
-          a.click();
-          URL.revokeObjectURL(url);
-          toast.info("Abra seu cliente de email e anexe o PDF baixado.");
-          doc.save(`${title || "pagina"}.pdf`);
-        }
+        const anchor = document.createElement("a");
+        anchor.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a nota: " + title)}`;
+        anchor.click();
+        toast.info("Abra seu cliente de email e anexe o PDF baixado.");
       } else {
-        if (navigator.share) {
-          await navigator.share({ title, text: `Confira: ${title}`, files: [file] });
-        } else {
-          toast.info("Compartilhamento não suportado neste navegador. O PDF será baixado.");
-          doc.save(`${title || "pagina"}.pdf`);
-        }
+        toast.info("Compartilhamento não suportado neste navegador. O PDF será baixado.");
       }
-    } catch (err: any) {
-      if (err?.name !== "AbortError") toast.error("Erro ao compartilhar");
+      doc.save(`${title || "nota"}.pdf`);
+    } catch (error: unknown) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) toast.error("Erro ao compartilhar");
     }
   };
 
+  const handleCopyNote = async () => {
+    await navigator.clipboard.writeText([title, blocksToText(blocks)].filter(Boolean).join("\n\n"));
+    toast.success("Nota copiada");
+  };
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "s") {
-        e.preventDefault();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === "s") {
+        event.preventDefault();
         handleForceSave();
       }
-      if (e.ctrlKey && e.shiftKey && e.key === "F") {
-        e.preventDefault();
+      if (event.ctrlKey && event.shiftKey && event.key === "F") {
+        event.preventDefault();
         if (focusMode) onExitFocus();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [title, blocks, focusMode]);
+  }, [focusMode, handleForceSave, onExitFocus]);
 
   return (
-    <div className={cn("flex flex-col h-full", focusMode && "max-w-3xl mx-auto")}>
-      {/* Page header */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border shrink-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="flex items-center gap-1 shrink-0">
-            {dirty ? (
-              <div className="h-2.5 w-2.5 sm:h-2 sm:w-2 rounded-full bg-warning animate-pulse-glow" title="Salvando..." />
-            ) : (
-              <Check className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-success" />
-            )}
-            <span className="font-mono-accent text-[11px] sm:text-[10px] text-muted-foreground">
-              {dirty ? "editando" : "salvo"}
+    <div className={cn("flex h-full flex-col", focusMode && "mx-auto max-w-3xl")}>
+      <div className="shrink-0 border-b border-border px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex shrink-0 items-center gap-1">
+              {dirty ? (
+                <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-warning sm:h-2 sm:w-2" title="Salvando..." />
+              ) : (
+                <Check className="h-4 w-4 text-success sm:h-3.5 sm:w-3.5" />
+              )}
+              <span className="font-mono-accent text-[11px] text-muted-foreground sm:text-[10px]">
+                {dirty ? "Salvando..." : "Salvo"}
+              </span>
+            </div>
+
+            <span className="hidden font-mono-accent text-[11px] text-muted-foreground sm:block sm:text-[10px]">
+              <Clock className="mr-0.5 inline h-3 w-3" />
+              Editado às {format(new Date(page.updated_at), "HH:mm")}
             </span>
           </div>
 
-          <span className="font-mono-accent text-[11px] sm:text-[10px] text-muted-foreground hidden sm:block">
-            <Clock className="inline h-3 w-3 mr-0.5" />
-            {format(new Date(page.updated_at), "dd/MM HH:mm")}
-          </span>
+          <div className="flex items-center gap-1">
+            {onCreateTaskFromPage && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="hidden h-8 gap-1 sm:inline-flex"
+                onClick={() => onCreateTaskFromPage(currentPage)}
+              >
+                <ListChecks className="h-3.5 w-3.5" />
+                Criar tarefa
+              </Button>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 sm:h-7 sm:w-7"
+              onClick={() => onUpdate({ is_favorite: !page.is_favorite })}
+              title={page.is_favorite ? "Desafixar" : "Fixar"}
+            >
+              <Pin className={cn("h-5 w-5 sm:h-3.5 sm:w-3.5", page.is_favorite && "fill-warning text-warning")} />
+            </Button>
+
+            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={handleCopyNote} title="Copiar nota">
+              <Copy className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7">
+                  <Share2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleDownloadPdf}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar PDF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleSharePdf("email")}>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Enviar por email
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSharePdf("social")}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Compartilhar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {focusMode && (
+              <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={onExitFocus}>
+                <Minimize2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 sm:h-7 sm:w-7"
-            onClick={() => onUpdate({ is_favorite: !page.is_favorite })}
-          >
-            <Star className={cn("h-5 w-5 sm:h-3.5 sm:w-3.5", page.is_favorite && "fill-warning text-warning")} />
-          </Button>
-
-          {/* Export dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7">
-                <Share2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={handleDownloadPdf}>
-                <Download className="mr-2 h-4 w-4" />
-                Baixar PDF
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleSharePdf("email")}>
-                <Mail className="mr-2 h-4 w-4" />
-                Enviar por email
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSharePdf("social")}>
-                <Share2 className="mr-2 h-4 w-4" />
-                Compartilhar
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {focusMode && (
-            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={onExitFocus}>
-              <Minimize2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            Capture ideias, links e checklists. Depois transforme tudo em ação.
+          </span>
+          {page.is_favorite && <Badge variant="outline" className="rounded-full border-warning/40 text-warning">Fixada</Badge>}
+          {onCreateTaskFromPage && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-9 gap-1 sm:hidden"
+              onClick={() => onCreateTaskFromPage(currentPage)}
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              Criar tarefa
             </Button>
           )}
         </div>
       </div>
 
-      {/* Title */}
-      <div className="px-4 sm:px-6 pt-6 sm:pt-8 pb-4">
+      <div className="px-4 pb-3 pt-6 sm:px-6 sm:pt-8">
         <input
           value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          className="w-full bg-transparent text-xl sm:text-2xl font-bold border-none outline-none placeholder:text-muted-foreground/30"
-          placeholder="Título da página..."
+          onChange={(event) => handleTitleChange(event.target.value)}
+          className="w-full border-none bg-transparent text-xl font-bold outline-none placeholder:text-muted-foreground/30 sm:text-2xl"
+          placeholder="Título da nota..."
         />
       </div>
 
-      {/* Block editor */}
-      <div className="flex-1 px-4 sm:px-6 pb-16 overflow-auto">
-        <BlockEditor blocks={blocks} onChange={handleBlocksChange} />
+      <div className="px-4 pb-4 sm:px-6">
+        <TagSelector value={tags} onChange={handleTagsChange} compact />
+      </div>
+
+      <div className="flex-1 overflow-auto px-4 pb-16 sm:px-6">
+        <div className="rounded-lg border border-border/50 bg-card/35 p-3 sm:p-4">
+          <BlockEditor blocks={blocks} onChange={handleBlocksChange} />
+        </div>
+
+        {blocksToText(blocks).trim() && (
+          <div className="mt-4 rounded-lg border border-border/50 bg-background/35 p-3 sm:p-4">
+            <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Visualização
+            </div>
+            <div className="space-y-2 text-sm leading-6 text-foreground">
+              {blocks.map((block) => {
+                if (!block.content && block.type !== "checklist") return null;
+                if (block.type === "checklist") {
+                  return (
+                    <div key={block.id} className="flex items-start gap-2">
+                      <Checkbox checked={!!block.checked} disabled className="mt-1 h-4 w-4" />
+                      <span className={cn("whitespace-pre-wrap", block.checked && "text-muted-foreground line-through")}>
+                        <LinkifiedText text={block.content} />
+                      </span>
+                    </div>
+                  );
+                }
+                return (
+                  <p key={block.id} className="whitespace-pre-wrap">
+                    <LinkifiedText text={block.content} />
+                  </p>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

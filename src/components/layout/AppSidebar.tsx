@@ -24,6 +24,8 @@ import {
   Pencil,
   Pin,
   PinOff,
+  CheckSquare,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +53,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { getNotePreview, getNoteTags, getNoteTitle, pageHasChecklist, pageHasLink } from "@/lib/noteUtils";
 
 interface AppSidebarProps {
   notebooks: Notebook[];
@@ -115,7 +118,7 @@ export function AppSidebar({
   };
 
   const handleCreateNotebook = () => {
-    // Empty title => parent will use default (mês ano - Diario)
+    // Empty title => parent will use default (month year - diary)
     onCreateNotebook(newTitle.trim());
     setNewTitle("");
     setNewNotebookMode(false);
@@ -168,7 +171,7 @@ export function AppSidebar({
                       )}
                     >
                       <ClipboardList className="h-4 w-4 sm:h-3 sm:w-3" />
-                      {!collapsed && <span>Task Manager</span>}
+                      {!collapsed && <span>VISTA Task Control</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -210,7 +213,7 @@ export function AppSidebar({
             <SidebarGroup>
               <div className="flex items-center justify-between px-2">
                 <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {!collapsed && "Diario"}
+                  {!collapsed && "Diário"}
                 </SidebarGroupLabel>
                 {!collapsed && (
                   <Button
@@ -358,15 +361,27 @@ export function AppSidebar({
                                           <button
                                             onClick={() => onSelectPage(page.id)}
                                             className={cn(
-                                              "flex items-center gap-2 flex-1 min-w-0 rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-sidebar-foreground/80 hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0",
+                                              "flex flex-1 min-w-0 rounded px-2 py-2.5 text-left text-sm text-sidebar-foreground/80 transition-colors hover:bg-sidebar-accent sm:py-1.5 sm:text-xs",
                                               selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                                             )}
                                           >
-                                            <FileText className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
-                                            <span className="truncate">{formatDiaryEntryTitle(page)}</span>
-                                            {page.is_favorite && (
-                                              <Star className="h-3.5 w-3.5 sm:h-2.5 sm:w-2.5 text-warning fill-warning ml-auto shrink-0" />
-                                            )}
+                                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground sm:h-3 sm:w-3" />
+                                            <span className="min-w-0 flex-1">
+                                              <span className="flex min-w-0 items-center gap-1">
+                                                {page.is_favorite && <Pin className="h-3 w-3 shrink-0 fill-warning text-warning" />}
+                                                <span className="truncate">{formatDiaryEntryTitle(page)}</span>
+                                              </span>
+                                              <span className="mt-0.5 line-clamp-2 block text-[11px] font-normal leading-snug text-muted-foreground">
+                                                {getNotePreview(page, 74)}
+                                              </span>
+                                              <span className="mt-1 flex flex-wrap items-center gap-1 text-[10px] font-normal text-muted-foreground">
+                                                {getNoteTags(page).slice(0, 2).map((tag) => (
+                                                  <span key={tag} className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary">{tag}</span>
+                                                ))}
+                                                {pageHasChecklist(page) && <CheckSquare className="h-3 w-3" />}
+                                                {pageHasLink(page) && <Link2 className="h-3 w-3" />}
+                                              </span>
+                                            </span>
                                           </button>
                                           <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -441,9 +456,9 @@ export function AppSidebar({
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir diario?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir diário?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todas as entradas deste diario serao excluidas permanentemente.
+              Todas as entradas deste diário serão excluídas permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -491,7 +506,10 @@ function groupPagesByDate(pages: Page[]) {
   const groups = new Map<string, { key: string; label: string; pages: Page[] }>();
 
   [...pages]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort((a, b) => {
+      if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    })
     .forEach((page) => {
       const date = new Date(page.created_at);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
@@ -510,5 +528,5 @@ function formatDiaryEntryTitle(page: Page) {
     month: "2-digit",
   });
 
-  return `${date} - ${page.title}`;
+  return `${date} - ${getNoteTitle(page)}`;
 }

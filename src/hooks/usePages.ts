@@ -1,8 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { Page } from "@/types/notes";
+import { Block, Page } from "@/types/notes";
 import { toast } from "sonner";
+import { Database, Json } from "@/integrations/supabase/types";
+
+type PageRow = Database["public"]["Tables"]["pages"]["Row"];
+type PageUpdate = Database["public"]["Tables"]["pages"]["Update"];
+
+const blocksToJson = (blocks: Block[]): Json => blocks as unknown as Json;
+
+const mapPage = (page: PageRow): Page => ({
+  ...page,
+  content: Array.isArray(page.content) ? (page.content as unknown as Block[]) : [],
+});
+
+const mapPageUpdate = (updates: Partial<Page>): PageUpdate => {
+  const { content, ...rest } = updates;
+  return {
+    ...rest,
+    ...(content ? { content: blocksToJson(content) } : {}),
+  };
+};
 
 export function usePages(notebookId?: string) {
   const { user } = useAuth();
@@ -18,21 +37,24 @@ export function usePages(notebookId?: string) {
         .eq("notebook_id", notebookId!)
         .order("position", { ascending: true });
       if (error) throw error;
-      return (data as any[]).map((p) => ({ ...p, content: p.content as any }));
+      return (data || []).map(mapPage);
     },
   });
 
   const createPage = useMutation({
-    mutationFn: async (title: string = "Untitled Page") => {
+    mutationFn: async (input: string | { title?: string; content?: Block[]; notebookId?: string } = "Untitled Page") => {
+      const title = typeof input === "string" ? input : input.title || "Untitled Page";
+      const content = typeof input === "string" ? [] : input.content || [];
+      const targetNotebookId = typeof input === "string" ? notebookId! : input.notebookId || notebookId!;
       const maxPos = query.data?.length || 0;
       const { data, error } = await supabase
         .from("pages")
         .insert({
           title,
-          notebook_id: notebookId!,
+          notebook_id: targetNotebookId,
           user_id: user!.id,
           position: maxPos,
-          content: [],
+          content: blocksToJson(content),
         })
         .select()
         .single();
@@ -50,7 +72,7 @@ export function usePages(notebookId?: string) {
 
   const updatePage = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Page> & { id: string }) => {
-      const { error } = await supabase.from("pages").update(updates as any).eq("id", id);
+      const { error } = await supabase.from("pages").update(mapPageUpdate(updates)).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -86,7 +108,7 @@ export function usePages(notebookId?: string) {
           notebook_id: page.notebook_id,
           user_id: user!.id,
           position: maxPos,
-          content: page.content as any,
+          content: blocksToJson(page.content),
           is_favorite: false,
         }])
         .select()
@@ -131,7 +153,24 @@ export function useFavoritePages() {
         .eq("is_favorite", true)
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      return (data as any[]).map((p) => ({ ...p, content: p.content as any }));
+      return (data || []).map(mapPage);
+    },
+  });
+}
+
+export function useAllPages() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["all-pages", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<Page[]> => {
+      const { data, error } = await supabase
+        .from("pages")
+        .select("*")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return (data || []).map(mapPage);
     },
   });
 }
