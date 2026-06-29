@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   BookOpen,
+  CalendarDays,
   ClipboardList,
   Plus,
   Star,
@@ -26,6 +27,8 @@ import {
   PinOff,
   CheckSquare,
   Link2,
+  Home,
+  Tags,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,14 +61,18 @@ import { getNotePreview, getNoteTags, getNoteTitle, pageHasChecklist, pageHasLin
 interface AppSidebarProps {
   notebooks: Notebook[];
   pages: Page[];
+  allPages?: Page[];
   favorites: Page[];
-  activeView: "tasks" | "diary";
+  activeView: "today" | "tasks" | "calendar" | "notes" | "diary";
   sidebarPinned: boolean;
   selectedNotebookId: string | null;
   selectedPageId: string | null;
   onToggleSidebarPinned: () => void;
   onMouseLeave: () => void;
+  onSelectToday?: () => void;
   onSelectTasks: () => void;
+  onSelectNotes?: () => void;
+  onSelectCalendar?: () => void;
   onSelectNotebook: (id: string) => void;
   onSelectPage: (id: string) => void;
   onCreateNotebook: (title: string) => void;
@@ -75,11 +82,13 @@ interface AppSidebarProps {
   onRenamePage: (id: string, title: string) => void;
   onDeletePage: (id: string) => void;
   onToggleFavorite: (id: string, fav: boolean) => void;
+  onSelectTag?: (tag: string) => void;
 }
 
 export function AppSidebar({
   notebooks,
   pages,
+  allPages = [],
   favorites,
   activeView,
   sidebarPinned,
@@ -87,7 +96,10 @@ export function AppSidebar({
   selectedPageId,
   onToggleSidebarPinned,
   onMouseLeave,
+  onSelectToday,
   onSelectTasks,
+  onSelectNotes,
+  onSelectCalendar,
   onSelectNotebook,
   onSelectPage,
   onCreateNotebook,
@@ -97,6 +109,7 @@ export function AppSidebar({
   onRenamePage,
   onDeletePage,
   onToggleFavorite,
+  onSelectTag,
 }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -108,6 +121,8 @@ export function AppSidebar({
   const [renamePageValue, setRenamePageValue] = useState("");
   const [newNotebookMode, setNewNotebookMode] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const pagesForOrganization = allPages.length > 0 ? allPages : pages;
+  const tags = Array.from(new Set(pagesForOrganization.flatMap((page) => getNoteTags(page)))).slice(0, 12);
 
   const handleRenamePage = () => {
     if (renamePageId && renamePageValue.trim()) {
@@ -160,8 +175,35 @@ export function AppSidebar({
         <SidebarContent>
           <ScrollArea className="flex-1">
             <SidebarGroup>
+              <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
+                {!collapsed && "Menu"}
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={onSelectToday}
+                      className={cn(
+                        "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
+                        activeView === "today" && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <Home className="h-4 w-4 sm:h-3 sm:w-3" />
+                      {!collapsed && <span>Hoje</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={onSelectNotes}
+                      className={cn(
+                        "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
+                        (activeView === "notes" || activeView === "diary") && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <BookOpen className="h-4 w-4 sm:h-3 sm:w-3" />
+                      {!collapsed && <span>Notas</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={onSelectTasks}
@@ -171,7 +213,19 @@ export function AppSidebar({
                       )}
                     >
                       <ClipboardList className="h-4 w-4 sm:h-3 sm:w-3" />
-                      {!collapsed && <span>VISTA Task Control</span>}
+                      {!collapsed && <span>Tarefas</span>}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={onSelectCalendar}
+                      className={cn(
+                        "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
+                        activeView === "calendar" && "bg-sidebar-accent text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" />
+                      {!collapsed && <span>Calendário</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -183,7 +237,7 @@ export function AppSidebar({
               <SidebarGroup>
                 <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
                   <Star className="mr-1 h-3.5 w-3.5 sm:h-3 sm:w-3" />
-                  {!collapsed && "Favoritos"}
+                  {!collapsed && "Fixadas"}
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -209,11 +263,35 @@ export function AppSidebar({
               </SidebarGroup>
             )}
 
+            {tags.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <Tags className="mr-1 h-3.5 w-3.5 sm:h-3 sm:w-3" />
+                  {!collapsed && "Tags"}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {tags.map((tag) => (
+                      <SidebarMenuItem key={tag}>
+                        <SidebarMenuButton
+                          onClick={() => onSelectTag?.(tag)}
+                          className="text-sm sm:text-xs min-h-[44px] sm:min-h-0"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-primary/70" />
+                          {!collapsed && <span className="truncate">{tag}</span>}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
             {/* Notebooks */}
             <SidebarGroup>
               <div className="flex items-center justify-between px-2">
                 <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {!collapsed && "Diário"}
+                  {!collapsed && "Arquivo do diário"}
                 </SidebarGroupLabel>
                 {!collapsed && (
                   <Button

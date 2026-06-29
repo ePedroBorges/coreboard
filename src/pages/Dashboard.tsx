@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -28,6 +28,7 @@ type FilterPeriod = "all" | "month" | "year" | "custom";
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<FilterPeriod>("all");
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const [selectedYear, setSelectedYear] = useState(() => format(new Date(), "yyyy"));
@@ -152,7 +153,10 @@ const Dashboard = () => {
           sidebarPinned
           onToggleSidebarPinned={() => {}}
           onMouseLeave={() => {}}
-          onSelectTasks={() => {}}
+          onSelectToday={() => navigate("/")}
+          onSelectTasks={() => navigate("/")}
+          onSelectNotes={() => navigate("/")}
+          onSelectCalendar={() => navigate("/")}
           notebooks={notebooks.data || []}
           pages={[]}
           favorites={favorites.data || []}

@@ -178,7 +178,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     }
     setUploadingIdx(index);
     try {
-      const path = `${user.id}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+      const path = `${user.id}/${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
       const { error } = await supabase.storage
         .from("page-attachments")
         .upload(path, file, { contentType: file.type, upsert: false });
@@ -190,8 +190,8 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
         content: file.name,
       });
       toast.success("Anexo enviado");
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao enviar anexo");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar anexo");
     } finally {
       setUploadingIdx(null);
     }
@@ -216,7 +216,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
           className="flex items-center gap-2 text-muted-foreground/50 hover:text-muted-foreground text-sm py-3 sm:py-2 transition-colors min-h-[44px] sm:min-h-0"
         >
           <Plus className="h-5 w-5 sm:h-4 sm:w-4" />
-          Comece a escrever ou pressione / para comandos
+          Escreva sua nota aqui...
         </button>
       </div>
     );
@@ -323,7 +323,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                   block.type === "heading1" ? "Título 1"
                     : block.type === "heading2" ? "Título 2"
                     : block.type === "heading3" ? "Título 3"
-                    : "Escreva algo ou pressione / para comandos..."
+                    : "Escreva sua nota aqui..."
                 }
               />
             )}

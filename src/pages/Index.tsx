@@ -12,6 +12,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { PageEditor } from "@/components/editor/PageEditor";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
+import { TodayView } from "@/components/today/TodayView";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import {
   getNotePreview,
   getNoteTags,
   getNoteTitle,
+  makeNoteBlocks,
   noteMatchesQuery,
   pageHasChecklist,
   pageHasLink,
@@ -39,13 +41,14 @@ const defaultDiaryName = () => {
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
-  const [activeView, setActiveView] = useState<"tasks" | "diary">("tasks");
+  const [activeView, setActiveView] = useState<"today" | "tasks" | "calendar" | "notes" | "diary">("today");
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(false);
   const [sidebarHover, setSidebarHover] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [quickCapturePending, setQuickCapturePending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const notebooks = useNotebooks();
@@ -68,8 +71,26 @@ const Index = () => {
     setSelectedPageId(id);
   }, []);
 
+  const handleSelectToday = useCallback(() => {
+    setActiveView("today");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
+  }, []);
+
   const handleSelectTasks = useCallback(() => {
     setActiveView("tasks");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
+  }, []);
+
+  const handleSelectCalendar = useCallback(() => {
+    setActiveView("calendar");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
+  }, []);
+
+  const handleSelectNotes = useCallback(() => {
+    setActiveView("notes");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
   }, []);
@@ -143,6 +164,51 @@ const Index = () => {
     }
   }, [ensureNotebookId, pages.createPage, pages.updatePage, tasks.createTask]);
 
+  const handleTodayQuickCapture = useCallback(async ({
+    mode,
+    text,
+  }: {
+    mode: "note" | "checklist" | "task";
+    text: string;
+  }) => {
+    const cleanText = text.trim();
+    if (!cleanText) return;
+    setQuickCapturePending(true);
+    try {
+      if (mode === "task") {
+        await tasks.createTask.mutateAsync({
+          title: cleanText.slice(0, 140),
+          assignee: "",
+          priority: "medium",
+          progress_target: null,
+          task_date: format(new Date(), "yyyy-MM-dd"),
+        });
+        return;
+      }
+
+      const notebookId = await ensureNotebookId();
+      const checklistItems = mode === "checklist"
+        ? cleanText.split(/\n+/).map((line) => ({ text: line.trim() })).filter((item) => item.text)
+        : [];
+      const content = mode === "checklist"
+        ? makeNoteBlocks("", checklistItems, [])
+        : makeNoteBlocks(cleanText, [], []);
+      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
+
+      await pages.createPage.mutateAsync({ title, content, notebookId });
+      toast.success(mode === "checklist" ? "Checklist salvo." : "Nota salva.");
+    } finally {
+      setQuickCapturePending(false);
+    }
+  }, [ensureNotebookId, pages.createPage, tasks.createTask]);
+
+  const openPage = useCallback((page: Page) => {
+    setSearchQuery("");
+    setActiveView("diary");
+    setSelectedNotebookId(page.notebook_id);
+    setSelectedPageId(page.id);
+  }, []);
+
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const noteResults = normalizedSearch
     ? (allPages.data || []).filter((page) => noteMatchesQuery(page, normalizedSearch)).slice(0, 12)
@@ -187,8 +253,12 @@ const Index = () => {
               if (!sidebarPinned) setSidebarHover(false);
             }}
             onSelectTasks={handleSelectTasks}
+            onSelectToday={handleSelectToday}
+            onSelectNotes={handleSelectNotes}
+            onSelectCalendar={handleSelectCalendar}
             notebooks={notebooks.data || []}
             pages={pages.data || []}
+            allPages={allPages.data || []}
             favorites={favorites.data || []}
             selectedNotebookId={selectedNotebookId}
             selectedPageId={selectedPageId}
@@ -204,6 +274,10 @@ const Index = () => {
               pages.deletePage.mutate(id);
             }}
             onToggleFavorite={(id, fav) => pages.toggleFavorite.mutate({ id, is_favorite: fav })}
+            onSelectTag={(tag) => {
+              setSearchQuery(tag);
+              setActiveView("today");
+            }}
           />
         )}
 
@@ -235,16 +309,37 @@ const Index = () => {
                 query={searchQuery}
                 notes={noteResults}
                 tasks={taskResults}
-                onOpenNote={(page) => {
-                  setSearchQuery("");
-                  setActiveView("diary");
-                  setSelectedNotebookId(page.notebook_id);
-                  setSelectedPageId(page.id);
-                }}
+                onOpenNote={openPage}
                 onCreateTaskFromPage={createTaskFromPage}
               />
-            ) : activeView === "tasks" ? (
+            ) : activeView === "today" ? (
+              <TodayView
+                tasks={tasks.data || []}
+                notes={allPages.data || []}
+                tasksLoading={tasks.isLoading}
+                notesLoading={allPages.isLoading}
+                quickCapturePending={quickCapturePending}
+                onQuickCapture={handleTodayQuickCapture}
+                onOpenAdvancedCapture={() => setQuickCaptureOpen(true)}
+                onOpenTasks={handleSelectTasks}
+                onOpenNotes={handleSelectNotes}
+                onOpenCalendar={handleSelectCalendar}
+                onOpenNote={openPage}
+                onToggleTaskStatus={(task) => tasks.updateTask.mutate({
+                  id: task.id,
+                  status: task.status === "completed" ? "pending" : "completed",
+                })}
+                onCreateTaskFromPage={createTaskFromPage}
+              />
+            ) : activeView === "tasks" || activeView === "calendar" ? (
               <WeeklyTaskManager />
+            ) : activeView === "notes" ? (
+              <NotesLibrary
+                notes={allPages.data || []}
+                loading={allPages.isLoading}
+                onOpenNote={openPage}
+                onCreateTaskFromPage={createTaskFromPage}
+              />
             ) : selectedPage ? (
               <PageEditor
                 page={selectedPage}
@@ -252,6 +347,12 @@ const Index = () => {
                 focusMode={focusMode}
                 onExitFocus={() => setFocusMode(false)}
                 onCreateTaskFromPage={createTaskFromPage}
+                onDelete={() => {
+                  const pageId = selectedPage.id;
+                  setSelectedPageId(null);
+                  setActiveView("notes");
+                  pages.deletePage.mutate(pageId);
+                }}
               />
             ) : (
               <div className="flex h-full flex-col">
@@ -293,6 +394,70 @@ const Index = () => {
     </SidebarProvider>
   );
 };
+
+function NotesLibrary({
+  notes,
+  loading,
+  onOpenNote,
+  onCreateTaskFromPage,
+}: {
+  notes: Page[];
+  loading: boolean;
+  onOpenNote: (page: Page) => void;
+  onCreateTaskFromPage: (page: Page) => void;
+}) {
+  const sortedNotes = [...notes].sort((a, b) => {
+    if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
+
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
+      <div>
+        <h1 className="text-xl font-semibold">Notas</h1>
+        <p className="text-sm text-muted-foreground">Todas as suas ideias, links e checklists em ordem recente.</p>
+      </div>
+
+      {loading ? (
+        <div className="flex min-h-52 items-center justify-center rounded-lg border border-border/60 bg-card/70">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        </div>
+      ) : sortedNotes.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
+          <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            Nenhuma nota ainda. Capture uma ideia, link ou checklist para começar.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {sortedNotes.map((page) => (
+            <article key={page.id} className="rounded-lg border border-border/60 bg-card/70 p-4">
+              <button className="block w-full text-left" onClick={() => onOpenNote(page)}>
+                <div className="mb-2 flex items-start justify-between gap-3">
+                  <h2 className="min-w-0 break-words text-sm font-semibold">{getNoteTitle(page)}</h2>
+                  {page.is_favorite && <Pin className="h-4 w-4 shrink-0 fill-warning text-warning" />}
+                </div>
+                <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
+              </button>
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                {getNoteTags(page).slice(0, 4).map((tag) => (
+                  <Badge key={tag} variant="secondary" className="rounded-full">{tag}</Badge>
+                ))}
+                {pageHasChecklist(page) && <Badge variant="outline" className="gap-1 rounded-full"><ListChecks className="h-3 w-3" />Checklist</Badge>}
+                {pageHasLink(page) && <Badge variant="outline" className="gap-1 rounded-full"><Link2 className="h-3 w-3" />Link</Badge>}
+              </div>
+              <Button variant="outline" size="sm" className="mt-3 h-9 gap-1" onClick={() => onCreateTaskFromPage(page)}>
+                <ListChecks className="h-3.5 w-3.5" />
+                Criar tarefa
+              </Button>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function taskMatchesQuery(task: WeeklyTask, query: string) {
   return [

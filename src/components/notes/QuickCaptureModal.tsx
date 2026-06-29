@@ -72,9 +72,9 @@ export function QuickCaptureModal({ open, onOpenChange, onSave }: QuickCaptureMo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg border-border/70 bg-card p-4 sm:max-w-2xl sm:p-6">
         <DialogHeader>
-          <DialogTitle>Capturar ideia</DialogTitle>
+          <DialogTitle>Captura avançada</DialogTitle>
           <DialogDescription>
-            Registre uma ideia, link, checklist ou pendência antes que ela se perca.
+            Crie uma nota completa com texto, checklist, tags e ação.
           </DialogDescription>
         </DialogHeader>
 

@@ -11,6 +11,7 @@ import {
   Minimize2,
   Pin,
   Share2,
+  Trash2,
 } from "lucide-react";
 import { Page, Block } from "@/types/notes";
 import { Button } from "@/components/ui/button";
@@ -37,9 +38,10 @@ interface PageEditorProps {
   focusMode: boolean;
   onExitFocus: () => void;
   onCreateTaskFromPage?: (page: Page) => void;
+  onDelete?: () => void;
 }
 
-export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage }: PageEditorProps) {
+export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, onDelete }: PageEditorProps) {
   const [title, setTitle] = useState(page.title);
   const [blocks, setBlocks] = useState<Block[]>(page.content || []);
   const [dirty, setDirty] = useState(false);
@@ -210,6 +212,20 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
             <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={handleCopyNote} title="Copiar nota">
               <Copy className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
             </Button>
+
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 text-destructive hover:text-destructive sm:h-7 sm:w-7"
+                onClick={() => {
+                  if (window.confirm("Excluir esta nota permanentemente?")) onDelete();
+                }}
+                title="Excluir nota"
+              >
+                <Trash2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
+              </Button>
+            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
