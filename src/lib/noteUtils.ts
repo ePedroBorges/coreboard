@@ -1,6 +1,8 @@
 import { Block, Page } from "@/types/notes";
 
 export const DEFAULT_NOTE_TAGS = ["AnchorLab", "VISTA", "MEMIQ", "Pessoal", "Estudos", "Clientes", "Ideias"];
+export const DEFAULT_NOTEBOOK_NAMES = ["Geral", "AnchorLab", "VISTA", "MEMIQ", "Pessoal", "Estudos", "Clientes", "Ideias"];
+export const DEFAULT_NOTEBOOK_NAME = "Geral";
 
 const NOTE_META_KEY = "vistaNoteMeta";
 
@@ -90,6 +92,18 @@ export function noteMatchesQuery(page: Page, query: string) {
     page.title,
     blocksToText(page.content),
     getNoteTags(page).join(" "),
+  ].join(" ").toLowerCase();
+  return searchable.includes(normalized);
+}
+
+export function noteMatchesQueryWithNotebook(page: Page, query: string, notebookTitle = "") {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  const searchable = [
+    page.title,
+    blocksToText(page.content),
+    getNoteTags(page).join(" "),
+    notebookTitle,
   ].join(" ").toLowerCase();
   return searchable.includes(normalized);
 }

@@ -59,10 +59,10 @@ export function usePages(notebookId?: string) {
         .select()
         .single();
       if (error) throw error;
-      return data;
+      return mapPage(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pages", notebookId] });
+      queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
       queryClient.invalidateQueries({ queryKey: ["all-pages"] });

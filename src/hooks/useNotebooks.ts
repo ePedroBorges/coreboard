@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { Notebook } from "@/types/notes";
 import { toast } from "sonner";
+import { DEFAULT_NOTEBOOK_NAMES } from "@/lib/noteUtils";
+
+const byPosition = (a: Notebook, b: Notebook) => {
+  if (a.position !== b.position) return a.position - b.position;
+  return a.created_at.localeCompare(b.created_at);
+};
 
 export function useNotebooks() {
   const { user } = useAuth();
@@ -19,29 +25,54 @@ export function useNotebooks() {
 
       if (error) throw error;
 
+      const existingTitles = new Set((notebooks || []).map((notebook) => notebook.title.trim().toLowerCase()));
+      const missingDefaults = DEFAULT_NOTEBOOK_NAMES.filter((name) => !existingTitles.has(name.toLowerCase()));
+
+      let allNotebooks = notebooks || [];
+      if (missingDefaults.length > 0) {
+        const maxPosition = allNotebooks.reduce((max, notebook) => Math.max(max, notebook.position), -1);
+        const { data: createdDefaults, error: createError } = await supabase
+          .from("notebooks")
+          .insert(
+            missingDefaults.map((title, index) => ({
+              title,
+              user_id: user!.id,
+              position: maxPosition + index + 1,
+            }))
+          )
+          .select("*");
+
+        if (createError) throw createError;
+        allNotebooks = [...allNotebooks, ...(createdDefaults || [])];
+      }
+
       // Get page counts
       const { data: counts } = await supabase
         .from("pages")
         .select("notebook_id");
 
       const countMap: Record<string, number> = {};
-      counts?.forEach((p: any) => {
+      counts?.forEach((p: { notebook_id: string }) => {
         countMap[p.notebook_id] = (countMap[p.notebook_id] || 0) + 1;
       });
 
-      return (notebooks as any[]).map((n) => ({
+      return allNotebooks.map((n) => ({
         ...n,
         page_count: countMap[n.id] || 0,
-      }));
+      })).sort(byPosition);
     },
   });
 
   const createNotebook = useMutation({
     mutationFn: async (title: string) => {
+      const cleanTitle = title.trim();
+      if (!cleanTitle) throw new Error("Informe o nome do caderno.");
+      const duplicate = query.data?.find((notebook) => notebook.title.trim().toLowerCase() === cleanTitle.toLowerCase());
+      if (duplicate) return duplicate;
       const maxPos = query.data?.length || 0;
       const { data, error } = await supabase
         .from("notebooks")
-        .insert({ title, user_id: user!.id, position: maxPos })
+        .insert({ title: cleanTitle, user_id: user!.id, position: maxPos })
         .select()
         .single();
       if (error) throw error;
@@ -65,6 +96,10 @@ export function useNotebooks() {
 
   const deleteNotebook = useMutation({
     mutationFn: async (id: string) => {
+      const notebook = query.data?.find((current) => current.id === id);
+      if ((notebook?.page_count || 0) > 0) {
+        throw new Error("Este caderno tem anotações. Mova as anotações antes de excluir.");
+      }
       const { error } = await supabase.from("notebooks").delete().eq("id", id);
       if (error) throw error;
     },

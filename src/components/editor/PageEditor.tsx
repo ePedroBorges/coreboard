@@ -13,10 +13,12 @@ import {
   Share2,
   Trash2,
 } from "lucide-react";
-import { Page, Block } from "@/types/notes";
+import { Page, Block, Notebook } from "@/types/notes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,9 +41,11 @@ interface PageEditorProps {
   onExitFocus: () => void;
   onCreateTaskFromPage?: (page: Page) => void;
   onDelete?: () => void;
+  notebooks?: Notebook[];
+  onNotebookChange?: (notebookId: string) => void;
 }
 
-export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, onDelete }: PageEditorProps) {
+export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
   const [title, setTitle] = useState(page.title);
   const [blocks, setBlocks] = useState<Block[]>(page.content || []);
   const [dirty, setDirty] = useState(false);
@@ -96,6 +100,11 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
     const nextBlocks = setNoteTags(blocks, tags);
     setBlocks(nextBlocks);
     scheduleAutoSave(title, nextBlocks);
+  };
+
+  const handleNotebookChange = (notebookId: string) => {
+    onUpdate({ notebook_id: notebookId });
+    onNotebookChange?.(notebookId);
   };
 
   const handleForceSave = useCallback(() => {
@@ -287,7 +296,29 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
       </div>
 
       <div className="px-4 pb-4 sm:px-6">
-        <TagSelector value={tags} onChange={handleTagsChange} compact />
+        <div className="grid gap-3 sm:grid-cols-[minmax(180px,260px)_minmax(0,1fr)]">
+          {notebooks.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="page-notebook" className="text-xs text-muted-foreground">Caderno</Label>
+              <Select value={page.notebook_id} onValueChange={handleNotebookChange}>
+                <SelectTrigger id="page-notebook" className="h-9">
+                  <SelectValue placeholder="Selecione um caderno" />
+                </SelectTrigger>
+                <SelectContent>
+                  {notebooks.map((notebook) => (
+                    <SelectItem key={notebook.id} value={notebook.id}>
+                      {notebook.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div>
+            <div className="mb-2 text-xs text-muted-foreground">Tags</div>
+            <TagSelector value={tags} onChange={handleTagsChange} compact />
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto px-4 pb-16 sm:px-6">

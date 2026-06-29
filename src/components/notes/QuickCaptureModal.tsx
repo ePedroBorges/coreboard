@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckSquare, Loader2, Pin, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,15 +11,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TagSelector } from "./TagSelector";
 import { makeNoteBlocks } from "@/lib/noteUtils";
-import { Block } from "@/types/notes";
+import { Block, Notebook } from "@/types/notes";
 
 interface QuickCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (input: { title: string; content: Block[]; pinned: boolean; createTask: boolean }) => Promise<void>;
+  notebooks: Notebook[];
+  defaultNotebookId?: string;
+  onSave: (input: { title: string; content: Block[]; notebookId?: string; pinned: boolean; createTask: boolean }) => Promise<void>;
 }
 
 type ChecklistDraft = { id: string; text: string; checked?: boolean };
@@ -29,13 +33,18 @@ const createDraftItem = (): ChecklistDraft => ({
   text: "",
 });
 
-export function QuickCaptureModal({ open, onOpenChange, onSave }: QuickCaptureModalProps) {
+export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebookId, onSave }: QuickCaptureModalProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [selectedNotebookId, setSelectedNotebookId] = useState(defaultNotebookId || "");
   const [pinned, setPinned] = useState(false);
   const [checklistItems, setChecklistItems] = useState<ChecklistDraft[]>([]);
   const [savingMode, setSavingMode] = useState<"note" | "task" | null>(null);
+
+  useEffect(() => {
+    if (open) setSelectedNotebookId(defaultNotebookId || notebooks[0]?.id || "");
+  }, [defaultNotebookId, notebooks, open]);
 
   const canSave = useMemo(
     () => !!title.trim() || !!content.trim() || checklistItems.some((item) => item.text.trim()),
@@ -46,6 +55,7 @@ export function QuickCaptureModal({ open, onOpenChange, onSave }: QuickCaptureMo
     setTitle("");
     setContent("");
     setTags([]);
+    setSelectedNotebookId(defaultNotebookId || notebooks[0]?.id || "");
     setPinned(false);
     setChecklistItems([]);
     setSavingMode(null);
@@ -57,6 +67,7 @@ export function QuickCaptureModal({ open, onOpenChange, onSave }: QuickCaptureMo
     await onSave({
       title: title.trim(),
       content: makeNoteBlocks(content, checklistItems, tags),
+      notebookId: selectedNotebookId || defaultNotebookId,
       pinned,
       createTask,
     });
@@ -80,6 +91,21 @@ export function QuickCaptureModal({ open, onOpenChange, onSave }: QuickCaptureMo
 
         <div className="space-y-4">
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título opcional" />
+          <div className="space-y-2">
+            <Label htmlFor="quick-capture-notebook">Caderno</Label>
+            <Select value={selectedNotebookId} onValueChange={setSelectedNotebookId}>
+              <SelectTrigger id="quick-capture-notebook">
+                <SelectValue placeholder="Selecione um caderno" />
+              </SelectTrigger>
+              <SelectContent>
+                {notebooks.map((notebook) => (
+                  <SelectItem key={notebook.id} value={notebook.id}>
+                    {notebook.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Textarea
             value={content}
             onChange={(event) => setContent(event.target.value)}
