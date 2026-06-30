@@ -46,8 +46,8 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Email de recuperação enviado!");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Erro inesperado");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
       setSubmitting(false);
     }

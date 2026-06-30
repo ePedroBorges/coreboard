@@ -216,7 +216,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
           className="flex items-center gap-2 text-muted-foreground/50 hover:text-muted-foreground text-sm py-3 sm:py-2 transition-colors min-h-[44px] sm:min-h-0"
         >
           <Plus className="h-5 w-5 sm:h-4 sm:w-4" />
-          Escreva sua nota aqui...
+          Escreva livremente...
         </button>
       </div>
     );
@@ -277,7 +277,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                     "flex-1 outline-none text-base sm:text-sm py-1 sm:py-0.5 min-h-[1.5em]",
                     block.checked && "line-through text-muted-foreground"
                   )}
-                  placeholder="Item..."
+                  placeholder="Adicionar item ao checklist"
                 />
               </div>
             ) : block.type === "bullet-list" ? (
@@ -323,7 +323,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                   block.type === "heading1" ? "Título 1"
                     : block.type === "heading2" ? "Título 2"
                     : block.type === "heading3" ? "Título 3"
-                    : "Escreva sua nota aqui..."
+                    : "Escreva livremente..."
                 }
               />
             )}

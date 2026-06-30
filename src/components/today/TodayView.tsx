@@ -300,6 +300,11 @@ function TodayPriorities({
                           Meta {task.progress_current}/{task.progress_target}
                         </Badge>
                       )}
+                      {task.source_note_title && (
+                        <Badge variant="outline" className="rounded">
+                          Origem: {task.source_note_title}
+                        </Badge>
+                      )}
                       {openReasons > 0 && (
                         <Badge variant="outline" className="rounded border-warning/40 text-warning">
                           {openReasons} pendencia(s)

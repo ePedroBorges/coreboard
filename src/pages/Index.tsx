@@ -1,12 +1,12 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Navigate } from "react-router-dom";
-import { BookOpen, CheckCircle2, Clock3, Link2, Linkedin, ListChecks, Loader2, NotebookPen, Pin, Plus, Search, Star, Tag } from "lucide-react";
+import { BookOpen, CheckCircle2, Clock3, Link2, Linkedin, ListChecks, Loader2, MoveRight, NotebookPen, Pencil, Pin, Plus, Search, Star, Tag, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages, useAllPages } from "@/hooks/usePages";
-import { useWeeklyTasks, WeeklyTask } from "@/hooks/useWeeklyTasks";
+import { Priority, useWeeklyTasks, WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PageEditor } from "@/components/editor/PageEditor";
@@ -17,7 +17,10 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { QuickCaptureModal } from "@/components/notes/QuickCaptureModal";
 import { Notebook, Page } from "@/types/notes";
 import {
@@ -32,6 +35,7 @@ import {
   pageHasLink,
   taskTitleFromNote,
 } from "@/lib/noteUtils";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const defaultDiaryName = () => {
@@ -46,13 +50,13 @@ const Index = () => {
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
-  const [sidebarPinned, setSidebarPinned] = useState(false);
-  const [sidebarHover, setSidebarHover] = useState(false);
+  const [sidebarPinned, setSidebarPinned] = useState(true);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [quickCaptureNotebookId, setQuickCaptureNotebookId] = useState<string | undefined>();
   const [quickCapturePending, setQuickCapturePending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [notesFilter, setNotesFilter] = useState<NotesFilter>("all");
+  const [taskSourcePage, setTaskSourcePage] = useState<Page | null>(null);
 
   const notebooks = useNotebooks();
   const pages = usePages(selectedNotebookId || undefined);
@@ -66,12 +70,15 @@ const Index = () => {
   );
   const defaultNotebookId = generalNotebook?.id;
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId) || allPages.data?.find((p) => p.id === selectedPageId);
-  const sidebarOpen = !focusMode && (sidebarPinned || sidebarHover);
+  const sidebarOpen = !focusMode && sidebarPinned;
   const notebookTitleById = useMemo(() => {
     const map = new Map<string, string>();
     (notebooks.data || []).forEach((notebook) => map.set(notebook.id, notebook.title));
     return map;
   }, [notebooks.data]);
+  const notebookTitleForPage = useCallback((page: Page) => {
+    return notebookTitleById.get(page.notebook_id) || DEFAULT_NOTEBOOK_NAME;
+  }, [notebookTitleById]);
 
   const handleSelectNotebook = useCallback((id: string) => {
     setActiveView("diary");
@@ -132,18 +139,8 @@ const Index = () => {
   }, [pages.createPage, selectedNotebookId]);
 
   const createTaskFromPage = useCallback((page: Page) => {
-    const title = taskTitleFromNote(page);
-    if (!title.trim()) return;
-    tasks.createTask.mutate({
-      title,
-      assignee: "",
-      priority: "medium",
-      progress_target: null,
-      task_date: format(new Date(), "yyyy-MM-dd"),
-    }, {
-      onSuccess: () => toast.success("Tarefa criada a partir da nota."),
-    });
-  }, [tasks.createTask]);
+    setTaskSourcePage(page);
+  }, []);
 
   const ensureNotebookId = useCallback(async () => {
     if (selectedNotebookId) return selectedNotebookId;
@@ -175,19 +172,21 @@ const Index = () => {
     setSelectedPageId(page.id);
 
     if (createTask) {
+      const sourceNotebookTitle = notebookTitleById.get(targetNotebookId) || DEFAULT_NOTEBOOK_NAME;
       tasks.createTask.mutate({
         title: fallbackTitle,
-        assignee: "",
+        assignee: sourceNotebookTitle,
         priority: "medium",
         progress_target: null,
         task_date: format(new Date(), "yyyy-MM-dd"),
-      }, {
-        onSuccess: () => toast.success("Nota salva e tarefa criada."),
+        source_note_id: page.id,
+        source_note_title: fallbackTitle,
+        source_notebook_title: sourceNotebookTitle,
       });
     } else {
       toast.success("Nota salva.");
     }
-  }, [ensureNotebookId, pages.createPage, pages.updatePage, tasks.createTask]);
+  }, [ensureNotebookId, notebookTitleById, pages.createPage, pages.updatePage, tasks.createTask]);
 
   const handleTodayQuickCapture = useCallback(async ({
     mode,
@@ -234,6 +233,50 @@ const Index = () => {
     setSelectedPageId(page.id);
   }, []);
 
+  const handleDeleteNotebook = useCallback((id: string, targetNotebookId?: string) => {
+    const fallbackNotebookId = targetNotebookId || defaultNotebookId || notebooks.data?.find((notebook) => notebook.id !== id)?.id;
+    notebooks.deleteNotebook.mutate({ id, targetNotebookId }, {
+      onSuccess: () => {
+        if (selectedNotebookId === id) {
+          setSelectedNotebookId(fallbackNotebookId || null);
+          setSelectedPageId(null);
+        }
+        setNotesFilter((current) => current === id ? "all" : current);
+      },
+    });
+  }, [defaultNotebookId, notebooks.data, notebooks.deleteNotebook, selectedNotebookId]);
+
+  const handleMovePage = useCallback((page: Page, notebookId: string) => {
+    if (!notebookId || page.notebook_id === notebookId) return;
+    const targetTitle = notebookTitleById.get(notebookId) || DEFAULT_NOTEBOOK_NAME;
+    pages.updatePage.mutate({ id: page.id, notebook_id: notebookId }, {
+      onSuccess: () => toast.success(`Anotacao movida para ${targetTitle}.`),
+    });
+  }, [notebookTitleById, pages.updatePage]);
+
+  const handleConfirmTaskFromPage = useCallback((input: {
+    page: Page;
+    title: string;
+    taskDate: string;
+    priority: Priority;
+    project: string;
+    keepLink: boolean;
+  }) => {
+    const sourceNotebookTitle = notebookTitleForPage(input.page);
+    tasks.createTask.mutate({
+      title: input.title,
+      assignee: input.project,
+      priority: input.priority,
+      progress_target: null,
+      task_date: input.taskDate,
+      source_note_id: input.keepLink ? input.page.id : undefined,
+      source_note_title: input.keepLink ? getNoteTitle(input.page) : undefined,
+      source_notebook_title: input.keepLink ? sourceNotebookTitle : undefined,
+    }, {
+      onSuccess: () => setTaskSourcePage(null),
+    });
+  }, [notebookTitleForPage, tasks.createTask]);
+
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const notebookResults = normalizedSearch
     ? (notebooks.data || []).filter((notebook) => notebook.title.toLowerCase().includes(normalizedSearch)).slice(0, 8)
@@ -257,29 +300,19 @@ const Index = () => {
 
   return (
     <SidebarProvider
-      defaultOpen={false}
+      defaultOpen
       open={sidebarOpen}
       onOpenChange={(open) => {
         setSidebarPinned(open);
-        if (!open) setSidebarHover(false);
       }}
     >
       <div className="min-h-screen flex w-full">
-        {!focusMode && !sidebarPinned && (
-          <div
-            className="fixed inset-y-0 left-0 z-30 hidden w-3 md:block"
-            onMouseEnter={() => setSidebarHover(true)}
-          />
-        )}
-
         {!focusMode && (
           <AppSidebar
             activeView={activeView}
             sidebarPinned={sidebarPinned}
             onToggleSidebarPinned={() => setSidebarPinned((current) => !current)}
-            onMouseLeave={() => {
-              if (!sidebarPinned) setSidebarHover(false);
-            }}
+            onMouseLeave={() => undefined}
             onSelectTasks={handleSelectTasks}
             onSelectToday={handleSelectToday}
             onSelectNotes={handleSelectNotes}
@@ -292,8 +325,8 @@ const Index = () => {
             selectedPageId={selectedPageId}
             onSelectNotebook={handleSelectNotebook}
             onSelectPage={handleSelectPage}
-            onCreateNotebook={(title) => notebooks.createNotebook.mutate(title || defaultDiaryName())}
-            onDeleteNotebook={(id) => notebooks.deleteNotebook.mutate(id)}
+            onCreateNotebook={(title) => notebooks.createNotebook.mutate(title)}
+            onDeleteNotebook={handleDeleteNotebook}
             onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
             onCreatePage={handleCreatePage}
             onRenamePage={(id, title) => pages.updatePage.mutate({ id, title })}
@@ -383,7 +416,10 @@ const Index = () => {
                   setNotesFilter(notebook.id);
                   return notebook;
                 }}
+                onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
+                onDeleteNotebook={handleDeleteNotebook}
                 onOpenNote={openPage}
+                onMoveNote={handleMovePage}
                 onCreateTaskFromPage={createTaskFromPage}
               />
             ) : selectedPage ? (
@@ -391,7 +427,10 @@ const Index = () => {
                 page={selectedPage}
                 notebooks={notebooks.data || []}
                 onUpdate={(updates) => pages.updatePage.mutate({ id: selectedPage.id, ...updates })}
-                onNotebookChange={(notebookId) => setSelectedNotebookId(notebookId)}
+                onNotebookChange={(notebookId) => {
+                  setSelectedNotebookId(notebookId);
+                  toast.success(`Anotacao movida para ${notebookTitleById.get(notebookId) || DEFAULT_NOTEBOOK_NAME}.`);
+                }}
                 focusMode={focusMode}
                 onExitFocus={() => setFocusMode(false)}
                 onCreateTaskFromPage={createTaskFromPage}
@@ -445,11 +484,136 @@ const Index = () => {
         defaultNotebookId={quickCaptureNotebookId || defaultNotebookId}
         onSave={handleQuickCaptureSave}
       />
+      <CreateTaskFromNoteDialog
+        page={taskSourcePage}
+        notebookTitle={taskSourcePage ? notebookTitleForPage(taskSourcePage) : DEFAULT_NOTEBOOK_NAME}
+        creating={tasks.createTask.isPending}
+        onOpenChange={(open) => {
+          if (!open) setTaskSourcePage(null);
+        }}
+        onConfirm={handleConfirmTaskFromPage}
+      />
     </SidebarProvider>
   );
 };
 
 type NotesFilter = "all" | "favorites" | string;
+
+function CreateTaskFromNoteDialog({
+  page,
+  notebookTitle,
+  creating,
+  onOpenChange,
+  onConfirm,
+}: {
+  page: Page | null;
+  notebookTitle: string;
+  creating: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (input: { page: Page; title: string; taskDate: string; priority: Priority; project: string; keepLink: boolean }) => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [taskDate, setTaskDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [project, setProject] = useState("");
+  const [keepLink, setKeepLink] = useState(true);
+
+  useEffect(() => {
+    if (!page) return;
+    const firstTag = getNoteTags(page)[0];
+    setTitle(taskTitleFromNote(page));
+    setTaskDate(format(new Date(), "yyyy-MM-dd"));
+    setPriority("medium");
+    setProject(firstTag || notebookTitle || DEFAULT_NOTEBOOK_NAME);
+    setKeepLink(true);
+  }, [notebookTitle, page]);
+
+  const canCreate = !!page && !!title.trim() && !!taskDate && !creating;
+
+  return (
+    <Dialog open={!!page} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Criar tarefa a partir da anotacao</DialogTitle>
+          <DialogDescription>
+            Ajuste a acao antes de enviar para Hoje ou Calendario.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="task-from-note-title">Titulo da tarefa</Label>
+            <Input
+              id="task-from-note-title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Titulo da tarefa"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="task-from-note-date">Data</Label>
+              <Input
+                id="task-from-note-date"
+                type="date"
+                value={taskDate}
+                onChange={(event) => setTaskDate(event.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Prioridade</Label>
+              <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="task-from-note-project">Projeto/meta</Label>
+            <Input
+              id="task-from-note-project"
+              value={project}
+              onChange={(event) => setProject(event.target.value)}
+              placeholder="Projeto, meta ou caderno"
+            />
+          </div>
+          <div className="rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
+            Origem: {page ? getNoteTitle(page) : "Anotacao"} · Caderno: {notebookTitle}
+          </div>
+          <button
+            type="button"
+            onClick={() => setKeepLink((current) => !current)}
+            className={cn(
+              "flex min-h-10 w-full items-center justify-between rounded-md border px-3 text-sm transition-colors",
+              keepLink ? "border-primary/35 bg-primary/10 text-primary" : "border-border/60 bg-background/35 text-muted-foreground"
+            )}
+          >
+            <span>Manter vinculo com a anotacao</span>
+            <span>{keepLink ? "Sim" : "Nao"}</span>
+          </button>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button
+            disabled={!canCreate}
+            onClick={() => {
+              if (!page || !title.trim()) return;
+              onConfirm({ page, title: title.trim(), taskDate, priority, project: project.trim(), keepLink });
+            }}
+          >
+            {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Criar tarefa
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function NotesLibrary({
   notes,
@@ -461,7 +625,10 @@ function NotesLibrary({
   onFilterChange,
   onCreateNote,
   onCreateNotebook,
+  onRenameNotebook,
+  onDeleteNotebook,
   onOpenNote,
+  onMoveNote,
   onCreateTaskFromPage,
 }: {
   notes: Page[];
@@ -473,13 +640,23 @@ function NotesLibrary({
   onFilterChange: (filter: NotesFilter) => void;
   onCreateNote: (notebookId?: string) => void;
   onCreateNotebook: (title: string) => Promise<Notebook>;
+  onRenameNotebook: (id: string, title: string) => void;
+  onDeleteNotebook: (id: string, targetNotebookId?: string) => void;
   onOpenNote: (page: Page) => void;
+  onMoveNote: (page: Page, notebookId: string) => void;
   onCreateTaskFromPage: (page: Page) => void;
 }) {
   const [newNotebookName, setNewNotebookName] = useState("");
   const [showNotebookCreator, setShowNotebookCreator] = useState(false);
   const [creatingNotebook, setCreatingNotebook] = useState(false);
-  const getNotebookId = useCallback((page: Page) => page.notebook_id || defaultNotebookId || "", [defaultNotebookId]);
+  const [renameNotebookId, setRenameNotebookId] = useState<string | null>(null);
+  const [renameNotebookName, setRenameNotebookName] = useState("");
+  const [deleteNotebookId, setDeleteNotebookId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState("");
+  const getNotebookId = useCallback((page: Page) => {
+    const exists = notebooks.some((notebook) => notebook.id === page.notebook_id);
+    return exists ? page.notebook_id : defaultNotebookId || "";
+  }, [defaultNotebookId, notebooks]);
 
   const notebookCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -492,6 +669,10 @@ function NotesLibrary({
 
   const favoriteCount = notes.filter((page) => page.is_favorite).length;
   const selectedNotebook = notebooks.find((notebook) => notebook.id === activeFilter);
+  const generalNotebook = notebooks.find((notebook) => notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase());
+  const notebookToDelete = deleteNotebookId ? notebooks.find((notebook) => notebook.id === deleteNotebookId) : undefined;
+  const deletePageCount = deleteNotebookId ? notes.filter((page) => getNotebookId(page) === deleteNotebookId).length : 0;
+  const deleteTargets = notebooks.filter((notebook) => notebook.id !== deleteNotebookId);
   const filteredNotes = notes.filter((page) => {
     if (activeFilter === "all") return true;
     if (activeFilter === "favorites") return page.is_favorite;
@@ -528,7 +709,42 @@ function NotesLibrary({
     }
   };
 
+  const handleStartRenameNotebook = (notebook: Notebook) => {
+    if (notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()) return;
+    setRenameNotebookId(notebook.id);
+    setRenameNotebookName(notebook.title);
+  };
+
+  const handleRenameNotebook = () => {
+    const title = renameNotebookName.trim();
+    if (!renameNotebookId || !title) {
+      toast.error("Informe o nome do caderno.");
+      return;
+    }
+    if (notebooks.some((notebook) => notebook.id !== renameNotebookId && notebook.title.trim().toLowerCase() === title.toLowerCase())) {
+      toast.error("Ja existe um caderno com esse nome.");
+      return;
+    }
+    onRenameNotebook(renameNotebookId, title);
+    setRenameNotebookId(null);
+    setRenameNotebookName("");
+  };
+
+  const handleStartDeleteNotebook = (notebook: Notebook) => {
+    if (notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()) {
+      toast.error("O caderno Geral nao pode ser excluido.");
+      return;
+    }
+    setDeleteNotebookId(notebook.id);
+    setDeleteTargetId(
+      generalNotebook?.id && generalNotebook.id !== notebook.id
+        ? generalNotebook.id
+        : notebooks.find((current) => current.id !== notebook.id)?.id || ""
+    );
+  };
+
   return (
+    <>
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
@@ -605,6 +821,9 @@ function NotesLibrary({
                 label={notebook.title}
                 count={notebookCounts.get(notebook.id) || 0}
                 onClick={() => onFilterChange(notebook.id)}
+                locked={notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()}
+                onRename={() => handleStartRenameNotebook(notebook)}
+                onDelete={() => handleStartDeleteNotebook(notebook)}
               />
             ))}
           </div>
@@ -656,7 +875,9 @@ function NotesLibrary({
                   key={page.id}
                   page={page}
                   notebookTitle={notebookTitleById.get(getNotebookId(page)) || DEFAULT_NOTEBOOK_NAME}
+                  notebooks={notebooks}
                   onOpenNote={onOpenNote}
+                  onMoveNote={onMoveNote}
                   onCreateTaskFromPage={onCreateTaskFromPage}
                 />
               ))}
@@ -665,6 +886,86 @@ function NotesLibrary({
         </div>
       </div>
     </div>
+    <Dialog open={!!renameNotebookId} onOpenChange={(open) => {
+      if (!open) {
+        setRenameNotebookId(null);
+        setRenameNotebookName("");
+      }
+    }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Renomear caderno</DialogTitle>
+          <DialogDescription>Escolha um nome claro para manter suas anotacoes organizadas.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="rename-notebook">Nome do caderno</Label>
+          <Input
+            id="rename-notebook"
+            value={renameNotebookName}
+            onChange={(event) => setRenameNotebookName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") handleRenameNotebook();
+            }}
+            placeholder="Nome do caderno"
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRenameNotebookId(null)}>Cancelar</Button>
+          <Button onClick={handleRenameNotebook}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={!!deleteNotebookId} onOpenChange={(open) => {
+      if (!open) {
+        setDeleteNotebookId(null);
+        setDeleteTargetId("");
+      }
+    }}>
+      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Excluir caderno?</DialogTitle>
+          <DialogDescription>
+            {deletePageCount > 0
+              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anotacao" : "anotacoes"}. Para evitar perda de dados, escolha para onde elas serao movidas.`
+              : "Este caderno nao possui anotacoes. Voce pode exclui-lo com seguranca."}
+          </DialogDescription>
+        </DialogHeader>
+        {deletePageCount > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="delete-target">Mover anotacoes para</Label>
+            <Select value={deleteTargetId} onValueChange={setDeleteTargetId}>
+              <SelectTrigger id="delete-target" className="h-10">
+                <SelectValue placeholder="Escolha um caderno" />
+              </SelectTrigger>
+              <SelectContent>
+                {deleteTargets.map((notebook) => (
+                  <SelectItem key={notebook.id} value={notebook.id}>
+                    {notebook.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDeleteNotebookId(null)}>Cancelar</Button>
+          <Button
+            variant="destructive"
+            disabled={deletePageCount > 0 && !deleteTargetId}
+            onClick={() => {
+              if (deleteNotebookId) onDeleteNotebook(deleteNotebookId, deletePageCount > 0 ? deleteTargetId : undefined);
+              setDeleteNotebookId(null);
+              setDeleteTargetId("");
+            }}
+          >
+            {deletePageCount > 0 ? "Mover e excluir" : "Excluir caderno vazio"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
@@ -674,40 +975,62 @@ function NotebookFilterButton({
   label,
   count,
   onClick,
+  locked,
+  onRename,
+  onDelete,
 }: {
   active: boolean;
   icon: React.ElementType;
   label: string;
   count: number;
   onClick: () => void;
+  locked?: boolean;
+  onRename?: () => void;
+  onDelete?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex min-h-10 w-full items-center gap-2 rounded-md px-2 text-left text-sm transition-colors",
-        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+    <div className={cn(
+      "group flex min-h-10 items-center rounded-md transition-colors",
+      active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+    )}>
+      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left text-sm">
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <span className="rounded-full bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">{count}</span>
+      </button>
+      {!locked && (
+        <div className="flex shrink-0 items-center pr-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRename} title="Renomear caderno">
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir caderno">
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       )}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className="rounded-full bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">{count}</span>
-    </button>
+    </div>
   );
 }
 
 function NoteCard({
   page,
   notebookTitle,
+  notebooks,
   onOpenNote,
+  onMoveNote,
   onCreateTaskFromPage,
 }: {
   page: Page;
   notebookTitle: string;
+  notebooks: Notebook[];
   onOpenNote: (page: Page) => void;
+  onMoveNote: (page: Page, notebookId: string) => void;
   onCreateTaskFromPage: (page: Page) => void;
 }) {
+  const selectedNotebookId = notebooks.some((notebook) => notebook.id === page.notebook_id)
+    ? page.notebook_id
+    : notebooks.find((notebook) => notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase())?.id || notebooks[0]?.id || "";
+
   return (
     <article className="rounded-lg border border-border/60 bg-card/70 p-4">
       <button className="block w-full text-left" onClick={() => onOpenNote(page)}>
@@ -731,10 +1054,27 @@ function NoteCard({
         {pageHasChecklist(page) && <Badge variant="outline" className="gap-1 rounded-full"><ListChecks className="h-3 w-3" />Checklist</Badge>}
         {pageHasLink(page) && <Badge variant="outline" className="gap-1 rounded-full"><Link2 className="h-3 w-3" />Link</Badge>}
       </div>
-      <Button variant="outline" size="sm" className="mt-3 h-9 gap-1" onClick={() => onCreateTaskFromPage(page)}>
-        <ListChecks className="h-3.5 w-3.5" />
-        Criar tarefa
-      </Button>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Button variant="outline" size="sm" className="h-9 gap-1" onClick={() => onCreateTaskFromPage(page)}>
+          <ListChecks className="h-3.5 w-3.5" />
+          Criar tarefa
+        </Button>
+        {notebooks.length > 0 && (
+          <Select value={selectedNotebookId} onValueChange={(notebookId) => onMoveNote(page, notebookId)}>
+            <SelectTrigger className="h-9 sm:w-44">
+              <MoveRight className="mr-2 h-3.5 w-3.5" />
+              <SelectValue placeholder="Mover" />
+            </SelectTrigger>
+            <SelectContent>
+              {notebooks.map((notebook) => (
+                <SelectItem key={notebook.id} value={notebook.id}>
+                  {notebook.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
     </article>
   );
 }
@@ -807,6 +1147,8 @@ function taskMatchesQuery(task: WeeklyTask, query: string) {
   return [
     task.title,
     task.assignee || "",
+    task.source_note_title || "",
+    task.source_notebook_title || "",
     task.priority,
     task.status,
     task.pending_reasons.map((reason) => reason.reason).join(" "),
@@ -929,6 +1271,7 @@ function GlobalSearchResults({
                       <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>{task.assignee || "Sem responsável"}</span>
                         <span>{task.priority}</span>
+                        {task.source_note_title && <span>Origem: {task.source_note_title}</span>}
                       </div>
                     </div>
                     <Badge variant="outline" className="w-fit gap-1 rounded-full">

@@ -291,7 +291,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
           className="w-full border-none bg-transparent text-xl font-bold outline-none placeholder:text-muted-foreground/30 sm:text-2xl"
-          placeholder="Título da nota..."
+          placeholder="Título da anotação"
         />
       </div>
 

@@ -132,6 +132,7 @@ export function usePages(notebookId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pages"] });
+      queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
       queryClient.invalidateQueries({ queryKey: ["all-pages"] });
     },

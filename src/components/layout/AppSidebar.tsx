@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Notebook, Page } from "@/types/notes";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,7 +57,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { getNotePreview, getNoteTags, getNoteTitle, pageHasChecklist, pageHasLink } from "@/lib/noteUtils";
+import { DEFAULT_NOTEBOOK_NAME, getNotePreview, getNoteTags, getNoteTitle, pageHasChecklist, pageHasLink } from "@/lib/noteUtils";
 
 interface AppSidebarProps {
   notebooks: Notebook[];
@@ -76,7 +77,7 @@ interface AppSidebarProps {
   onSelectNotebook: (id: string) => void;
   onSelectPage: (id: string) => void;
   onCreateNotebook: (title: string) => void;
-  onDeleteNotebook: (id: string) => void;
+  onDeleteNotebook: (id: string, targetNotebookId?: string) => void;
   onRenameNotebook: (id: string, title: string) => void;
   onCreatePage: () => void;
   onRenamePage: (id: string, title: string) => void;
@@ -114,6 +115,7 @@ export function AppSidebar({
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string>("");
   const [deletePageId, setDeletePageId] = useState<string | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -123,6 +125,10 @@ export function AppSidebar({
   const [newTitle, setNewTitle] = useState("");
   const pagesForOrganization = allPages.length > 0 ? allPages : pages;
   const tags = Array.from(new Set(pagesForOrganization.flatMap((page) => getNoteTags(page)))).slice(0, 12);
+  const generalNotebook = notebooks.find((notebook) => notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase());
+  const notebookToDelete = deleteId ? notebooks.find((notebook) => notebook.id === deleteId) : undefined;
+  const deletePageCount = notebookToDelete?.page_count || pagesForOrganization.filter((page) => page.notebook_id === deleteId).length;
+  const moveTargets = notebooks.filter((notebook) => notebook.id !== deleteId);
 
   const handleRenamePage = () => {
     if (renamePageId && renamePageValue.trim()) {
@@ -133,13 +139,15 @@ export function AppSidebar({
   };
 
   const handleCreateNotebook = () => {
-    // Empty title => parent will use default (month year - diary)
+    if (!newTitle.trim()) return;
     onCreateNotebook(newTitle.trim());
     setNewTitle("");
     setNewNotebookMode(false);
   };
 
   const handleRename = () => {
+    const notebook = notebooks.find((current) => current.id === renameId);
+    if (notebook?.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()) return;
     if (renameId && renameValue.trim()) {
       onRenameNotebook(renameId, renameValue.trim());
       setRenameId(null);
@@ -164,7 +172,7 @@ export function AppSidebar({
                 size="icon"
                 className="ml-auto h-8 w-8"
                 onClick={onToggleSidebarPinned}
-                title={sidebarPinned ? "Desafixar menu" : "Fixar menu"}
+                title={sidebarPinned ? "Ocultar menu" : "Mostrar menu"}
               >
                 {sidebarPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
               </Button>
@@ -291,7 +299,7 @@ export function AppSidebar({
             <SidebarGroup>
               <div className="flex items-center justify-between px-2">
                 <SidebarGroupLabel className="font-mono-accent text-[11px] sm:text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {!collapsed && "Arquivo do diário"}
+                  {!collapsed && "Cadernos"}
                 </SidebarGroupLabel>
                 {!collapsed && (
                   <Button
@@ -317,7 +325,7 @@ export function AppSidebar({
                             if (e.key === "Escape") setNewNotebookMode(false);
                           }}
                           onBlur={handleCreateNotebook}
-                          placeholder="Nome (vazio = mês atual)"
+                          placeholder="Nome do caderno"
                           className="h-10 sm:h-7 text-sm sm:text-xs"
                           autoFocus
                         />
@@ -384,23 +392,30 @@ export function AppSidebar({
                                   </button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-36">
-                                  <DropdownMenuItem
-                                    onSelect={(e) => {
-                                      e.preventDefault();
-                                      setRenameId(notebook.id);
+                                          <DropdownMenuItem
+                                            disabled={notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()}
+                                            onSelect={(e) => {
+                                              e.preventDefault();
+                                              setRenameId(notebook.id);
                                       setRenameValue(notebook.title);
                                     }}
                                   >
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Renomear
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="text-destructive"
-                                    onSelect={(e) => {
-                                      e.preventDefault();
-                                      setDeleteId(notebook.id);
-                                    }}
-                                  >
+                                          <DropdownMenuItem
+                                            className="text-destructive"
+                                            disabled={notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()}
+                                            onSelect={(e) => {
+                                              e.preventDefault();
+                                              setDeleteId(notebook.id);
+                                              setDeleteTargetId(
+                                                generalNotebook?.id && generalNotebook.id !== notebook.id
+                                                  ? generalNotebook.id
+                                                  : notebooks.find((current) => current.id !== notebook.id)?.id || ""
+                                              );
+                                            }}
+                                          >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Excluir
                                   </DropdownMenuItem>
@@ -509,7 +524,7 @@ export function AppSidebar({
                                 className="flex items-center gap-2 w-full rounded px-2 py-2.5 sm:py-1 text-sm sm:text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors min-h-[44px] sm:min-h-0"
                               >
                                 <Plus className="h-4 w-4 sm:h-3 sm:w-3" />
-                                Nova entrada
+                                Nova anotacao
                               </button>
                             </div>
                           )}
@@ -530,25 +545,54 @@ export function AppSidebar({
         </SidebarFooter>
       </Sidebar>
 
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      {/* Safe notebook delete dialog */}
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteId(null);
+            setDeleteTargetId("");
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir diário?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir caderno?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todas as entradas deste diário serão excluídas permanentemente.
+              {deletePageCount > 0
+                ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anotacao" : "anotacoes"}. Para evitar perda de dados, escolha para onde elas serao movidas.`
+                : "Este caderno nao possui anotacoes. Voce pode exclui-lo com seguranca."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deletePageCount > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground">Mover anotacoes para</div>
+              <Select value={deleteTargetId} onValueChange={setDeleteTargetId}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Escolha um caderno" />
+                </SelectTrigger>
+                <SelectContent>
+                  {moveTargets.map((notebook) => (
+                    <SelectItem key={notebook.id} value={notebook.id}>
+                      {notebook.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deletePageCount > 0 && !deleteTargetId}
               onClick={() => {
-                if (deleteId) onDeleteNotebook(deleteId);
+                if (deleteId) onDeleteNotebook(deleteId, deletePageCount > 0 ? deleteTargetId : undefined);
                 setDeleteId(null);
+                setDeleteTargetId("");
               }}
             >
-              Excluir
+              {deletePageCount > 0 ? "Mover e excluir" : "Excluir caderno vazio"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

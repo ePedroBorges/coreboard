@@ -46,7 +46,10 @@ const Dashboard = () => {
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data as any[]).map((p) => ({ ...p, content: p.content as any }));
+      return (data || []).map((page) => ({
+        ...page,
+        content: Array.isArray(page.content) ? (page.content as unknown as Block[]) : [],
+      }));
     },
   });
 

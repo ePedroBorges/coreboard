@@ -3,9 +3,16 @@ import { format, parseISO, startOfWeek } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { Database } from "@/integrations/supabase/types";
 
 export type TaskStatus = "pending" | "completed";
 export type Priority = "low" | "medium" | "high";
+type WeeklyTaskRow = Database["public"]["Tables"]["weekly_tasks"]["Row"];
+type WeeklyTaskInsert = Database["public"]["Tables"]["weekly_tasks"]["Insert"];
+type WeeklyTaskUpdate = Database["public"]["Tables"]["weekly_tasks"]["Update"];
+type PendingReasonInsert = Database["public"]["Tables"]["task_pending_reasons"]["Insert"];
+type PendingReasonUpdate = Database["public"]["Tables"]["task_pending_reasons"]["Update"];
+type DbTaskStatus = Database["public"]["Enums"]["task_status"];
 
 export interface TaskPendingReason {
   id: string;
@@ -35,6 +42,9 @@ export interface WeeklyTask {
   created_at: string;
   updated_at: string;
   pending_reasons: TaskPendingReason[];
+  source_note_id?: string;
+  source_note_title?: string;
+  source_notebook_title?: string;
 }
 
 type CreateTaskInput = {
@@ -43,6 +53,9 @@ type CreateTaskInput = {
   priority?: Priority;
   progress_target?: number | null;
   task_date?: string;
+  source_note_id?: string;
+  source_note_title?: string;
+  source_notebook_title?: string;
 };
 
 type AddPendingReasonInput = {
@@ -55,6 +68,28 @@ type AddPendingReasonInput = {
 
 const todayKey = () => format(new Date(), "yyyy-MM-dd");
 const currentWeekKey = () => format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+const taskOriginStorageKey = (userId: string) => `vistaTaskOrigins:${userId}`;
+
+type StoredTaskOrigin = Pick<WeeklyTask, "source_note_id" | "source_note_title" | "source_notebook_title">;
+
+const loadTaskOrigins = (userId?: string): Record<string, StoredTaskOrigin> => {
+  if (!userId || typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(taskOriginStorageKey(userId));
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveTaskOrigin = (userId: string | undefined, taskId: string, origin: StoredTaskOrigin) => {
+  if (!userId || typeof window === "undefined") return;
+  const current = loadTaskOrigins(userId);
+  window.localStorage.setItem(taskOriginStorageKey(userId), JSON.stringify({
+    ...current,
+    [taskId]: origin,
+  }));
+};
 
 export function useWeeklyTasks() {
   const { user } = useAuth();
@@ -85,7 +120,9 @@ export function useWeeklyTasks() {
         reasons = (reasonRows || []) as unknown as TaskPendingReason[];
       }
 
-      return ((tasks || []) as any[]).map((task) => ({
+      const origins = loadTaskOrigins(user?.id);
+
+      return ((tasks || []) as WeeklyTaskRow[]).map((task) => ({
         ...task,
         status: task.status === "completed" ? "completed" : "pending",
         assignee: task.assignee || null,
@@ -94,6 +131,7 @@ export function useWeeklyTasks() {
         progress_target: task.progress_target ?? null,
         completed_at: task.completed_at || null,
         pending_reasons: reasons.filter((reason) => reason.task_id === task.id),
+        ...origins[task.id],
       }));
     },
   });
@@ -114,24 +152,42 @@ export function useWeeklyTasks() {
           user_id: user!.id,
           task_date: day,
           week_start: format(startOfWeek(parseISO(day), { weekStartsOn: 1 }), "yyyy-MM-dd"),
-          status: "pending" as any,
-        } as any)
+          status: "pending" as DbTaskStatus,
+        } satisfies WeeklyTaskInsert)
         .select()
         .single();
 
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (createdTask, variables) => {
+      if (variables.source_note_id || variables.source_note_title || variables.source_notebook_title) {
+        saveTaskOrigin(user?.id, createdTask.id, {
+          source_note_id: variables.source_note_id,
+          source_note_title: variables.source_note_title,
+          source_notebook_title: variables.source_notebook_title,
+        });
+      }
       invalidateTasks();
-      toast.success("Tarefa criada");
+      toast.success(variables.source_note_id ? "Tarefa criada a partir da anotacao." : "Tarefa criada");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const updateTask = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<WeeklyTask> & { id: string }) => {
-      const payload = { ...updates } as any;
+      const {
+        pending_reasons,
+        source_note_id,
+        source_note_title,
+        source_notebook_title,
+        ...taskUpdates
+      } = updates;
+      void pending_reasons;
+      void source_note_id;
+      void source_note_title;
+      void source_notebook_title;
+      const payload: WeeklyTaskUpdate = { ...taskUpdates };
 
       if (updates.status === "completed") {
         payload.completed_at = new Date().toISOString();
@@ -164,7 +220,7 @@ export function useWeeklyTasks() {
       target: number | null;
     }) => {
       const next = Math.max(0, current + delta);
-      const payload: any = { progress_current: next };
+      const payload: WeeklyTaskUpdate = { progress_current: next };
       if (target && next >= target) {
         payload.status = "completed";
         payload.completed_at = new Date().toISOString();
@@ -190,7 +246,7 @@ export function useWeeklyTasks() {
 
   const addPendingReason = useMutation({
     mutationFn: async ({ taskId, reason, responsible, priority, progress_target }: AddPendingReasonInput) => {
-      const { error } = await supabase.from("task_pending_reasons").insert({
+      const payload: PendingReasonInsert = {
         task_id: taskId,
         user_id: user!.id,
         reason,
@@ -198,7 +254,8 @@ export function useWeeklyTasks() {
         priority: priority || "medium",
         progress_target: progress_target ?? null,
         progress_current: 0,
-      } as any);
+      };
+      const { error } = await supabase.from("task_pending_reasons").insert(payload);
 
       if (error) throw error;
     },
@@ -211,9 +268,10 @@ export function useWeeklyTasks() {
 
   const updatePendingReason = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<TaskPendingReason> & { id: string }) => {
+      const payload: PendingReasonUpdate = { ...updates };
       const { error } = await supabase
         .from("task_pending_reasons")
-        .update(updates as any)
+        .update(payload)
         .eq("id", id);
       if (error) throw error;
     },
@@ -234,7 +292,7 @@ export function useWeeklyTasks() {
       target: number | null;
     }) => {
       const next = Math.max(0, current + delta);
-      const payload: any = { progress_current: next };
+      const payload: PendingReasonUpdate = { progress_current: next };
       if (target && next >= target) {
         payload.completed_at = new Date().toISOString();
       }
@@ -258,7 +316,7 @@ export function useWeeklyTasks() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("task_pending_reasons")
-        .update({ completed_at: new Date().toISOString() } as any)
+        .update({ completed_at: new Date().toISOString() } satisfies PendingReasonUpdate)
         .eq("id", id);
 
       if (error) throw error;

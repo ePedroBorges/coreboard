@@ -532,6 +532,11 @@ const TaskCard = memo(function TaskCard({
                 {task.progress_current}/{task.progress_target}
               </Badge>
             )}
+            {task.source_note_title && (
+              <Badge variant="outline" className="rounded text-[10px]">
+                Origem: {task.source_note_title}
+              </Badge>
+            )}
           </div>
           <div className="mt-2 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span className="flex min-w-0 items-center gap-1 break-words">
