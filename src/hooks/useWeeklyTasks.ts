@@ -169,7 +169,7 @@ export function useWeeklyTasks() {
         });
       }
       invalidateTasks();
-      toast.success(variables.source_note_id ? "Tarefa criada a partir da anotacao." : "Tarefa criada");
+      toast.success(variables.source_note_id ? "Tarefa criada a partir da anotação." : "Tarefa criada.");
     },
     onError: (e: Error) => toast.error(e.message),
   });

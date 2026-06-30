@@ -141,7 +141,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         const anchor = document.createElement("a");
         anchor.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a página: " + title)}`;
         anchor.click();
-        toast.info("Abra seu cliente de email e anexe o PDF baixado.");
+        toast.info("Abra seu cliente de e-mail e anexe o PDF baixado.");
       } else {
         toast.info("Compartilhamento não suportado neste navegador. O PDF será baixado.");
       }
@@ -248,7 +248,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleSharePdf("email")}>
                   <Mail className="mr-2 h-4 w-4" />
-                  Enviar por email
+                  Enviar por e-mail
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleSharePdf("social")}>
                   <Share2 className="mr-2 h-4 w-4" />

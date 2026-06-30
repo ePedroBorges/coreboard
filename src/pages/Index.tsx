@@ -44,9 +44,45 @@ const defaultDiaryName = () => {
   return `${capitalized} ${format(new Date(), "yyyy")} - Diário`;
 };
 
+type AppView = "today" | "tasks" | "calendar" | "notes" | "diary";
+
+type AppNavigationState = {
+  activeView: AppView;
+  selectedNotebookId: string | null;
+  selectedPageId: string | null;
+  notesFilter: NotesFilter;
+  searchQuery: string;
+};
+
+const pinnedIdsStorageKey = (userId: string, type: "notebooks" | "tasks") => `vistaPinned:${type}:${userId}`;
+
+const loadPinnedIds = (userId: string | undefined, type: "notebooks" | "tasks") => {
+  if (!userId || typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(pinnedIdsStorageKey(userId, type));
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const savePinnedIds = (userId: string | undefined, type: "notebooks" | "tasks", ids: string[]) => {
+  if (!userId || typeof window === "undefined") return;
+  window.localStorage.setItem(pinnedIdsStorageKey(userId, type), JSON.stringify(ids));
+};
+
+const sameNavigationState = (a?: AppNavigationState, b?: AppNavigationState) => (
+  !!a && !!b &&
+  a.activeView === b.activeView &&
+  a.selectedNotebookId === b.selectedNotebookId &&
+  a.selectedPageId === b.selectedPageId &&
+  a.notesFilter === b.notesFilter &&
+  a.searchQuery === b.searchQuery
+);
+
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
-  const [activeView, setActiveView] = useState<"today" | "tasks" | "calendar" | "notes" | "diary">("today");
+  const [activeView, setActiveView] = useState<AppView>("today");
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
@@ -57,6 +93,9 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [notesFilter, setNotesFilter] = useState<NotesFilter>("all");
   const [taskSourcePage, setTaskSourcePage] = useState<Page | null>(null);
+  const [navigationStack, setNavigationStack] = useState<AppNavigationState[]>([]);
+  const [pinnedNotebookIds, setPinnedNotebookIds] = useState<string[]>([]);
+  const [pinnedTaskIds, setPinnedTaskIds] = useState<string[]>([]);
 
   const notebooks = useNotebooks();
   const pages = usePages(selectedNotebookId || undefined);
@@ -70,7 +109,7 @@ const Index = () => {
   );
   const defaultNotebookId = generalNotebook?.id;
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId) || allPages.data?.find((p) => p.id === selectedPageId);
-  const sidebarOpen = !focusMode && sidebarPinned;
+  const sidebarOpen = sidebarPinned;
   const notebookTitleById = useMemo(() => {
     const map = new Map<string, string>();
     (notebooks.data || []).forEach((notebook) => map.set(notebook.id, notebook.title));
@@ -80,40 +119,114 @@ const Index = () => {
     return notebookTitleById.get(page.notebook_id) || DEFAULT_NOTEBOOK_NAME;
   }, [notebookTitleById]);
 
-  const handleSelectNotebook = useCallback((id: string) => {
-    setActiveView("diary");
-    setSelectedNotebookId(id);
-    setSelectedPageId(null);
+  useEffect(() => {
+    setNavigationStack([]);
+    setPinnedNotebookIds(loadPinnedIds(user?.id, "notebooks"));
+    setPinnedTaskIds(loadPinnedIds(user?.id, "tasks"));
+  }, [user?.id]);
+
+  const currentNavigationState = useMemo<AppNavigationState>(() => ({
+    activeView,
+    selectedNotebookId,
+    selectedPageId,
+    notesFilter,
+    searchQuery,
+  }), [activeView, notesFilter, searchQuery, selectedNotebookId, selectedPageId]);
+
+  const pushNavigationState = useCallback((state: AppNavigationState = currentNavigationState) => {
+    setNavigationStack((current) => {
+      if (sameNavigationState(current[current.length - 1], state)) return current;
+      return [...current, state].slice(-30);
+    });
+  }, [currentNavigationState]);
+
+  const applyNavigationState = useCallback((state: AppNavigationState) => {
+    setActiveView(state.activeView);
+    setSelectedNotebookId(state.selectedNotebookId);
+    setSelectedPageId(state.selectedPageId);
+    setNotesFilter(state.notesFilter);
+    setSearchQuery(state.searchQuery);
   }, []);
 
-  const handleSelectPage = useCallback((id: string) => {
-    setActiveView("diary");
-    setSelectedPageId(id);
-  }, []);
+  const handleGoBack = useCallback(() => {
+    const previous = navigationStack[navigationStack.length - 1];
+    if (!previous) return;
+    setNavigationStack((current) => current.slice(0, -1));
+    applyNavigationState(previous);
+  }, [applyNavigationState, navigationStack]);
+
+  const togglePinnedNotebook = useCallback((notebookId: string) => {
+    setPinnedNotebookIds((current) => {
+      const next = current.includes(notebookId)
+        ? current.filter((id) => id !== notebookId)
+        : [notebookId, ...current];
+      savePinnedIds(user?.id, "notebooks", next);
+      return next;
+    });
+  }, [user?.id]);
+
+  const togglePinnedTask = useCallback((taskId: string) => {
+    setPinnedTaskIds((current) => {
+      const next = current.includes(taskId)
+        ? current.filter((id) => id !== taskId)
+        : [taskId, ...current];
+      savePinnedIds(user?.id, "tasks", next);
+      return next;
+    });
+  }, [user?.id]);
+
+  const pinnedNotebooks = useMemo(() => (
+    pinnedNotebookIds
+      .map((id) => notebooks.data?.find((notebook) => notebook.id === id))
+      .filter((notebook): notebook is Notebook => !!notebook)
+  ), [notebooks.data, pinnedNotebookIds]);
+
+  const pinnedTasks = useMemo(() => (
+    pinnedTaskIds
+      .map((id) => tasks.data?.find((task) => task.id === id))
+      .filter((task): task is WeeklyTask => !!task)
+  ), [pinnedTaskIds, tasks.data]);
 
   const handleSelectToday = useCallback(() => {
+    pushNavigationState();
     setActiveView("today");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
-  }, []);
+    setSearchQuery("");
+  }, [pushNavigationState]);
 
   const handleSelectTasks = useCallback(() => {
+    pushNavigationState();
     setActiveView("tasks");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
-  }, []);
+    setSearchQuery("");
+  }, [pushNavigationState]);
 
   const handleSelectCalendar = useCallback(() => {
+    pushNavigationState();
     setActiveView("calendar");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
-  }, []);
+    setSearchQuery("");
+  }, [pushNavigationState]);
 
   const handleSelectNotes = useCallback(() => {
+    pushNavigationState();
     setActiveView("notes");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
-  }, []);
+    setSearchQuery("");
+  }, [pushNavigationState]);
+
+  const handleOpenNotebook = useCallback((id: string) => {
+    pushNavigationState();
+    setSearchQuery("");
+    setActiveView("notes");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
+    setNotesFilter(id);
+  }, [pushNavigationState]);
 
   const getNotebookIdForNotesFilter = useCallback(() => {
     return notesFilter !== "all" && notesFilter !== "favorites" ? notesFilter : undefined;
@@ -123,10 +236,6 @@ const Index = () => {
     setQuickCaptureNotebookId(notebookId || getNotebookIdForNotesFilter() || selectedNotebookId || defaultNotebookId);
     setQuickCaptureOpen(true);
   }, [defaultNotebookId, getNotebookIdForNotesFilter, selectedNotebookId]);
-
-  const handleToggleFocus = useCallback(() => {
-    setFocusMode((current) => !current);
-  }, []);
 
   const handleCreatePage = useCallback(() => {
     if (!selectedNotebookId) return;
@@ -227,11 +336,12 @@ const Index = () => {
   }, [ensureNotebookId, pages.createPage, tasks.createTask]);
 
   const openPage = useCallback((page: Page) => {
+    pushNavigationState();
     setSearchQuery("");
     setActiveView("diary");
     setSelectedNotebookId(page.notebook_id);
     setSelectedPageId(page.id);
-  }, []);
+  }, [pushNavigationState]);
 
   const handleDeleteNotebook = useCallback((id: string, targetNotebookId?: string) => {
     const fallbackNotebookId = targetNotebookId || defaultNotebookId || notebooks.data?.find((notebook) => notebook.id !== id)?.id;
@@ -306,25 +416,26 @@ const Index = () => {
     >
 
       <div className="min-h-screen flex w-full">
-        {!focusMode && (
-          <AppSidebar
-            activeView={activeView}
-            sidebarPinned={sidebarPinned}
-            onToggleSidebarPinned={() => setSidebarPinned((current) => !current)}
-            onMouseLeave={() => undefined}
-            onSelectToday={handleSelectToday}
-            onSelectNotes={handleSelectNotes}
-            onSelectCalendar={handleSelectCalendar}
-            notebooks={notebooks.data || []}
-            favorites={favorites.data || []}
-            selectedPageId={selectedPageId}
-            onSelectNotebook={handleSelectNotebook}
-            onSelectPage={handleSelectPage}
-          />
-        )}
+        <AppSidebar
+          activeView={activeView}
+          sidebarPinned={sidebarPinned}
+          onToggleSidebarPinned={() => setSidebarPinned((current) => !current)}
+          onMouseLeave={() => undefined}
+          onSelectToday={handleSelectToday}
+          onSelectNotes={handleSelectNotes}
+          onSelectCalendar={handleSelectCalendar}
+          notebooks={notebooks.data || []}
+          pinnedNotebooks={pinnedNotebooks}
+          pinnedTasks={pinnedTasks}
+          favoritePages={favorites.data || []}
+          selectedPageId={selectedPageId}
+          onOpenNotebook={handleOpenNotebook}
+          onOpenPage={openPage}
+          onSelectTasks={handleSelectTasks}
+        />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <AppHeader onToggleFocus={handleToggleFocus} focusMode={focusMode} />
+          <AppHeader canGoBack={navigationStack.length > 0} onBack={handleGoBack} />
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="shrink-0 border-b border-border/60 bg-background/80 px-3 py-3 backdrop-blur sm:px-4">
@@ -350,11 +461,7 @@ const Index = () => {
                 notes={noteResults}
                 tasks={taskResults}
                 notebookTitleById={notebookTitleById}
-                onOpenNotebook={(notebookId) => {
-                  setSearchQuery("");
-                  setActiveView("notes");
-                  setNotesFilter(notebookId);
-                }}
+                onOpenNotebook={handleOpenNotebook}
                 onOpenNote={openPage}
                 onCreateTaskFromPage={createTaskFromPage}
               />
@@ -378,7 +485,7 @@ const Index = () => {
                 onCreateTaskFromPage={createTaskFromPage}
               />
             ) : activeView === "tasks" || activeView === "calendar" ? (
-              <WeeklyTaskManager />
+              <WeeklyTaskManager pinnedTaskIds={pinnedTaskIds} onTogglePinnedTask={togglePinnedTask} />
             ) : activeView === "notes" ? (
               <NotesLibrary
                 notes={allPages.data || []}
@@ -396,6 +503,8 @@ const Index = () => {
                 }}
                 onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
                 onDeleteNotebook={handleDeleteNotebook}
+                pinnedNotebookIds={pinnedNotebookIds}
+                onTogglePinnedNotebook={togglePinnedNotebook}
                 onOpenNote={openPage}
                 onMoveNote={handleMovePage}
                 onCreateTaskFromPage={createTaskFromPage}
@@ -514,17 +623,17 @@ function CreateTaskFromNoteDialog({
         <DialogHeader>
           <DialogTitle>Criar tarefa a partir da página</DialogTitle>
           <DialogDescription>
-            Ajuste a acao antes de enviar para Hoje ou Calendario.
+            Ajuste a ação antes de enviar para Hoje ou Calendário.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="task-from-note-title">Titulo da tarefa</Label>
+            <Label htmlFor="task-from-note-title">Título da tarefa</Label>
             <Input
               id="task-from-note-title"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="Titulo da tarefa"
+              placeholder="Título da tarefa"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -545,7 +654,7 @@ function CreateTaskFromNoteDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
-                  <SelectItem value="medium">Media</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
                   <SelectItem value="high">Alta</SelectItem>
                 </SelectContent>
               </Select>
@@ -572,7 +681,7 @@ function CreateTaskFromNoteDialog({
             )}
           >
             <span>Manter vínculo com a página</span>
-            <span>{keepLink ? "Sim" : "Nao"}</span>
+            <span>{keepLink ? "Sim" : "Não"}</span>
           </button>
         </div>
         <DialogFooter>
@@ -605,6 +714,8 @@ function NotesLibrary({
   onCreateNotebook,
   onRenameNotebook,
   onDeleteNotebook,
+  pinnedNotebookIds,
+  onTogglePinnedNotebook,
   onOpenNote,
   onMoveNote,
   onCreateTaskFromPage,
@@ -620,6 +731,8 @@ function NotesLibrary({
   onCreateNotebook: (title: string) => Promise<Notebook>;
   onRenameNotebook: (id: string, title: string) => void;
   onDeleteNotebook: (id: string, targetNotebookId?: string) => void;
+  pinnedNotebookIds: string[];
+  onTogglePinnedNotebook: (notebookId: string) => void;
   onOpenNote: (page: Page) => void;
   onMoveNote: (page: Page, notebookId: string) => void;
   onCreateTaskFromPage: (page: Page) => void;
@@ -700,7 +813,7 @@ function NotesLibrary({
       return;
     }
     if (notebooks.some((notebook) => notebook.id !== renameNotebookId && notebook.title.trim().toLowerCase() === title.toLowerCase())) {
-      toast.error("Ja existe um caderno com esse nome.");
+      toast.error("Já existe um caderno com esse nome.");
       return;
     }
     onRenameNotebook(renameNotebookId, title);
@@ -710,7 +823,7 @@ function NotesLibrary({
 
   const handleStartDeleteNotebook = (notebook: Notebook) => {
     if (notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()) {
-      toast.error("O caderno Geral nao pode ser excluido.");
+      toast.error("O caderno Geral não pode ser excluído.");
       return;
     }
     setDeleteNotebookId(notebook.id);
@@ -799,6 +912,8 @@ function NotesLibrary({
                 label={notebook.title}
                 count={notebookCounts.get(notebook.id) || 0}
                 onClick={() => onFilterChange(notebook.id)}
+                pinned={pinnedNotebookIds.includes(notebook.id)}
+                onTogglePinned={() => onTogglePinnedNotebook(notebook.id)}
                 locked={notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()}
                 onRename={() => handleStartRenameNotebook(notebook)}
                 onDelete={() => handleStartDeleteNotebook(notebook)}
@@ -953,6 +1068,8 @@ function NotebookFilterButton({
   label,
   count,
   onClick,
+  pinned,
+  onTogglePinned,
   locked,
   onRename,
   onDelete,
@@ -962,6 +1079,8 @@ function NotebookFilterButton({
   label: string;
   count: number;
   onClick: () => void;
+  pinned?: boolean;
+  onTogglePinned?: () => void;
   locked?: boolean;
   onRename?: () => void;
   onDelete?: () => void;
@@ -976,6 +1095,17 @@ function NotebookFilterButton({
         <span className="min-w-0 flex-1 truncate">{label}</span>
         <span className="rounded-full bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">{count}</span>
       </button>
+      {onTogglePinned && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={onTogglePinned}
+          title={pinned ? "Desafixar caderno" : "Fixar caderno"}
+        >
+          <Pin className={cn("h-3.5 w-3.5", pinned && "fill-warning text-warning")} />
+        </Button>
+      )}
       {!locked && (
         <div className="flex shrink-0 items-center pr-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRename} title="Renomear caderno">

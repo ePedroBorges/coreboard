@@ -136,7 +136,7 @@ export function TodayView({
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Hoje</h1>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-          Capture ideias, organize p�ginas e execute suas prioridades.
+          Capture ideias, organize páginas e execute suas prioridades.
         </p>
       </section>
 
@@ -192,7 +192,7 @@ function QuickCaptureBar({
   onOpenAdvancedCapture: () => void;
 }) {
   const options: Array<{ value: CaptureMode; label: string; icon: React.ElementType }> = [
-    { value: "note", label: "P�gina", icon: NotebookPen },
+    { value: "note", label: "Página", icon: NotebookPen },
     { value: "checklist", label: "Checklist", icon: ListChecks },
     { value: "task", label: "Tarefa", icon: CheckCircle2 },
   ];
@@ -272,7 +272,7 @@ function TodayPriorities({
       ) : tasks.length === 0 ? (
         <EmptyPanel
           icon={ListChecks}
-          text="Nenhuma prioridade para hoje. Crie uma tarefa ou transforme uma p�gina em a��o."
+          text="Nenhuma prioridade para hoje. Crie uma tarefa ou transforme uma página em ação."
         />
       ) : (
         <div className="grid gap-2">
@@ -307,7 +307,7 @@ function TodayPriorities({
                       )}
                       {openReasons > 0 && (
                         <Badge variant="outline" className="rounded border-warning/40 text-warning">
-                          {openReasons} pendencia(s)
+                          {openReasons} pendência(s)
                         </Badge>
                       )}
                     </div>
@@ -348,11 +348,11 @@ function RecentNotes({
     <section className="space-y-3 rounded-lg border border-border/65 bg-card/70 p-3 shadow-sm ring-1 ring-white/5 sm:p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold">P�ginas recentes</h2>
+          <h2 className="text-base font-semibold">Páginas recentes</h2>
           <p className="text-sm text-muted-foreground">Suas últimas ideias, links e checklists.</p>
         </div>
         <Button variant="outline" size="sm" className="h-9" onClick={onOpenNotes}>
-          Ver p�ginas
+          Ver páginas
         </Button>
       </div>
 
@@ -361,7 +361,7 @@ function RecentNotes({
       ) : notes.length === 0 ? (
         <EmptyPanel
           icon={NotebookPen}
-          text="Nenhuma p�gina ainda. Capture uma ideia, link ou checklist para come�ar."
+          text="Nenhuma página ainda. Capture uma ideia, link ou checklist para começar."
         />
       ) : (
         <div className="grid gap-2">
@@ -480,7 +480,7 @@ function CollapsibleCalendar({
           <p className="text-xs text-muted-foreground">Calendário compacto para não roubar o foco.</p>
         </div>
         <Button variant="outline" size="sm" className="h-9" onClick={onOpenCalendar}>
-          Abrir calendario
+          Abrir calendário
         </Button>
       </div>
 
@@ -542,4 +542,5 @@ function EmptyPanel({ icon: Icon, text }: { icon: React.ElementType; text: strin
     </div>
   );
 }
+
 

@@ -13,6 +13,7 @@ import {
   Loader2,
   NotebookPen,
   Pencil,
+  Pin,
   Plus,
   Sparkles,
   Target,
@@ -35,12 +36,12 @@ import { cn } from "@/lib/utils";
 
 const statusLabel: Record<TaskStatus, string> = {
   pending: "Pendente",
-  completed: "ConcluÃ­da",
+  completed: "Concluída",
 };
 
 const priorityLabel: Record<Priority, string> = {
   low: "Baixa",
-  medium: "MÃ©dia",
+  medium: "Média",
   high: "Alta",
 };
 
@@ -53,7 +54,12 @@ const priorityClass: Record<Priority, string> = {
 const MONTHS = Array.from({ length: 12 }, (_, i) => i);
 const monthName = (m: number) => format(new Date(2000, m, 1), "LLLL", { locale: ptBR });
 
-export function WeeklyTaskManager() {
+interface WeeklyTaskManagerProps {
+  pinnedTaskIds?: string[];
+  onTogglePinnedTask?: (taskId: string) => void;
+}
+
+export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: WeeklyTaskManagerProps) {
   const today = new Date();
   const [view, setView] = useState<"day" | "pending" | "completed" | "all">("day");
   const [year, setYear] = useState(today.getFullYear());
@@ -140,7 +146,7 @@ export function WeeklyTaskManager() {
   const viewTabs: Array<{ value: typeof view; label: string; icon: ReactNode }> = [
     { value: "day", label: "Por dia", icon: <CalendarDays className="h-3.5 w-3.5" /> },
     { value: "pending", label: "Pendentes", icon: <Clock3 className="h-3.5 w-3.5" /> },
-    { value: "completed", label: "ConcluÃ­das", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+    { value: "completed", label: "Concluídas", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
     { value: "all", label: "Todas as tarefas", icon: <ListChecks className="h-3.5 w-3.5" /> },
   ];
 
@@ -148,16 +154,16 @@ export function WeeklyTaskManager() {
     tasks.length === 0
       ? "Tudo limpo por aqui. Crie uma tarefa ou registre uma ideia no Caderno."
       : stats.pending > 0
-        ? `VocÃª tem ${stats.pending} ${stats.pending === 1 ? "tarefa pendente" : "tarefas pendentes"}. Escolha uma prioridade e avance agora.`
+        ? `Você tem ${stats.pending} ${stats.pending === 1 ? "tarefa pendente" : "tarefas pendentes"}. Escolha uma prioridade e avance agora.`
         : "Todas as tarefas foram concluídas. Use o Caderno para capturar o próximo movimento.";
 
   const emptyMessage =
     view === "completed"
-      ? "Nenhuma tarefa concluÃ­da ainda. Finalize uma tarefa e acompanhe sua evoluÃ§Ã£o."
+      ? "Nenhuma tarefa concluída ainda. Finalize uma tarefa e acompanhe sua evolução."
       : view === "pending"
-        ? "Nenhuma pendÃªncia no momento. Ã“timo sinal."
+        ? "Nenhuma pendência no momento. Ótimo sinal."
         : view === "all"
-          ? "Seu espaÃ§o de execuÃ§Ã£o estÃ¡ vazio. Crie sua primeira tarefa do dia."
+          ? "Seu espaço de execução está vazio. Crie sua primeira tarefa do dia."
           : "Nenhuma tarefa para este dia. Planeje algo ou registre uma ideia no Caderno.";
 
   return (
@@ -180,8 +186,8 @@ export function WeeklyTaskManager() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
               <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
               <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
-              <Metric label="ConcluÃ­das" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
-              <Metric label="PendÃªncias" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
+              <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
+              <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
             </div>
           </div>
         </div>
@@ -224,22 +230,22 @@ export function WeeklyTaskManager() {
             <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Nova tarefa</h2>
-                <p className="text-xs text-muted-foreground">Capture uma aÃ§Ã£o clara para hoje ou para outro dia.</p>
+                <p className="text-xs text-muted-foreground">Capture uma ação clara para hoje ou para outro dia.</p>
               </div>
-              <span className="text-xs text-muted-foreground">Projeto/Meta Ã© opcional.</span>
+              <span className="text-xs text-muted-foreground">Projeto/Meta é opcional.</span>
             </div>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_150px_150px_120px_120px_auto]">
               <Input
                 value={newTitle}
                 onChange={(event) => setNewTitle(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
-                placeholder="TÃ­tulo da tarefa"
+                placeholder="Título da tarefa"
                 className="h-11 bg-card/80"
               />
               <Input
                 value={newAssignee}
                 onChange={(event) => setNewAssignee(event.target.value)}
-                placeholder="ResponsÃ¡vel"
+                placeholder="Responsável"
                 className="h-11 bg-card/60 text-muted-foreground focus:text-foreground"
               />
               <Input
@@ -253,7 +259,7 @@ export function WeeklyTaskManager() {
                 <SelectTrigger className="h-11 bg-card/80"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
-                  <SelectItem value="medium">MÃ©dia</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
                   <SelectItem value="high">Alta</SelectItem>
                 </SelectContent>
               </Select>
@@ -324,7 +330,7 @@ export function WeeklyTaskManager() {
 
           <div>
             <div className="mx-auto mb-1 grid max-w-md grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
-              {["Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b", "Dom"].map((day) => (
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => (
                 <div key={day}>{day}</div>
               ))}
             </div>
@@ -383,7 +389,7 @@ export function WeeklyTaskManager() {
             <div className="mt-3 flex flex-wrap gap-3 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary" /> Hoje</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> Pendentes</span>
-              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> ConcluÃ­das</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Concluídas</span>
             </div>
           </div>
         </section>
@@ -392,7 +398,7 @@ export function WeeklyTaskManager() {
       <section className="space-y-3">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-foreground">ExecuÃ§Ã£o</h2>
+            <h2 className="text-base font-semibold text-foreground">Execução</h2>
             <p className="text-xs text-muted-foreground">Priorize, conclua e registre bloqueios sem perder o contexto.</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -419,6 +425,8 @@ export function WeeklyTaskManager() {
               <TaskCard
                 key={task.id}
                 task={task}
+                pinned={pinnedTaskIds.includes(task.id)}
+                onTogglePinned={() => onTogglePinnedTask?.(task.id)}
                 onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
                 onDelete={() => deleteTask.mutate(task.id)}
                 onAddReason={(input) => addPendingReason.mutate({ taskId: task.id, ...input })}
@@ -436,6 +444,8 @@ export function WeeklyTaskManager() {
 
 const TaskCard = memo(function TaskCard({
   task,
+  pinned,
+  onTogglePinned,
   onUpdate,
   onDelete,
   onAddReason,
@@ -444,6 +454,8 @@ const TaskCard = memo(function TaskCard({
   onCompleteReason,
 }: {
   task: WeeklyTask;
+  pinned: boolean;
+  onTogglePinned?: () => void;
   onUpdate: (updates: Partial<WeeklyTask>) => void;
   onDelete: () => void;
   onAddReason: (input: { reason: string; responsible?: string; priority?: Priority; progress_target?: number | null }) => void;
@@ -525,7 +537,7 @@ const TaskCard = memo(function TaskCard({
               {statusLabel[task.status]}
             </Badge>
             {openReasons > 0 && (
-              <Badge variant="secondary" className="rounded text-[10px]">{openReasons} pendÃªncia(s)</Badge>
+              <Badge variant="secondary" className="rounded text-[10px]">{openReasons} pendência(s)</Badge>
             )}
             {task.progress_target && (
               <Badge variant="outline" className="rounded text-[10px]">
@@ -541,24 +553,37 @@ const TaskCard = memo(function TaskCard({
           <div className="mt-2 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span className="flex min-w-0 items-center gap-1 break-words">
               <UserRound className="h-3 w-3 shrink-0" />
-              <span className="min-w-0 break-words">{task.assignee || "Sem responsÃ¡vel"}</span>
+              <span className="min-w-0 break-words">{task.assignee || "Sem responsável"}</span>
             </span>
             <span>Criada {format(parseISO(task.created_at), "dd/MM/yyyy")}</span>
             {task.completed_at && (
-              <span>ConcluÃ­da {format(parseISO(task.completed_at), "dd/MM/yyyy")}</span>
+              <span>Concluída {format(parseISO(task.completed_at), "dd/MM/yyyy")}</span>
             )}
           </div>
         </div>
 
-        <Button
-          variant={task.status === "completed" ? "outline" : "secondary"}
-          size="sm"
-          className="col-span-2 h-10 gap-1 sm:col-span-1 sm:h-9 sm:shrink-0"
-          onClick={() => onUpdate({ status: task.status === "completed" ? "pending" : "completed" })}
-        >
-          <Check className="h-3.5 w-3.5" />
-          <span>{task.status === "completed" ? "Reabrir" : "Concluir"}</span>
-        </Button>
+        <div className="col-span-2 flex gap-2 sm:col-span-1 sm:shrink-0">
+          {onTogglePinned && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 sm:h-9 sm:w-9"
+              onClick={onTogglePinned}
+              title={pinned ? "Desafixar tarefa" : "Fixar tarefa"}
+            >
+              <Pin className={cn("h-4 w-4", pinned && "fill-warning text-warning")} />
+            </Button>
+          )}
+          <Button
+            variant={task.status === "completed" ? "outline" : "secondary"}
+            size="sm"
+            className="h-10 flex-1 gap-1 sm:h-9 sm:flex-none"
+            onClick={() => onUpdate({ status: task.status === "completed" ? "pending" : "completed" })}
+          >
+            <Check className="h-3.5 w-3.5" />
+            <span>{task.status === "completed" ? "Reabrir" : "Concluir"}</span>
+          </Button>
+        </div>
       </div>
 
       {expanded && (
@@ -590,14 +615,14 @@ const TaskCard = memo(function TaskCard({
                 }}
               >
                 <Pencil className="h-3.5 w-3.5" />
-                Editar tÃ­tulo
+                Editar título
               </Button>
             )}
             <Select value={task.priority} onValueChange={(value) => onUpdate({ priority: value as Priority })}>
               <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="low">Baixa</SelectItem>
-                <SelectItem value="medium">MÃ©dia</SelectItem>
+                <SelectItem value="medium">Média</SelectItem>
                 <SelectItem value="high">Alta</SelectItem>
               </SelectContent>
             </Select>
@@ -624,7 +649,7 @@ const TaskCard = memo(function TaskCard({
 
           <div>
             <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              PendÃªncias
+              Pendências
             </div>
 
             <div className="space-y-2">
@@ -643,15 +668,15 @@ const TaskCard = memo(function TaskCard({
               <Textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Motivo da pendÃªncia"
+                placeholder="Motivo da pendência"
                 className="min-h-10 resize-none"
               />
-              <Input value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="ResponsÃ¡vel" className="h-10" />
+              <Input value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="Responsável" className="h-10" />
               <Select value={rPriority} onValueChange={(value) => setRPriority(value as Priority)}>
                 <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
-                  <SelectItem value="medium">MÃ©dia</SelectItem>
+                  <SelectItem value="medium">Média</SelectItem>
                   <SelectItem value="high">Alta</SelectItem>
                 </SelectContent>
               </Select>
@@ -736,9 +761,9 @@ function ReasonRow({
             </button>
           )}
           <div className="mt-1 flex min-w-0 flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
-            <span className="min-w-0 break-words">ResponsÃ¡vel: {reason.responsible || "-"}</span>
+            <span className="min-w-0 break-words">Responsável: {reason.responsible || "-"}</span>
             <span>Criada {format(parseISO(reason.created_at), "dd/MM/yyyy")}</span>
-            {reason.completed_at && <span>ConcluÃ­da {format(parseISO(reason.completed_at), "dd/MM/yyyy")}</span>}
+            {reason.completed_at && <span>Concluída {format(parseISO(reason.completed_at), "dd/MM/yyyy")}</span>}
           </div>
         </div>
 
@@ -746,7 +771,7 @@ function ReasonRow({
           <SelectTrigger className="h-8 w-24 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="low">Baixa</SelectItem>
-            <SelectItem value="medium">MÃ©dia</SelectItem>
+            <SelectItem value="medium">Média</SelectItem>
             <SelectItem value="high">Alta</SelectItem>
           </SelectContent>
         </Select>

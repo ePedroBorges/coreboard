@@ -95,7 +95,7 @@ export function useNotebooks() {
         const duplicate = query.data?.find(
           (notebook) => notebook.id !== id && notebook.title.trim().toLowerCase() === cleanTitle.toLowerCase()
         );
-        if (duplicate) throw new Error("Ja existe um caderno com esse nome.");
+        if (duplicate) throw new Error("Já existe um caderno com esse nome.");
       }
       const { error } = await supabase.from("notebooks").update({
         ...updates,
@@ -115,9 +115,9 @@ export function useNotebooks() {
       const id = typeof input === "string" ? input : input.id;
       const targetNotebookId = typeof input === "string" ? undefined : input.targetNotebookId;
       const notebook = query.data?.find((current) => current.id === id);
-      if (!notebook) throw new Error("Caderno nao encontrado.");
+      if (!notebook) throw new Error("Caderno não encontrado.");
       if (notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()) {
-        throw new Error("O caderno Geral nao pode ser excluido.");
+        throw new Error("O caderno Geral não pode ser excluído.");
       }
 
       const { count, error: countError } = await supabase
@@ -129,11 +129,11 @@ export function useNotebooks() {
       const pageCount = count || 0;
       if (pageCount > 0) {
         if (!targetNotebookId) {
-          throw new Error("Escolha um caderno de destino para mover as anotacoes antes de excluir.");
+          throw new Error("Escolha um caderno de destino para mover as anotações antes de excluir.");
         }
         if (targetNotebookId === id) throw new Error("Escolha um caderno de destino diferente.");
         const targetNotebook = query.data?.find((current) => current.id === targetNotebookId);
-        if (!targetNotebook) throw new Error("Caderno de destino nao encontrado.");
+        if (!targetNotebook) throw new Error("Caderno de destino não encontrado.");
 
         const { error: moveError } = await supabase
           .from("pages")

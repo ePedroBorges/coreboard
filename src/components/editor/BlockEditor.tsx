@@ -40,9 +40,9 @@ const generateId = () => Math.random().toString(36).slice(2, 10);
 const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ElementType }[] = [
   { type: "freeform", label: "Texto livre", icon: Type },
   { type: "paragraph", label: "Linha", icon: Type },
-  { type: "heading1", label: "Titulo 1", icon: Heading1 },
-  { type: "heading2", label: "Titulo 2", icon: Heading2 },
-  { type: "heading3", label: "Titulo 3", icon: Heading3 },
+  { type: "heading1", label: "Título 1", icon: Heading1 },
+  { type: "heading2", label: "Título 2", icon: Heading2 },
+  { type: "heading3", label: "Título 3", icon: Heading3 },
   { type: "bullet-list", label: "Lista", icon: List },
   { type: "numbered-list", label: "Lista numerada", icon: ListOrdered },
   { type: "checklist", label: "Checklist", icon: CheckSquare },
@@ -338,9 +338,9 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                     blockClassName(block.type)
                   )}
                   placeholder={
-                    block.type === "heading1" ? "Titulo 1"
-                      : block.type === "heading2" ? "Titulo 2"
-                        : block.type === "heading3" ? "Titulo 3"
+                    block.type === "heading1" ? "Título 1"
+                      : block.type === "heading2" ? "Título 2"
+                        : block.type === "heading3" ? "Título 3"
                           : "Escreva uma linha..."
                   }
                 />
@@ -463,7 +463,7 @@ function RichTextBlock({
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {imageUrls.map((url) => (
             <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md border border-border/60 bg-background/35">
-              <img src={url} alt="Imagem da pagina" className="max-h-72 w-full object-contain" loading="lazy" />
+              <img src={url} alt="Imagem da página" className="max-h-72 w-full object-contain" loading="lazy" />
             </a>
           ))}
         </div>

@@ -161,22 +161,15 @@ const Dashboard = () => {
           onSelectNotes={() => navigate("/")}
           onSelectCalendar={() => navigate("/")}
           notebooks={notebooks.data || []}
-          pages={[]}
-          favorites={favorites.data || []}
-          selectedNotebookId={null}
+          pinnedNotebooks={[]}
+          pinnedTasks={[]}
+          favoritePages={favorites.data || []}
           selectedPageId={null}
-          onSelectNotebook={() => {}}
-          onSelectPage={() => {}}
-          onCreateNotebook={(title) => notebooks.createNotebook.mutate(title)}
-          onDeleteNotebook={(id) => notebooks.deleteNotebook.mutate(id)}
-          onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
-          onCreatePage={() => {}}
-          onRenamePage={() => {}}
-          onDeletePage={() => {}}
-          onToggleFavorite={() => {}}
+          onOpenNotebook={() => navigate("/")}
+          onOpenPage={() => navigate("/")}
         />
         <div className="flex-1 flex flex-col min-w-0">
-          <AppHeader onToggleFocus={() => {}} focusMode={false} />
+          <AppHeader canGoBack onBack={() => navigate("/")} />
           <main className="flex-1 overflow-auto p-4 sm:p-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
