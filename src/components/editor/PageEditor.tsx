@@ -172,8 +172,8 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   }, [focusMode, handleForceSave, onExitFocus]);
 
   return (
-    <div className={cn("flex h-full min-w-0 flex-col", focusMode && "mx-auto max-w-3xl")}>
-      <div className="shrink-0 border-b border-border px-4 py-3 sm:px-6">
+    <div className={cn("min-w-0", focusMode && "mx-auto max-w-3xl")}>
+      <div className="border-b border-border px-4 py-3 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex shrink-0 items-center gap-1">
@@ -319,7 +319,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 pb-16 sm:px-6">
+      <div className="px-4 pb-28 sm:px-6 lg:pb-16">
         <div className="rounded-lg border border-border/50 bg-card/35 p-3 sm:p-4">
           <BlockEditor blocks={blocks} onChange={handleBlocksChange} />
         </div>

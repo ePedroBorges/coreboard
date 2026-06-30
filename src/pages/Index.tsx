@@ -995,6 +995,10 @@ function NotesLibrary({
               count={(notebookCounts.get(notebook.id) || 0) + (taskCounts.get(notebook.id) || 0)}
               pinned={pinnedNotebookIds.includes(notebook.id)}
               onClick={() => onFilterChange(notebook.id)}
+              onTogglePinned={() => onTogglePinnedNotebook(notebook.id)}
+              locked={notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()}
+              onRename={() => handleStartRenameNotebook(notebook)}
+              onDelete={() => handleStartDeleteNotebook(notebook)}
             />
           ))}
         </div>
@@ -1079,7 +1083,7 @@ function NotesLibrary({
               </p>
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2 md:gap-3 lg:grid-cols-2">
               {sortedNotes.map((page) => (
                 <NoteCard
                   key={page.id}
@@ -1273,6 +1277,10 @@ function MobileNotebookFilterButton({
   count,
   pinned,
   onClick,
+  onTogglePinned,
+  locked,
+  onRename,
+  onDelete,
 }: {
   active: boolean;
   icon: React.ElementType;
@@ -1280,31 +1288,87 @@ function MobileNotebookFilterButton({
   count: number;
   pinned?: boolean;
   onClick: () => void;
+  onTogglePinned?: () => void;
+  locked?: boolean;
+  onRename?: () => void;
+  onDelete?: () => void;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
+    <div
       className={cn(
-        "flex min-h-11 w-full min-w-0 items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors",
+        "flex min-h-12 w-full min-w-0 items-center gap-1 rounded-md border transition-colors",
         active
           ? "border-primary/45 bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20"
           : "border-border/60 bg-background/35 text-muted-foreground hover:border-primary/30 hover:bg-background/60 hover:text-foreground"
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
-      {pinned && <Pin className="h-3.5 w-3.5 shrink-0 fill-warning text-warning" />}
-      <span
-        className={cn(
-          "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
-          active ? "bg-primary/20 text-primary" : "bg-card/80 text-muted-foreground"
-        )}
+      <button
+        type="button"
+        aria-pressed={active}
+        onClick={onClick}
+        className="flex min-h-12 min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-sm"
       >
-        {count}
-      </span>
-    </button>
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
+        {pinned && <Pin className="h-3.5 w-3.5 shrink-0 fill-warning text-warning" />}
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            active ? "bg-primary/20 text-primary" : "bg-card/80 text-muted-foreground"
+          )}
+        >
+          {count}
+        </span>
+      </button>
+
+      {onTogglePinned && (
+        <div className="flex shrink-0 items-center gap-0.5 pr-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={(event) => {
+              event.stopPropagation();
+              onTogglePinned();
+            }}
+            title={pinned ? "Desafixar caderno" : "Fixar caderno"}
+          >
+            <Pin className={cn("h-3.5 w-3.5", pinned && "fill-warning text-warning")} />
+          </Button>
+          {!locked && (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRename?.();
+                }}
+                title="Renomear caderno"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 text-destructive hover:text-destructive"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete?.();
+                }}
+                title="Excluir caderno"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1384,13 +1448,13 @@ function NoteCard({
     : notebooks.find((notebook) => notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase())?.id || notebooks[0]?.id || "";
 
   return (
-    <article className="min-w-0 rounded-lg border border-border/60 bg-card/70 p-3 sm:p-4">
+    <article className="min-w-0 rounded-md border border-border/60 bg-card/55 p-3 transition-colors hover:border-primary/25 hover:bg-card/70 sm:p-4">
       <button className="block w-full min-w-0 text-left" onClick={() => onOpenNote(page)}>
         <div className="mb-2 flex items-start justify-between gap-3">
-          <h2 className="min-w-0 break-words text-sm font-semibold">{getNoteTitle(page)}</h2>
+          <h2 className="min-w-0 break-words text-base font-semibold leading-snug sm:text-sm">{getNoteTitle(page)}</h2>
           {page.is_favorite && <Pin className="h-4 w-4 shrink-0 fill-warning text-warning" />}
         </div>
-        <p className="line-clamp-3 break-words text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
+        <p className="line-clamp-2 break-words text-sm leading-6 text-muted-foreground sm:line-clamp-3">{getNotePreview(page, 180)}</p>
       </button>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <Badge variant="outline" className="max-w-full gap-1 rounded-full">
@@ -1406,7 +1470,7 @@ function NoteCard({
         {pageHasChecklist(page) && <Badge variant="outline" className="gap-1 rounded-full"><ListChecks className="h-3 w-3" />Checklist</Badge>}
         {pageHasLink(page) && <Badge variant="outline" className="gap-1 rounded-full"><Link2 className="h-3 w-3" />Link</Badge>}
       </div>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="mt-3 grid gap-2 sm:flex sm:items-center">
         <Button variant="outline" size="sm" className="h-10 w-full gap-1 sm:h-9 sm:w-auto" onClick={() => onCreateTaskFromPage(page)}>
           <ListChecks className="h-3.5 w-3.5" />
           Criar tarefa
