@@ -26,32 +26,32 @@ export function EmptyState({
         {!hasNotebooks ? (
           <>
             <div>
-              <h2 className="mb-1 text-lg font-semibold">Bem-vindo ao VISTA Task Control</h2>
+              <h2 className="mb-1 text-lg font-semibold">Bem-vindo ao VISTA Tasks Control</h2>
               <p className="text-sm text-muted-foreground">
-                Crie seu primeiro diário para capturar ideias e transformar em ação.
+                Crie seu primeiro caderno para organizar anotações por tema.
               </p>
             </div>
             <Button onClick={onCreateNotebook} className="glow-sm">
               <Plus className="mr-2 h-4 w-4" />
-              Criar diário
+              Novo caderno
             </Button>
           </>
         ) : !hasSelectedNotebook ? (
           <div>
-            <h2 className="mb-1 text-lg font-semibold">Selecione um diário</h2>
+            <h2 className="mb-1 text-lg font-semibold">Selecione um caderno</h2>
             <p className="text-sm text-muted-foreground">
-              Escolha um diário no menu lateral para ver suas entradas.
+              Escolha um caderno em Anotações para ver suas anotações.
             </p>
           </div>
         ) : (
           <>
             <div>
-              <h2 className="mb-1 text-lg font-semibold">Diário vazio</h2>
-              <p className="text-sm text-muted-foreground">Crie uma entrada para começar a escrever.</p>
+              <h2 className="mb-1 text-lg font-semibold">Caderno vazio</h2>
+              <p className="text-sm text-muted-foreground">Este caderno ainda está vazio. Crie uma anotação para começar.</p>
             </div>
             <Button onClick={onCreatePage} className="glow-sm">
               <FileText className="mr-2 h-4 w-4" />
-              Nova entrada
+              Nova anotação
             </Button>
           </>
         )}

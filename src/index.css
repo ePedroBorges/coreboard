@@ -86,6 +86,14 @@
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior: none;
     touch-action: manipulation;
+    overflow-x: hidden;
+  }
+
+  html,
+  #root {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
   }
 
   /* Prevent iOS zoom on input focus */

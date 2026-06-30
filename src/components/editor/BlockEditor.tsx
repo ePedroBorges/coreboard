@@ -463,7 +463,7 @@ function RichTextBlock({
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {imageUrls.map((url) => (
             <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md border border-border/60 bg-background/35">
-              <img src={url} alt="Imagem da página" className="max-h-72 w-full object-contain" loading="lazy" />
+              <img src={url} alt="Imagem da anotação" className="max-h-72 w-full object-contain" loading="lazy" />
             </a>
           ))}
         </div>

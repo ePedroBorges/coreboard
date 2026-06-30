@@ -61,7 +61,7 @@ const Auth = () => {
           <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 glow-sm">
             <BookOpen className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">VISTA Task Control</h1>
+          <h1 className="text-2xl font-bold tracking-tight">VISTA Tasks Control</h1>
           <p className="font-mono-accent text-xs text-muted-foreground">Controle total em suas atividades e ideias</p>
         </div>
 

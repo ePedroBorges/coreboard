@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages, useAllPages } from "@/hooks/usePages";
 import { Priority, useWeeklyTasks, WeeklyTask } from "@/hooks/useWeeklyTasks";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PageEditor } from "@/components/editor/PageEditor";
@@ -41,7 +42,7 @@ import { toast } from "sonner";
 const defaultDiaryName = () => {
   const monthName = format(new Date(), "MMMM", { locale: ptBR });
   const capitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-  return `${capitalized} ${format(new Date(), "yyyy")} - Diário`;
+  return `${capitalized} ${format(new Date(), "yyyy")} - Caderno`;
 };
 
 type AppView = "today" | "tasks" | "calendar" | "notes" | "diary";
@@ -96,6 +97,7 @@ const Index = () => {
   const [navigationStack, setNavigationStack] = useState<AppNavigationState[]>([]);
   const [pinnedNotebookIds, setPinnedNotebookIds] = useState<string[]>([]);
   const [pinnedTaskIds, setPinnedTaskIds] = useState<string[]>([]);
+  const isMobile = useIsMobile();
 
   const notebooks = useNotebooks();
   const pages = usePages(selectedNotebookId || undefined);
@@ -110,6 +112,7 @@ const Index = () => {
   const defaultNotebookId = generalNotebook?.id;
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId) || allPages.data?.find((p) => p.id === selectedPageId);
   const sidebarOpen = sidebarPinned;
+  const searchPlaceholder = isMobile ? "Buscar..." : "Buscar tarefas, anotações, cadernos, links ou tags...";
   const notebookTitleById = useMemo(() => {
     const map = new Map<string, string>();
     (notebooks.data || []).forEach((notebook) => map.set(notebook.id, notebook.title));
@@ -264,7 +267,7 @@ const Index = () => {
 
   const handleCreatePage = useCallback(() => {
     if (!selectedNotebookId) return;
-    pages.createPage.mutate("Nova entrada", {
+    pages.createPage.mutate("Nova anotação", {
       onSuccess: (page) => {
         setActiveView("diary");
         setSelectedPageId(page.id);
@@ -298,7 +301,7 @@ const Index = () => {
     createTask: boolean;
   }) => {
     const targetNotebookId = notebookId || await ensureNotebookId();
-    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim())?.slice(0, 80) || "Nova página";
+    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
     const page = await pages.createPage.mutateAsync({ title: fallbackTitle, content, notebookId: targetNotebookId });
     if (pinned) pages.updatePage.mutate({ id: page.id, is_favorite: true });
     setActiveView("diary");
@@ -352,7 +355,7 @@ const Index = () => {
       const content = mode === "checklist"
         ? makeNoteBlocks("", checklistItems, [])
         : makeNoteBlocks(cleanText, [], []);
-      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova página";
+      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
 
       await pages.createPage.mutateAsync({ title, content, notebookId });
       toast.success(mode === "checklist" ? "Checklist salvo." : "Nota salva.");
@@ -396,7 +399,7 @@ const Index = () => {
             toast.success(
               updatedCount > 0
                 ? "Anotação movida. Tarefas vinculadas também foram atualizadas."
-                : `Página movida para ${targetTitle}.`
+                : `Anotação movida para ${targetTitle}.`
             );
           },
         });
@@ -487,8 +490,8 @@ const Index = () => {
                   <Input
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Buscar tarefas, páginas, cadernos, links ou tags..."
-                    className="h-11 pl-9"
+                    placeholder={searchPlaceholder}
+                    className="h-11 w-full pl-9 text-base md:text-sm"
                   />
                 </div>
               </div>
@@ -573,7 +576,7 @@ const Index = () => {
                       toast.success(
                         updatedCount > 0
                           ? "Anotação movida. Tarefas vinculadas também foram atualizadas."
-                          : `Página movida para ${targetTitle}.`
+                          : `Anotação movida para ${targetTitle}.`
                       );
                     },
                   });
@@ -681,7 +684,7 @@ function CreateTaskFromNoteDialog({
     <Dialog open={!!page} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Criar tarefa a partir da página</DialogTitle>
+          <DialogTitle>Criar tarefa a partir da anotação</DialogTitle>
           <DialogDescription>
             Ajuste a ação antes de enviar para Hoje ou Calendário.
           </DialogDescription>
@@ -730,7 +733,7 @@ function CreateTaskFromNoteDialog({
             />
           </div>
           <div className="rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
-            Origem: {page ? getNoteTitle(page) : "Página"} · Caderno: {notebookTitle}
+            Origem: {page ? getNoteTitle(page) : "Anotação"} · Caderno: {notebookTitle}
           </div>
           <button
             type="button"
@@ -740,7 +743,7 @@ function CreateTaskFromNoteDialog({
               keepLink ? "border-primary/35 bg-primary/10 text-primary" : "border-border/60 bg-background/35 text-muted-foreground"
             )}
           >
-            <span>Manter vínculo com a página</span>
+            <span>Manter vínculo com a anotação</span>
             <span>{keepLink ? "Sim" : "Não"}</span>
           </button>
         </div>
@@ -854,9 +857,9 @@ function NotesLibrary({
   });
   const activeNotebookId = activeFilter !== "all" && activeFilter !== "favorites" ? activeFilter : defaultNotebookId;
   const activeTitle = activeFilter === "all"
-    ? "Todas as páginas"
+    ? "Todas as anotações"
     : activeFilter === "favorites"
-      ? "Fixadas"
+      ? "Anotações fixadas"
       : selectedNotebook?.title || DEFAULT_NOTEBOOK_NAME;
   const isNotebookSelected = activeFilter !== "all" && activeFilter !== "favorites";
 
@@ -919,17 +922,17 @@ function NotesLibrary({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Páginas</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Anotações</h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
             Guarde textos, links, checklists e ideias em cadernos organizados.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button className="h-10 gap-2" onClick={() => onCreateNote(activeNotebookId)}>
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-row">
+          <Button className="h-10 w-full gap-2 sm:w-auto" onClick={() => onCreateNote(activeNotebookId)}>
             <Plus className="h-4 w-4" />
-            Nova página
+            Nova anotação
           </Button>
-          <Button variant="outline" className="h-10 gap-2" onClick={() => setShowNotebookCreator(true)} disabled={creatingNotebook}>
+          <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => setShowNotebookCreator(true)} disabled={creatingNotebook}>
             <BookOpen className="h-4 w-4" />
             Novo caderno
           </Button>
@@ -961,14 +964,15 @@ function NotesLibrary({
         </div>
       )}
 
-      <div className="flex gap-2 lg:hidden">
+      <div className="space-y-2 rounded-lg border border-border/60 bg-card/60 p-3 lg:hidden">
+        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cadernos</div>
         <Select value={activeFilter} onValueChange={(value) => onFilterChange(value as NotesFilter)}>
           <SelectTrigger className="h-10">
-            <SelectValue placeholder="Caderno" />
+            <SelectValue placeholder="Escolha um caderno" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos ({notes.length})</SelectItem>
-            <SelectItem value="favorites">Fixadas ({favoriteCount})</SelectItem>
+            <SelectItem value="all">Todas as anotações ({notes.length})</SelectItem>
+            <SelectItem value="favorites">Anotações fixadas ({favoriteCount})</SelectItem>
             {notebooks.map((notebook) => (
               <SelectItem key={notebook.id} value={notebook.id}>
                 {notebook.title} ({(notebookCounts.get(notebook.id) || 0) + (taskCounts.get(notebook.id) || 0)})
@@ -981,8 +985,8 @@ function NotesLibrary({
       <div className="grid min-h-0 gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
         <aside className="hidden space-y-3 lg:block">
           <div className="rounded-lg border border-border/60 bg-card/60 p-2">
-            <NotebookFilterButton active={activeFilter === "all"} icon={BookOpen} label="Todos" count={notes.length} onClick={() => onFilterChange("all")} />
-            <NotebookFilterButton active={activeFilter === "favorites"} icon={Star} label="Fixadas" count={favoriteCount} onClick={() => onFilterChange("favorites")} />
+            <NotebookFilterButton active={activeFilter === "all"} icon={BookOpen} label="Todas as anotações" count={notes.length} onClick={() => onFilterChange("all")} />
+            <NotebookFilterButton active={activeFilter === "favorites"} icon={Star} label="Anotações fixadas" count={favoriteCount} onClick={() => onFilterChange("favorites")} />
             <div className="my-2 h-px bg-border/60" />
             {notebooks.map((notebook) => (
               <NotebookFilterButton
@@ -1025,12 +1029,12 @@ function NotesLibrary({
               <p className="text-sm text-muted-foreground">
                 {isNotebookSelected
                   ? `${sortedNotes.length} ${sortedNotes.length === 1 ? "anotação" : "anotações"} · ${filteredTasks.length} ${filteredTasks.length === 1 ? "tarefa" : "tarefas"}`
-                  : `${sortedNotes.length} ${sortedNotes.length === 1 ? "página" : "páginas"}`}
+                  : `${sortedNotes.length} ${sortedNotes.length === 1 ? "anotação" : "anotações"}`}
               </p>
             </div>
-            <Button variant="outline" className="h-9 gap-2" onClick={() => onCreateNote(activeNotebookId)}>
+            <Button variant="outline" className="h-10 w-full gap-2 sm:h-9 sm:w-auto" onClick={() => onCreateNote(activeNotebookId)}>
               <Plus className="h-4 w-4" />
-              Nova página
+              Nova anotação
             </Button>
           </div>
 
@@ -1050,7 +1054,11 @@ function NotesLibrary({
           ) : sortedNotes.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
               <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhuma página neste caderno ainda.</p>
+              <p className="text-sm text-muted-foreground">
+                {isNotebookSelected
+                  ? "Este caderno ainda está vazio. Crie uma anotação para começar."
+                  : "Nenhuma anotação ainda. Escreva uma ideia, salve um link ou crie um checklist."}
+              </p>
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
@@ -1108,7 +1116,7 @@ function NotesLibrary({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Renomear caderno</DialogTitle>
-          <DialogDescription>Escolha um nome claro para manter suas páginas organizadas.</DialogDescription>
+          <DialogDescription>Escolha um nome claro para manter suas anotações organizadas.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           <Label htmlFor="rename-notebook">Nome do caderno</Label>
@@ -1141,13 +1149,13 @@ function NotesLibrary({
           <DialogTitle>Excluir caderno?</DialogTitle>
           <DialogDescription>
             {deletePageCount > 0
-              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "página" : "páginas"}. Para evitar perda de dados, escolha para onde elas serão movidas.`
-              : "Este caderno não possui páginas. Você pode excluí-lo com segurança."}
+              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anotação" : "anotações"}. Para evitar perda de dados, escolha para onde elas serão movidas.`
+              : "Este caderno não possui anotações. Você pode excluí-lo com segurança."}
           </DialogDescription>
         </DialogHeader>
         {deletePageCount > 0 && (
           <div className="space-y-2">
-            <Label htmlFor="delete-target">Mover páginas para</Label>
+            <Label htmlFor="delete-target">Mover anotações para</Label>
             <Select value={deleteTargetId} onValueChange={setDeleteTargetId}>
               <SelectTrigger id="delete-target" className="h-10">
                 <SelectValue placeholder="Escolha um caderno" />
@@ -1256,7 +1264,7 @@ function NotebookTaskCard({
   onToggleStatus: () => void;
 }) {
   return (
-    <article className="rounded-lg border border-border/60 bg-card/70 p-4">
+    <article className="rounded-lg border border-border/60 bg-card/70 p-3 sm:p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h3 className={cn(
@@ -1316,36 +1324,36 @@ function NoteCard({
     : notebooks.find((notebook) => notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase())?.id || notebooks[0]?.id || "";
 
   return (
-    <article className="rounded-lg border border-border/60 bg-card/70 p-4">
-      <button className="block w-full text-left" onClick={() => onOpenNote(page)}>
+    <article className="min-w-0 rounded-lg border border-border/60 bg-card/70 p-3 sm:p-4">
+      <button className="block w-full min-w-0 text-left" onClick={() => onOpenNote(page)}>
         <div className="mb-2 flex items-start justify-between gap-3">
           <h2 className="min-w-0 break-words text-sm font-semibold">{getNoteTitle(page)}</h2>
           {page.is_favorite && <Pin className="h-4 w-4 shrink-0 fill-warning text-warning" />}
         </div>
-        <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
+        <p className="line-clamp-3 break-words text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
       </button>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <Badge variant="outline" className="gap-1 rounded-full">
+        <Badge variant="outline" className="max-w-full gap-1 rounded-full">
           <BookOpen className="h-3 w-3" />
-          {notebookTitle}
+          <span className="truncate">{notebookTitle}</span>
         </Badge>
         {getNoteTags(page).slice(0, 4).map((tag) => (
-          <Badge key={tag} variant="secondary" className="rounded-full">
+          <Badge key={tag} variant="secondary" className="max-w-full rounded-full">
             <Tag className="mr-1 h-3 w-3" />
-            {tag}
+            <span className="truncate">{tag}</span>
           </Badge>
         ))}
         {pageHasChecklist(page) && <Badge variant="outline" className="gap-1 rounded-full"><ListChecks className="h-3 w-3" />Checklist</Badge>}
         {pageHasLink(page) && <Badge variant="outline" className="gap-1 rounded-full"><Link2 className="h-3 w-3" />Link</Badge>}
       </div>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Button variant="outline" size="sm" className="h-9 gap-1" onClick={() => onCreateTaskFromPage(page)}>
+        <Button variant="outline" size="sm" className="h-10 w-full gap-1 sm:h-9 sm:w-auto" onClick={() => onCreateTaskFromPage(page)}>
           <ListChecks className="h-3.5 w-3.5" />
           Criar tarefa
         </Button>
         {notebooks.length > 0 && (
           <Select value={selectedNotebookId} onValueChange={(notebookId) => onMoveNote(page, notebookId)}>
-            <SelectTrigger className="h-9 sm:w-44">
+            <SelectTrigger className="h-10 sm:h-9 sm:w-44">
               <MoveRight className="mr-2 h-3.5 w-3.5" />
               <SelectValue placeholder="Mover" />
             </SelectTrigger>
@@ -1382,7 +1390,7 @@ function LegacyNotesLibrary({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <div>
-        <h1 className="text-xl font-semibold">Páginas</h1>
+        <h1 className="text-xl font-semibold">Anotações</h1>
         <p className="text-sm text-muted-foreground">Todas as suas ideias, links e checklists em ordem recente.</p>
       </div>
 
@@ -1394,19 +1402,19 @@ function LegacyNotesLibrary({
         <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
           <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Nenhuma página ainda. Capture uma ideia, link ou checklist para começar.
+            Nenhuma anotação ainda. Escreva uma ideia, salve um link ou crie um checklist.
           </p>
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {sortedNotes.map((page) => (
-            <article key={page.id} className="rounded-lg border border-border/60 bg-card/70 p-4">
-              <button className="block w-full text-left" onClick={() => onOpenNote(page)}>
+            <article key={page.id} className="min-w-0 rounded-lg border border-border/60 bg-card/70 p-3 sm:p-4">
+              <button className="block w-full min-w-0 text-left" onClick={() => onOpenNote(page)}>
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <h2 className="min-w-0 break-words text-sm font-semibold">{getNoteTitle(page)}</h2>
                   {page.is_favorite && <Pin className="h-4 w-4 shrink-0 fill-warning text-warning" />}
                 </div>
-                <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
+                <p className="line-clamp-3 break-words text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
               </button>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 {getNoteTags(page).slice(0, 4).map((tag) => (
@@ -1415,7 +1423,7 @@ function LegacyNotesLibrary({
                 {pageHasChecklist(page) && <Badge variant="outline" className="gap-1 rounded-full"><ListChecks className="h-3 w-3" />Checklist</Badge>}
                 {pageHasLink(page) && <Badge variant="outline" className="gap-1 rounded-full"><Link2 className="h-3 w-3" />Link</Badge>}
               </div>
-              <Button variant="outline" size="sm" className="mt-3 h-9 gap-1" onClick={() => onCreateTaskFromPage(page)}>
+              <Button variant="outline" size="sm" className="mt-3 h-10 w-full gap-1 sm:h-9 sm:w-auto" onClick={() => onCreateTaskFromPage(page)}>
                 <ListChecks className="h-3.5 w-3.5" />
                 Criar tarefa
               </Button>
@@ -1472,7 +1480,7 @@ function GlobalSearchResults({
         <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
           <Search className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Nada encontrado. Tente buscar por uma palavra da página, tarefa, caderno ou tag.
+            Nada encontrado. Tente buscar por tarefa, anotação, caderno, link ou tag.
           </p>
         </div>
       ) : (
@@ -1495,7 +1503,7 @@ function GlobalSearchResults({
                   >
                     <div className="text-sm font-semibold">{notebook.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "página" : "páginas"}
+                      {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anotação" : "anotações"}
                     </div>
                   </button>
                 ))}
@@ -1506,31 +1514,31 @@ function GlobalSearchResults({
           <section className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <NotebookPen className="h-4 w-4 text-primary" />
-              Páginas
+              Anotações
             </div>
             {notes.length === 0 ? (
-              <p className="rounded-md border border-border/50 bg-card/40 p-4 text-sm text-muted-foreground">Nenhuma página encontrada.</p>
+              <p className="rounded-md border border-border/50 bg-card/40 p-4 text-sm text-muted-foreground">Nenhuma anotação encontrada.</p>
             ) : (
               <div className="grid gap-2 md:grid-cols-2">
                 {notes.map((page) => (
-                  <article key={page.id} className="rounded-lg border border-border/60 bg-card/70 p-4">
-                    <button className="block w-full text-left" onClick={() => onOpenNote(page)}>
+                  <article key={page.id} className="min-w-0 rounded-lg border border-border/60 bg-card/70 p-3 sm:p-4">
+                    <button className="block w-full min-w-0 text-left" onClick={() => onOpenNote(page)}>
                       <div className="mb-2 flex items-start justify-between gap-3">
                         <h2 className="min-w-0 break-words text-sm font-semibold">{getNoteTitle(page)}</h2>
                         {page.is_favorite && <Pin className="h-4 w-4 shrink-0 fill-warning text-warning" />}
                       </div>
-                      <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
+                      <p className="line-clamp-3 break-words text-sm leading-6 text-muted-foreground">{getNotePreview(page, 180)}</p>
                     </button>
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                      <Badge variant="outline" className="gap-1 rounded-full">
+                      <Badge variant="outline" className="max-w-full gap-1 rounded-full">
                         <BookOpen className="h-3 w-3" />
-                        {notebookTitleById.get(page.notebook_id) || DEFAULT_NOTEBOOK_NAME}
+                        <span className="truncate">{notebookTitleById.get(page.notebook_id) || DEFAULT_NOTEBOOK_NAME}</span>
                       </Badge>
-                      {getNoteTags(page).map((tag) => <Badge key={tag} variant="secondary" className="rounded-full">{tag}</Badge>)}
+                      {getNoteTags(page).map((tag) => <Badge key={tag} variant="secondary" className="max-w-full rounded-full"><span className="truncate">{tag}</span></Badge>)}
                       {pageHasChecklist(page) && <Badge variant="outline" className="gap-1 rounded-full"><ListChecks className="h-3 w-3" />Checklist</Badge>}
                       {pageHasLink(page) && <Badge variant="outline" className="gap-1 rounded-full"><Link2 className="h-3 w-3" />Link</Badge>}
                     </div>
-                    <Button variant="outline" size="sm" className="mt-3 h-9 gap-1" onClick={() => onCreateTaskFromPage(page)}>
+                    <Button variant="outline" size="sm" className="mt-3 h-10 w-full gap-1 sm:h-9 sm:w-auto" onClick={() => onCreateTaskFromPage(page)}>
                       <ListChecks className="h-3.5 w-3.5" />
                       Criar tarefa
                     </Button>

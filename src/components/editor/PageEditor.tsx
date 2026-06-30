@@ -119,7 +119,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   const handleDownloadPdf = async () => {
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
-      doc.save(`${title || "pagina"}.pdf`);
+      doc.save(`${title || "anotacao"}.pdf`);
       toast.success("PDF baixado");
     } catch {
       toast.error("Erro ao gerar PDF");
@@ -130,7 +130,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
       const blob = doc.output("blob");
-      const file = new File([blob], `${title || "pagina"}.pdf`, { type: "application/pdf" });
+      const file = new File([blob], `${title || "anotacao"}.pdf`, { type: "application/pdf" });
 
       if (navigator.share) {
         await navigator.share({ title, text: `Confira: ${title}`, files: [file] });
@@ -139,13 +139,13 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
 
       if (method === "email") {
         const anchor = document.createElement("a");
-        anchor.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a página: " + title)}`;
+        anchor.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a anotação: " + title)}`;
         anchor.click();
         toast.info("Abra seu cliente de e-mail e anexe o PDF baixado.");
       } else {
         toast.info("Compartilhamento não suportado neste navegador. O PDF será baixado.");
       }
-      doc.save(`${title || "pagina"}.pdf`);
+      doc.save(`${title || "anotacao"}.pdf`);
     } catch (error: unknown) {
       if (!(error instanceof DOMException && error.name === "AbortError")) toast.error("Erro ao compartilhar");
     }
@@ -153,7 +153,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
 
   const handleCopyNote = async () => {
     await navigator.clipboard.writeText([title, blocksToText(blocks)].filter(Boolean).join("\n\n"));
-    toast.success("Página copiada");
+    toast.success("Anotação copiada");
   };
 
   useEffect(() => {
@@ -172,7 +172,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   }, [focusMode, handleForceSave, onExitFocus]);
 
   return (
-    <div className={cn("flex h-full flex-col", focusMode && "mx-auto max-w-3xl")}>
+    <div className={cn("flex h-full min-w-0 flex-col", focusMode && "mx-auto max-w-3xl")}>
       <div className="shrink-0 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -216,7 +216,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
               <Pin className={cn("h-5 w-5 sm:h-3.5 sm:w-3.5", page.is_favorite && "fill-warning text-warning")} />
             </Button>
 
-            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={handleCopyNote} title="Copiar página">
+            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={handleCopyNote} title="Copiar anotação">
               <Copy className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
             </Button>
 
@@ -226,9 +226,9 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
                 size="icon"
                 className="h-10 w-10 text-destructive hover:text-destructive sm:h-7 sm:w-7"
                 onClick={() => {
-                  if (window.confirm("Excluir esta página permanentemente?")) onDelete();
+                  if (window.confirm("Excluir esta anotação permanentemente?")) onDelete();
                 }}
-                title="Excluir página"
+                title="Excluir anotação"
               >
                 <Trash2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
               </Button>
@@ -266,15 +266,15 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            Capture ideias, links e checklists. Depois transforme tudo em ação.
+          <span className="min-w-0 text-xs leading-5 text-muted-foreground">
+            Capture ideias, links e checklists. Depois transforme tudo em tarefa.
           </span>
           {page.is_favorite && <Badge variant="outline" className="rounded-full border-warning/40 text-warning">Fixada</Badge>}
           {onCreateTaskFromPage && (
             <Button
               variant="secondary"
               size="sm"
-              className="h-9 gap-1 sm:hidden"
+              className="h-10 w-full gap-1 sm:hidden"
               onClick={() => onCreateTaskFromPage(currentPage)}
             >
               <ListChecks className="h-3.5 w-3.5" />
@@ -289,7 +289,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
           className="w-full border-none bg-transparent text-xl font-bold outline-none placeholder:text-muted-foreground/30 sm:text-2xl"
-          placeholder="Título da página"
+          placeholder="Título da anotação"
         />
       </div>
 

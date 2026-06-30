@@ -136,7 +136,7 @@ export function TodayView({
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Hoje</h1>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-          Capture ideias, organize páginas e execute suas prioridades.
+          Capture ideias, organize anotações e execute suas prioridades.
         </p>
       </section>
 
@@ -192,7 +192,7 @@ function QuickCaptureBar({
   onOpenAdvancedCapture: () => void;
 }) {
   const options: Array<{ value: CaptureMode; label: string; icon: React.ElementType }> = [
-    { value: "note", label: "Página", icon: NotebookPen },
+    { value: "note", label: "Anotação", icon: NotebookPen },
     { value: "checklist", label: "Checklist", icon: ListChecks },
     { value: "task", label: "Tarefa", icon: CheckCircle2 },
   ];
@@ -207,10 +207,10 @@ function QuickCaptureBar({
             onKeyDown={(event) => {
               if ((event.ctrlKey || event.metaKey) && event.key === "Enter") onSave();
             }}
-            placeholder="Escreva uma ideia, tarefa ou link..."
+            placeholder="Escreva uma anotação, tarefa ou link..."
             className="min-h-24 resize-none bg-background/55 text-base leading-6 sm:text-sm"
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
             {options.map((option) => {
               const Icon = option.icon;
               return (
@@ -219,7 +219,7 @@ function QuickCaptureBar({
                   type="button"
                   variant={mode === option.value ? "secondary" : "outline"}
                   size="sm"
-                  className="h-10 gap-2"
+                  className="h-10 justify-center gap-2 px-2"
                   onClick={() => onModeChange(option.value)}
                 >
                   <Icon className="h-4 w-4" />
@@ -262,7 +262,7 @@ function TodayPriorities({
           <h2 className="text-base font-semibold">Prioridades de hoje</h2>
           <p className="text-sm text-muted-foreground">O que precisa avançar hoje.</p>
         </div>
-        <Button variant="outline" size="sm" className="h-9" onClick={onOpenTasks}>
+        <Button variant="outline" size="sm" className="h-10 w-full sm:h-9 sm:w-auto" onClick={onOpenTasks}>
           Ver todas as tarefas
         </Button>
       </div>
@@ -272,7 +272,7 @@ function TodayPriorities({
       ) : tasks.length === 0 ? (
         <EmptyPanel
           icon={ListChecks}
-          text="Nenhuma prioridade para hoje. Crie uma tarefa ou transforme uma página em ação."
+          text="Nenhuma prioridade para hoje. Crie uma tarefa ou transforme uma anotação em ação."
         />
       ) : (
         <div className="grid gap-2">
@@ -348,11 +348,11 @@ function RecentNotes({
     <section className="space-y-3 rounded-lg border border-border/65 bg-card/70 p-3 shadow-sm ring-1 ring-white/5 sm:p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold">Páginas recentes</h2>
+          <h2 className="text-base font-semibold">Anotações recentes</h2>
           <p className="text-sm text-muted-foreground">Suas últimas ideias, links e checklists.</p>
         </div>
-        <Button variant="outline" size="sm" className="h-9" onClick={onOpenNotes}>
-          Ver páginas
+        <Button variant="outline" size="sm" className="h-10 w-full sm:h-9 sm:w-auto" onClick={onOpenNotes}>
+          Ver anotações
         </Button>
       </div>
 
@@ -361,7 +361,7 @@ function RecentNotes({
       ) : notes.length === 0 ? (
         <EmptyPanel
           icon={NotebookPen}
-          text="Nenhuma página ainda. Capture uma ideia, link ou checklist para começar."
+          text="Nenhuma anotação ainda. Escreva uma ideia, salve um link ou crie um checklist."
         />
       ) : (
         <div className="grid gap-2">
@@ -378,9 +378,9 @@ function RecentNotes({
               </button>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 {getNoteTags(page).slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="secondary" className="rounded-full">
+                  <Badge key={tag} variant="secondary" className="max-w-full rounded-full">
                     <Tag className="mr-1 h-3 w-3" />
-                    {tag}
+                    <span className="truncate">{tag}</span>
                   </Badge>
                 ))}
                 {pageHasChecklist(page) && (
@@ -398,7 +398,7 @@ function RecentNotes({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="ml-auto h-8 gap-1"
+                  className="h-10 w-full justify-center gap-1 sm:ml-auto sm:h-8 sm:w-auto"
                   onClick={() => onCreateTaskFromPage(page)}
                 >
                   <ListChecks className="h-3.5 w-3.5" />
@@ -491,7 +491,7 @@ function CollapsibleCalendar({
         onClick={() => setExpanded((current) => !current)}
       >
         <span>{format(today, "MMMM yyyy")}</span>
-        <span>{expanded ? "Recolher" : "Ver calendario"}</span>
+        <span>{expanded ? "Recolher" : "Ver calendário"}</span>
       </Button>
 
       {expanded && (

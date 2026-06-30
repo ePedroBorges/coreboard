@@ -85,7 +85,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
         <DialogHeader>
           <DialogTitle>Captura avançada</DialogTitle>
           <DialogDescription>
-            Crie uma página com texto, checklist, tags e ação.
+            Crie uma anotação com texto, checklist, tags e ação.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,19 +155,19 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
             className="flex min-h-10 items-center gap-2 rounded-md border border-border/60 bg-background/35 px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <Pin className="h-4 w-4" />
-            {pinned ? "Página fixada" : "Fixar página"}
+            {pinned ? "Anotação fixada" : "Fixar anotação"}
           </button>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button type="button" variant="secondary" onClick={() => save(true)} disabled={!canSave || !!savingMode}>
+          <Button type="button" variant="outline" className="h-10 w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button type="button" variant="secondary" className="h-10 w-full sm:w-auto" onClick={() => save(true)} disabled={!canSave || !!savingMode}>
             {savingMode === "task" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar e criar tarefa
           </Button>
-          <Button type="button" onClick={() => save(false)} disabled={!canSave || !!savingMode}>
+          <Button type="button" className="h-10 w-full sm:w-auto" onClick={() => save(false)} disabled={!canSave || !!savingMode}>
             {savingMode === "note" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar página
+            Salvar anotação
           </Button>
         </DialogFooter>
       </DialogContent>

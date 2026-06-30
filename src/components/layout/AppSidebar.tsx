@@ -61,18 +61,13 @@ export function AppSidebar({
 
   const notebookTitleById = new Map(notebooks.map((notebook) => [notebook.id, notebook.title]));
   const hasPinnedItems = pinnedNotebooks.length > 0 || pinnedTasks.length > 0 || favoritePages.length > 0;
+  const runAndClose = (action?: () => void) => {
+    action?.();
+    if (isMobile) setOpenMobile(false);
+  };
 
   return (
     <>
-      <MobileSidebarRail
-        activeView={activeView}
-        hasPinnedItems={hasPinnedItems}
-        onOpenMenu={() => setOpenMobile(true)}
-        onSelectToday={onSelectToday}
-        onSelectNotes={onSelectNotes}
-        onSelectCalendar={onSelectCalendar}
-      />
-
       <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
@@ -82,14 +77,17 @@ export function AppSidebar({
             {!collapsed && (
               <>
                 <span className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight sm:text-sm">
-                  VISTA Task Control
+                  VISTA Tasks Control
                 </span>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 shrink-0"
-                  onClick={onToggleSidebarPinned}
-                  title={sidebarPinned ? "Ocultar textos" : "Mostrar textos"}
+                  onClick={() => {
+                    if (isMobile) setOpenMobile(false);
+                    else onToggleSidebarPinned();
+                  }}
+                  title={isMobile ? "Fechar menu" : sidebarPinned ? "Ocultar textos" : "Mostrar textos"}
                 >
                   <PanelLeftClose className="h-4 w-4" />
                 </Button>
@@ -105,9 +103,9 @@ export function AppSidebar({
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} collapsed={collapsed} />
-                <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Caderno" onClick={onSelectNotes} collapsed={collapsed} />
-                <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={onSelectCalendar} collapsed={collapsed} />
+                <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={() => runAndClose(onSelectToday)} collapsed={collapsed} />
+                <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
+                <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={() => runAndClose(onSelectCalendar)} collapsed={collapsed} />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -122,7 +120,7 @@ export function AppSidebar({
                 <SidebarMenu>
                   {pinnedNotebooks.map((notebook) => (
                     <SidebarMenuItem key={`notebook-${notebook.id}`}>
-                      <SidebarMenuButton onClick={() => onOpenNotebook(notebook.id)} className="min-h-[44px] items-start gap-2 text-sm sm:min-h-0 sm:text-xs">
+                      <SidebarMenuButton onClick={() => runAndClose(() => onOpenNotebook(notebook.id))} className="min-h-[44px] items-start gap-2 text-sm sm:min-h-0 sm:text-xs">
                         <NotebookPen className="mt-0.5 h-4 w-4 shrink-0 text-primary sm:h-3.5 sm:w-3.5" />
                         {!collapsed && (
                           <span className="min-w-0 flex-1">
@@ -132,7 +130,7 @@ export function AppSidebar({
                                 Caderno
                               </Badge>
                               <span className="truncate text-[10px] text-muted-foreground">
-                                {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "página" : "páginas"}
+                                {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anotação" : "anotações"}
                               </span>
                             </span>
                           </span>
@@ -144,7 +142,7 @@ export function AppSidebar({
                   {pinnedTasks.map((task) => (
                     <SidebarMenuItem key={`task-${task.id}`}>
                       <SidebarMenuButton
-                        onClick={onSelectTasks}
+                        onClick={() => runAndClose(onSelectTasks)}
                         className={cn(
                           "min-h-[44px] items-start gap-2 text-sm sm:min-h-0 sm:text-xs",
                           activeView === "tasks" && "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -171,7 +169,7 @@ export function AppSidebar({
                   {favoritePages.map((page) => (
                     <SidebarMenuItem key={`page-${page.id}`}>
                       <SidebarMenuButton
-                        onClick={() => onOpenPage(page)}
+                        onClick={() => runAndClose(() => onOpenPage(page))}
                         className={cn(
                           "min-h-[44px] items-start gap-2 text-sm sm:min-h-0 sm:text-xs",
                           selectedPageId === page.id && "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -183,7 +181,7 @@ export function AppSidebar({
                             <span className="block truncate">{getNoteTitle(page)}</span>
                             <span className="mt-1 flex min-w-0 items-center gap-1">
                               <Badge variant="outline" className="h-5 rounded px-1.5 text-[10px]">
-                                Página
+                                Anotação
                               </Badge>
                               <span className="truncate text-[10px] text-muted-foreground">
                                 {notebookTitleById.get(page.notebook_id) || "Caderno"}
@@ -203,69 +201,12 @@ export function AppSidebar({
         <SidebarFooter className="p-2">
           {!collapsed && (
             <div className="text-center font-mono-accent text-[9px] text-muted-foreground/50">
-              VISTA Task Control v1.0
+              VISTA Tasks Control v1.0
             </div>
           )}
         </SidebarFooter>
       </Sidebar>
     </>
-  );
-}
-
-function MobileSidebarRail({
-  activeView,
-  hasPinnedItems,
-  onOpenMenu,
-  onSelectToday,
-  onSelectNotes,
-  onSelectCalendar,
-}: {
-  activeView: AppView;
-  hasPinnedItems: boolean;
-  onOpenMenu: () => void;
-  onSelectToday?: () => void;
-  onSelectNotes?: () => void;
-  onSelectCalendar?: () => void;
-}) {
-  const handleTap = (action?: () => void) => {
-    action?.();
-    onOpenMenu();
-  };
-
-  return (
-    <nav className="fixed left-2 top-16 z-30 flex w-11 flex-col items-center gap-1 rounded-md border border-sidebar-border bg-sidebar/95 p-1 text-sidebar-foreground shadow-lg backdrop-blur md:hidden">
-      <MobileRailButton active={activeView === "today"} icon={Home} label="Hoje" onClick={() => handleTap(onSelectToday)} />
-      <MobileRailButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Caderno" onClick={() => handleTap(onSelectNotes)} />
-      <MobileRailButton active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={() => handleTap(onSelectCalendar)} />
-      {hasPinnedItems && <MobileRailButton active={false} icon={Star} label="Fixados" onClick={onOpenMenu} />}
-    </nav>
-  );
-}
-
-function MobileRailButton({
-  active,
-  icon: Icon,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ElementType;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className={cn(
-        "flex h-9 w-9 items-center justify-center rounded text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        active && "bg-sidebar-accent text-sidebar-accent-foreground"
-      )}
-    >
-      <Icon className="h-4 w-4" />
-    </button>
   );
 }
 

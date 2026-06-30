@@ -97,7 +97,7 @@ export function generatePagePdf(
     doc.setFontSize(7);
     doc.setTextColor(160);
     doc.text(
-      `SmartNotes — Página ${i} de ${totalPages}`,
+      `VISTA Tasks Control — Anotação ${i} de ${totalPages}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 8,
       { align: "center" }
@@ -124,7 +124,7 @@ export function generateNotebookPdf(
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(128);
-  doc.text(`${pages.length} página(s)`, pageWidth / 2, 95, { align: "center" });
+  doc.text(`${pages.length} anotação(ões)`, pageWidth / 2, 95, { align: "center" });
   doc.text(`Exportado em ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth / 2, 102, { align: "center" });
   doc.setTextColor(0);
 
@@ -190,7 +190,7 @@ export function generateNotebookPdf(
     doc.setFontSize(7);
     doc.setTextColor(160);
     doc.text(
-      `${notebookTitle} — SmartNotes — Página ${i} de ${totalPages}`,
+      `${notebookTitle} — VISTA Tasks Control — Anotação ${i} de ${totalPages}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 8,
       { align: "center" }

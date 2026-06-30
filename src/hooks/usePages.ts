@@ -42,8 +42,8 @@ export function usePages(notebookId?: string) {
   });
 
   const createPage = useMutation({
-    mutationFn: async (input: string | { title?: string; content?: Block[]; notebookId?: string } = "Untitled Page") => {
-      const title = typeof input === "string" ? input : input.title || "Untitled Page";
+    mutationFn: async (input: string | { title?: string; content?: Block[]; notebookId?: string } = "Nova anotação") => {
+      const title = typeof input === "string" ? input : input.title || "Nova anotação";
       const content = typeof input === "string" ? [] : input.content || [];
       const targetNotebookId = typeof input === "string" ? notebookId! : input.notebookId || notebookId!;
       const maxPos = query.data?.length || 0;
@@ -93,7 +93,7 @@ export function usePages(notebookId?: string) {
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
       queryClient.invalidateQueries({ queryKey: ["all-pages"] });
-      toast.success("Página excluída!");
+      toast.success("Anotação excluída!");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -120,7 +120,7 @@ export function usePages(notebookId?: string) {
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       queryClient.invalidateQueries({ queryKey: ["all-pages"] });
-      toast.success("Página duplicada!");
+      toast.success("Anotação duplicada!");
     },
     onError: (e: Error) => toast.error(e.message),
   });

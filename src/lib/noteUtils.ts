@@ -42,9 +42,9 @@ export function blocksToText(blocks: Block[] = []) {
 
 export function getNoteTitle(page: Page) {
   const title = page.title?.trim();
-  if (title && title !== "Nova entrada" && title !== "Untitled Page") return title;
+  if (title && title !== "Nova entrada" && title !== "Nova anotação" && title !== "Untitled Page") return title;
   const firstLine = blocksToText(page.content).split("\n").find((line) => line.trim());
-  return firstLine?.trim().slice(0, 80) || "Nova página";
+  return firstLine?.trim().slice(0, 80) || "Nova anotação";
 }
 
 export function getNotePreview(page: Page, maxLength = 120) {

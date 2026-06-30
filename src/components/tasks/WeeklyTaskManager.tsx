@@ -152,10 +152,10 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
 
   const focusSummary =
     tasks.length === 0
-      ? "Tudo limpo por aqui. Crie uma tarefa ou registre uma ideia no Caderno."
+      ? "Tudo limpo por aqui. Crie uma tarefa ou registre uma ideia em Anotações."
       : stats.pending > 0
         ? `Você tem ${stats.pending} ${stats.pending === 1 ? "tarefa pendente" : "tarefas pendentes"}. Escolha uma prioridade e avance agora.`
-        : "Todas as tarefas foram concluídas. Use o Caderno para capturar o próximo movimento.";
+        : "Todas as tarefas foram concluídas. Use Anotações para capturar o próximo movimento.";
 
   const emptyMessage =
     view === "completed"
@@ -164,7 +164,7 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
         ? "Nenhuma pendência no momento. Ótimo sinal."
         : view === "all"
           ? "Seu espaço de execução está vazio. Crie sua primeira tarefa do dia."
-          : "Nenhuma tarefa para este dia. Planeje algo ou registre uma ideia no Caderno.";
+          : "Nenhuma tarefa nesta data. Planeje uma ação ou crie uma tarefa.";
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:p-6 lg:gap-6">
@@ -176,11 +176,11 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
                 <Sparkles className="h-3.5 w-3.5" />
                 AnchorLab Productivity
               </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                VISTA Task Control
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Calendário
               </h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
-                Tarefas, páginas e execução diária em um só lugar.
+                Planeje tarefas por data e acompanhe sua execução.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
@@ -403,7 +403,7 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <NotebookPen className="h-3.5 w-3.5 text-primary" />
-            Capture ideias no Caderno e transforme em ação.
+            Capture ideias em Anotações e transforme em ação.
           </div>
         </div>
 
