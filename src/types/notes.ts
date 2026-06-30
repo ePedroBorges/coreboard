@@ -39,6 +39,7 @@ export interface PageVersion {
 }
 
 export type BlockType =
+  | "freeform"
   | "paragraph"
   | "heading1"
   | "heading2"

@@ -1,4 +1,4 @@
-const urlRegex = /(https?:\/\/[^\s]+)/gi;
+const urlRegex = /(https?:\/\/(?:(?!https?:\/\/)[^\s])+)/gi;
 
 export function LinkifiedText({ text }: { text: string }) {
   const parts = text.split(urlRegex);
@@ -19,7 +19,16 @@ export function LinkifiedText({ text }: { text: string }) {
             </a>
           );
         }
-        return <span key={`${part}-${index}`}>{part}</span>;
+        return (
+          <span key={`${part}-${index}`}>
+            {part.split("\n").map((line, lineIndex, lines) => (
+              <span key={`${line}-${lineIndex}`}>
+                {line}
+                {lineIndex < lines.length - 1 && <br />}
+              </span>
+            ))}
+          </span>
+        );
       })}
     </>
   );

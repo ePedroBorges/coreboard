@@ -16,7 +16,6 @@ import {
 import { Page, Block, Notebook } from "@/types/notes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -28,7 +27,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BlockEditor } from "./BlockEditor";
 import { TagSelector } from "@/components/notes/TagSelector";
-import { LinkifiedText } from "@/components/notes/LinkifiedText";
 import { cn } from "@/lib/utils";
 import { generatePagePdf } from "@/lib/pdfExport";
 import { blocksToText, getNoteTags, setNoteTags } from "@/lib/noteUtils";
@@ -155,7 +153,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
 
   const handleCopyNote = async () => {
     await navigator.clipboard.writeText([title, blocksToText(blocks)].filter(Boolean).join("\n\n"));
-    toast.success("Nota copiada");
+    toast.success("Página copiada");
   };
 
   useEffect(() => {
@@ -325,34 +323,6 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         <div className="rounded-lg border border-border/50 bg-card/35 p-3 sm:p-4">
           <BlockEditor blocks={blocks} onChange={handleBlocksChange} />
         </div>
-
-        {blocksToText(blocks).trim() && (
-          <div className="mt-4 rounded-lg border border-border/50 bg-background/35 p-3 sm:p-4">
-            <div className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Visualização
-            </div>
-            <div className="space-y-2 text-sm leading-6 text-foreground">
-              {blocks.map((block) => {
-                if (!block.content && block.type !== "checklist") return null;
-                if (block.type === "checklist") {
-                  return (
-                    <div key={block.id} className="flex items-start gap-2">
-                      <Checkbox checked={!!block.checked} disabled className="mt-1 h-4 w-4" />
-                      <span className={cn("whitespace-pre-wrap", block.checked && "text-muted-foreground line-through")}>
-                        <LinkifiedText text={block.content} />
-                      </span>
-                    </div>
-                  );
-                }
-                return (
-                  <p key={block.id} className="whitespace-pre-wrap">
-                    <LinkifiedText text={block.content} />
-                  </p>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
