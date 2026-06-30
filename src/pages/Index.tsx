@@ -460,7 +460,7 @@ const Index = () => {
       onOpenChange={setSidebarPinned}
     >
 
-      <div className="min-h-screen flex w-full">
+      <div className="flex h-svh min-h-0 w-full overflow-hidden">
         <AppSidebar
           activeView={activeView}
           sidebarPinned={sidebarPinned}
@@ -498,7 +498,7 @@ const Index = () => {
             </div>
 
 
-            <div className="min-h-0 flex-1 overflow-auto pb-24 lg:pb-0">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 [-webkit-overflow-scrolling:touch] lg:pb-0">
             {normalizedSearch ? (
               <GlobalSearchResults
                 query={searchQuery}

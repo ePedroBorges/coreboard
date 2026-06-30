@@ -34,7 +34,7 @@ export function AppHeader({ canGoBack, onBack }: AppHeaderProps) {
   return (
     <header className="h-14 sm:h-12 flex items-center justify-between border-b border-border px-3 sm:px-2 shrink-0">
       <div className="flex items-center gap-2 sm:gap-1">
-        <SidebarTrigger className="hidden h-8 w-8 lg:inline-flex" title="Menu" />
+        <SidebarTrigger className="h-10 w-10 lg:h-8 lg:w-8" title="Menu" />
         {canGoBack && (
           <Button
             variant="ghost"
