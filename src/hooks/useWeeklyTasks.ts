@@ -197,7 +197,7 @@ export function useWeeklyTasks() {
         payload.completed_at = null;
       }
 
-      delete payload.pending_reasons;
+      
 
       const { error } = await supabase.from("weekly_tasks").update(payload).eq("id", id);
       if (error) throw error;
