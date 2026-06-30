@@ -206,13 +206,14 @@ export function AppSidebar({
                       onClick={onSelectTasks}
                       className={cn(
                         "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
-                        activeView === "tasks" && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        (activeView === "tasks" || activeView === "calendar") && "bg-sidebar-accent text-sidebar-accent-foreground"
                       )}
                     >
                       <ClipboardList className="h-4 w-4 sm:h-3 sm:w-3" />
                       {!collapsed && <span>Tarefas</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={onSelectCalendar}
