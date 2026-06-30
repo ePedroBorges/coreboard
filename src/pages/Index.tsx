@@ -498,7 +498,7 @@ const Index = () => {
             </div>
 
 
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div className="min-h-0 flex-1 overflow-auto pb-24 lg:pb-0">
             {normalizedSearch ? (
               <GlobalSearchResults
                 query={searchQuery}

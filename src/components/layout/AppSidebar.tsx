@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, CalendarDays, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Star } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardList, FileText, Home, ListChecks, Menu, NotebookPen, PanelLeftClose, Star } from "lucide-react";
 import { Notebook, Page } from "@/types/notes";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { getNoteTitle } from "@/lib/noteUtils";
@@ -68,6 +68,14 @@ export function AppSidebar({
 
   return (
     <>
+      <MobileBottomNavigation
+        activeView={activeView}
+        onOpenMenu={() => setOpenMobile(true)}
+        onSelectToday={() => runAndClose(onSelectToday)}
+        onSelectNotes={() => runAndClose(onSelectNotes)}
+        onSelectCalendar={() => runAndClose(onSelectCalendar)}
+      />
+
       <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
@@ -207,6 +215,72 @@ export function AppSidebar({
         </SidebarFooter>
       </Sidebar>
     </>
+  );
+}
+
+function MobileBottomNavigation({
+  activeView,
+  onOpenMenu,
+  onSelectToday,
+  onSelectNotes,
+  onSelectCalendar,
+}: {
+  activeView: AppView;
+  onOpenMenu: () => void;
+  onSelectToday: () => void;
+  onSelectNotes: () => void;
+  onSelectCalendar: () => void;
+}) {
+  return (
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-sidebar-border bg-sidebar/95 px-3 py-2 text-sidebar-foreground shadow-[0_-12px_30px_-24px_rgba(0,0,0,0.8)] backdrop-blur lg:hidden">
+      <div className="mx-auto flex max-w-md items-center gap-2">
+        <button
+          type="button"
+          aria-label="Abrir menu lateral"
+          title="Abrir menu"
+          onClick={onOpenMenu}
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-sidebar-border bg-background/35 text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1 rounded-md border border-sidebar-border bg-background/25 p-1">
+          <MobileBottomNavButton active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} />
+          <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={onSelectNotes} />
+          <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={onSelectCalendar} />
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function MobileBottomNavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={cn(
+        "flex h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded text-[10px] font-medium transition-colors",
+        active
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      <span className="max-w-full truncate">{label}</span>
+    </button>
   );
 }
 
