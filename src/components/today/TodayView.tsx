@@ -366,13 +366,13 @@ function RecentNotes({
       ) : (
         <div className="grid gap-2">
           {notes.map((page) => (
-            <article key={page.id} className="rounded-md border border-border/60 bg-background/40 p-3">
-              <button className="block w-full text-left" onClick={() => onOpenNote(page)}>
+            <article key={page.id} className="overflow-hidden rounded-md border border-border/60 bg-background/40 p-3">
+              <button className="block w-full min-w-0 text-left" onClick={() => onOpenNote(page)}>
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="min-w-0 break-words text-sm font-semibold leading-snug">{getNoteTitle(page)}</h3>
+                  <h3 className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug">{getNoteTitle(page)}</h3>
                   {page.is_favorite && <Pin className="h-4 w-4 shrink-0 fill-warning text-warning" />}
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                <p className="mt-2 line-clamp-2 break-all text-sm leading-6 text-muted-foreground">
                   {getNotePreview(page, 140)}
                 </p>
               </button>
@@ -408,6 +408,7 @@ function RecentNotes({
             </article>
           ))}
         </div>
+
       )}
     </section>
   );
