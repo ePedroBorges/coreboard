@@ -85,7 +85,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
         <DialogHeader>
           <DialogTitle>Captura avançada</DialogTitle>
           <DialogDescription>
-            Crie uma nota completa com texto, checklist, tags e ação.
+            Crie uma página com texto, checklist, tags e ação.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,7 +155,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
             className="flex min-h-10 items-center gap-2 rounded-md border border-border/60 bg-background/35 px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <Pin className="h-4 w-4" />
-            {pinned ? "Nota fixada" : "Fixar nota"}
+            {pinned ? "Página fixada" : "Fixar página"}
           </button>
         </div>
 
@@ -167,7 +167,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
           </Button>
           <Button type="button" onClick={() => save(false)} disabled={!canSave || !!savingMode}>
             {savingMode === "note" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar nota
+            Salvar página
           </Button>
         </DialogFooter>
       </DialogContent>

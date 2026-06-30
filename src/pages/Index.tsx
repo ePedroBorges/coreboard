@@ -164,7 +164,7 @@ const Index = () => {
     createTask: boolean;
   }) => {
     const targetNotebookId = notebookId || await ensureNotebookId();
-    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
+    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim())?.slice(0, 80) || "Nova página";
     const page = await pages.createPage.mutateAsync({ title: fallbackTitle, content, notebookId: targetNotebookId });
     if (pinned) pages.updatePage.mutate({ id: page.id, is_favorite: true });
     setActiveView("diary");
@@ -217,7 +217,7 @@ const Index = () => {
       const content = mode === "checklist"
         ? makeNoteBlocks("", checklistItems, [])
         : makeNoteBlocks(cleanText, [], []);
-      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
+      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova página";
 
       await pages.createPage.mutateAsync({ title, content, notebookId });
       toast.success(mode === "checklist" ? "Checklist salvo." : "Nota salva.");
@@ -250,7 +250,7 @@ const Index = () => {
     if (!notebookId || page.notebook_id === notebookId) return;
     const targetTitle = notebookTitleById.get(notebookId) || DEFAULT_NOTEBOOK_NAME;
     pages.updatePage.mutate({ id: page.id, notebook_id: notebookId }, {
-      onSuccess: () => toast.success(`Anotacao movida para ${targetTitle}.`),
+      onSuccess: () => toast.success(`Página movida para ${targetTitle}.`),
     });
   }, [notebookTitleById, pages.updatePage]);
 
@@ -299,7 +299,11 @@ const Index = () => {
   if (!user) return <Navigate to="/auth" replace />;
 
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider
+      defaultOpen
+      open={sidebarOpen}
+      onOpenChange={setSidebarPinned}
+    >
 
       <div className="min-h-screen flex w-full">
         {!focusMode && (
@@ -308,32 +312,14 @@ const Index = () => {
             sidebarPinned={sidebarPinned}
             onToggleSidebarPinned={() => setSidebarPinned((current) => !current)}
             onMouseLeave={() => undefined}
-            onSelectTasks={handleSelectTasks}
             onSelectToday={handleSelectToday}
             onSelectNotes={handleSelectNotes}
             onSelectCalendar={handleSelectCalendar}
             notebooks={notebooks.data || []}
-            pages={pages.data || []}
-            allPages={allPages.data || []}
             favorites={favorites.data || []}
-            selectedNotebookId={selectedNotebookId}
             selectedPageId={selectedPageId}
             onSelectNotebook={handleSelectNotebook}
             onSelectPage={handleSelectPage}
-            onCreateNotebook={(title) => notebooks.createNotebook.mutate(title)}
-            onDeleteNotebook={handleDeleteNotebook}
-            onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
-            onCreatePage={handleCreatePage}
-            onRenamePage={(id, title) => pages.updatePage.mutate({ id, title })}
-            onDeletePage={(id) => {
-              if (selectedPageId === id) setSelectedPageId(null);
-              pages.deletePage.mutate(id);
-            }}
-            onToggleFavorite={(id, fav) => pages.toggleFavorite.mutate({ id, is_favorite: fav })}
-            onSelectTag={(tag) => {
-              setSearchQuery(tag);
-              setActiveView("today");
-            }}
           />
         )}
 
@@ -348,7 +334,7 @@ const Index = () => {
                   <Input
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Buscar tarefas, notas, links ou tags..."
+                    placeholder="Buscar tarefas, páginas, cadernos, links ou tags..."
                     className="h-11 pl-9"
                   />
                 </div>
@@ -421,7 +407,7 @@ const Index = () => {
                 onUpdate={(updates) => pages.updatePage.mutate({ id: selectedPage.id, ...updates })}
                 onNotebookChange={(notebookId) => {
                   setSelectedNotebookId(notebookId);
-                  toast.success(`Anotacao movida para ${notebookTitleById.get(notebookId) || DEFAULT_NOTEBOOK_NAME}.`);
+                  toast.success(`Página movida para ${notebookTitleById.get(notebookId) || DEFAULT_NOTEBOOK_NAME}.`);
                 }}
                 focusMode={focusMode}
                 onExitFocus={() => setFocusMode(false)}
@@ -526,7 +512,7 @@ function CreateTaskFromNoteDialog({
     <Dialog open={!!page} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Criar tarefa a partir da anotacao</DialogTitle>
+          <DialogTitle>Criar tarefa a partir da página</DialogTitle>
           <DialogDescription>
             Ajuste a acao antes de enviar para Hoje ou Calendario.
           </DialogDescription>
@@ -575,7 +561,7 @@ function CreateTaskFromNoteDialog({
             />
           </div>
           <div className="rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
-            Origem: {page ? getNoteTitle(page) : "Anotacao"} · Caderno: {notebookTitle}
+            Origem: {page ? getNoteTitle(page) : "Página"} · Caderno: {notebookTitle}
           </div>
           <button
             type="button"
@@ -585,7 +571,7 @@ function CreateTaskFromNoteDialog({
               keepLink ? "border-primary/35 bg-primary/10 text-primary" : "border-border/60 bg-background/35 text-muted-foreground"
             )}
           >
-            <span>Manter vinculo com a anotacao</span>
+            <span>Manter vínculo com a página</span>
             <span>{keepLink ? "Sim" : "Nao"}</span>
           </button>
         </div>
@@ -676,7 +662,7 @@ function NotesLibrary({
   });
   const activeNotebookId = activeFilter !== "all" && activeFilter !== "favorites" ? activeFilter : defaultNotebookId;
   const activeTitle = activeFilter === "all"
-    ? "Todas as anotações"
+    ? "Todas as páginas"
     : activeFilter === "favorites"
       ? "Fixadas"
       : `Caderno: ${selectedNotebook?.title || DEFAULT_NOTEBOOK_NAME}`;
@@ -740,7 +726,7 @@ function NotesLibrary({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Anotações</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Páginas</h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
             Guarde textos, links, checklists e ideias em cadernos organizados.
           </p>
@@ -748,7 +734,7 @@ function NotesLibrary({
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button className="h-10 gap-2" onClick={() => onCreateNote(activeNotebookId)}>
             <Plus className="h-4 w-4" />
-            Nova anotação
+            Nova página
           </Button>
           <Button variant="outline" className="h-10 gap-2" onClick={() => setShowNotebookCreator(true)} disabled={creatingNotebook}>
             <BookOpen className="h-4 w-4" />
@@ -842,12 +828,12 @@ function NotesLibrary({
             <div>
               <h2 className="text-base font-semibold">{activeTitle}</h2>
               <p className="text-sm text-muted-foreground">
-                {sortedNotes.length} {sortedNotes.length === 1 ? "anotação" : "anotações"}
+                {sortedNotes.length} {sortedNotes.length === 1 ? "página" : "páginas"}
               </p>
             </div>
             <Button variant="outline" className="h-9 gap-2" onClick={() => onCreateNote(activeNotebookId)}>
               <Plus className="h-4 w-4" />
-              Nova anotação
+              Nova página
             </Button>
           </div>
 
@@ -858,7 +844,7 @@ function NotesLibrary({
           ) : sortedNotes.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
               <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhuma anotação neste caderno ainda.</p>
+              <p className="text-sm text-muted-foreground">Nenhuma página neste caderno ainda.</p>
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
@@ -887,7 +873,7 @@ function NotesLibrary({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Renomear caderno</DialogTitle>
-          <DialogDescription>Escolha um nome claro para manter suas anotacoes organizadas.</DialogDescription>
+          <DialogDescription>Escolha um nome claro para manter suas páginas organizadas.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           <Label htmlFor="rename-notebook">Nome do caderno</Label>
@@ -920,13 +906,13 @@ function NotesLibrary({
           <DialogTitle>Excluir caderno?</DialogTitle>
           <DialogDescription>
             {deletePageCount > 0
-              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anotacao" : "anotacoes"}. Para evitar perda de dados, escolha para onde elas serao movidas.`
-              : "Este caderno nao possui anotacoes. Voce pode exclui-lo com seguranca."}
+              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "página" : "páginas"}. Para evitar perda de dados, escolha para onde elas serão movidas.`
+              : "Este caderno não possui páginas. Você pode excluí-lo com segurança."}
           </DialogDescription>
         </DialogHeader>
         {deletePageCount > 0 && (
           <div className="space-y-2">
-            <Label htmlFor="delete-target">Mover anotacoes para</Label>
+            <Label htmlFor="delete-target">Mover páginas para</Label>
             <Select value={deleteTargetId} onValueChange={setDeleteTargetId}>
               <SelectTrigger id="delete-target" className="h-10">
                 <SelectValue placeholder="Escolha um caderno" />
@@ -1090,7 +1076,7 @@ function LegacyNotesLibrary({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <div>
-        <h1 className="text-xl font-semibold">Notas</h1>
+        <h1 className="text-xl font-semibold">Páginas</h1>
         <p className="text-sm text-muted-foreground">Todas as suas ideias, links e checklists em ordem recente.</p>
       </div>
 
@@ -1102,7 +1088,7 @@ function LegacyNotesLibrary({
         <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
           <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Nenhuma nota ainda. Capture uma ideia, link ou checklist para começar.
+            Nenhuma página ainda. Capture uma ideia, link ou checklist para começar.
           </p>
         </div>
       ) : (
@@ -1179,7 +1165,7 @@ function GlobalSearchResults({
         <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
           <Search className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Nada encontrado. Tente buscar por uma palavra da nota, tarefa, link ou tag.
+            Nada encontrado. Tente buscar por uma palavra da página, tarefa, caderno ou tag.
           </p>
         </div>
       ) : (
@@ -1202,7 +1188,7 @@ function GlobalSearchResults({
                   >
                     <div className="text-sm font-semibold">{notebook.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anotação" : "anotações"}
+                      {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "página" : "páginas"}
                     </div>
                   </button>
                 ))}
@@ -1213,10 +1199,10 @@ function GlobalSearchResults({
           <section className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <NotebookPen className="h-4 w-4 text-primary" />
-              Notas
+              Páginas
             </div>
             {notes.length === 0 ? (
-              <p className="rounded-md border border-border/50 bg-card/40 p-4 text-sm text-muted-foreground">Nenhuma nota encontrada.</p>
+              <p className="rounded-md border border-border/50 bg-card/40 p-4 text-sm text-muted-foreground">Nenhuma página encontrada.</p>
             ) : (
               <div className="grid gap-2 md:grid-cols-2">
                 {notes.map((page) => (

@@ -121,7 +121,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   const handleDownloadPdf = async () => {
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
-      doc.save(`${title || "nota"}.pdf`);
+      doc.save(`${title || "pagina"}.pdf`);
       toast.success("PDF baixado");
     } catch {
       toast.error("Erro ao gerar PDF");
@@ -132,7 +132,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
       const blob = doc.output("blob");
-      const file = new File([blob], `${title || "nota"}.pdf`, { type: "application/pdf" });
+      const file = new File([blob], `${title || "pagina"}.pdf`, { type: "application/pdf" });
 
       if (navigator.share) {
         await navigator.share({ title, text: `Confira: ${title}`, files: [file] });
@@ -141,13 +141,13 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
 
       if (method === "email") {
         const anchor = document.createElement("a");
-        anchor.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a nota: " + title)}`;
+        anchor.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a página: " + title)}`;
         anchor.click();
         toast.info("Abra seu cliente de email e anexe o PDF baixado.");
       } else {
         toast.info("Compartilhamento não suportado neste navegador. O PDF será baixado.");
       }
-      doc.save(`${title || "nota"}.pdf`);
+      doc.save(`${title || "pagina"}.pdf`);
     } catch (error: unknown) {
       if (!(error instanceof DOMException && error.name === "AbortError")) toast.error("Erro ao compartilhar");
     }
@@ -218,7 +218,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
               <Pin className={cn("h-5 w-5 sm:h-3.5 sm:w-3.5", page.is_favorite && "fill-warning text-warning")} />
             </Button>
 
-            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={handleCopyNote} title="Copiar nota">
+            <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={handleCopyNote} title="Copiar página">
               <Copy className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
             </Button>
 
@@ -228,9 +228,9 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
                 size="icon"
                 className="h-10 w-10 text-destructive hover:text-destructive sm:h-7 sm:w-7"
                 onClick={() => {
-                  if (window.confirm("Excluir esta nota permanentemente?")) onDelete();
+                  if (window.confirm("Excluir esta página permanentemente?")) onDelete();
                 }}
-                title="Excluir nota"
+                title="Excluir página"
               >
                 <Trash2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
               </Button>
@@ -291,7 +291,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
           className="w-full border-none bg-transparent text-xl font-bold outline-none placeholder:text-muted-foreground/30 sm:text-2xl"
-          placeholder="Título da anotação"
+          placeholder="Título da página"
         />
       </div>
 
