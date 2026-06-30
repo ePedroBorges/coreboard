@@ -299,13 +299,8 @@ const Index = () => {
   if (!user) return <Navigate to="/auth" replace />;
 
   return (
-    <SidebarProvider
-      defaultOpen
-      open={sidebarOpen}
-      onOpenChange={(open) => {
-        setSidebarPinned(open);
-      }}
-    >
+    <SidebarProvider defaultOpen>
+
       <div className="min-h-screen flex w-full">
         {!focusMode && (
           <AppSidebar
