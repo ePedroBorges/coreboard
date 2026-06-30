@@ -213,19 +213,6 @@ export function AppSidebar({
                       {!collapsed && <span>Tarefas</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={onSelectCalendar}
-                      className={cn(
-                        "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
-                        activeView === "calendar" && "bg-sidebar-accent text-sidebar-accent-foreground"
-                      )}
-                    >
-                      <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" />
-                      {!collapsed && <span>Calendário</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
