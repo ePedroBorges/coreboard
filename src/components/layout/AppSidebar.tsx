@@ -157,25 +157,14 @@ export function AppSidebar({
 
   return (
     <>
-      <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded bg-primary/10">
+            <div className="flex h-10 w-10 sm:h-8 sm:w-8 items-center justify-center rounded bg-primary/10 shrink-0">
               <ClipboardList className="h-5 w-5 sm:h-4 sm:w-4 text-primary" />
             </div>
             {!collapsed && (
-              <span className="text-base sm:text-sm font-semibold tracking-tight">VISTA Task Control</span>
-            )}
-            {!collapsed && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-auto h-8 w-8"
-                onClick={onToggleSidebarPinned}
-                title={sidebarPinned ? "Ocultar menu" : "Mostrar menu"}
-              >
-                {sidebarPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-              </Button>
+              <span className="text-base sm:text-sm font-semibold tracking-tight truncate">VISTA Task Control</span>
             )}
           </div>
         </SidebarHeader>
@@ -217,23 +206,11 @@ export function AppSidebar({
                       onClick={onSelectTasks}
                       className={cn(
                         "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
-                        activeView === "tasks" && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        (activeView === "tasks" || activeView === "calendar") && "bg-sidebar-accent text-sidebar-accent-foreground"
                       )}
                     >
                       <ClipboardList className="h-4 w-4 sm:h-3 sm:w-3" />
                       {!collapsed && <span>Tarefas</span>}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      onClick={onSelectCalendar}
-                      className={cn(
-                        "text-sm sm:text-xs min-h-[44px] sm:min-h-0",
-                        activeView === "calendar" && "bg-sidebar-accent text-sidebar-accent-foreground"
-                      )}
-                    >
-                      <CalendarDays className="h-4 w-4 sm:h-3 sm:w-3" />
-                      {!collapsed && <span>Calendário</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
