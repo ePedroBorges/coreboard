@@ -42,6 +42,7 @@ export interface WeeklyTask {
   created_at: string;
   updated_at: string;
   pending_reasons: TaskPendingReason[];
+  notebook_id?: string | null;
   source_note_id?: string;
   source_note_title?: string;
   source_notebook_title?: string;
@@ -53,6 +54,7 @@ type CreateTaskInput = {
   priority?: Priority;
   progress_target?: number | null;
   task_date?: string;
+  notebook_id?: string | null;
   source_note_id?: string;
   source_note_title?: string;
   source_notebook_title?: string;
@@ -70,7 +72,7 @@ const todayKey = () => format(new Date(), "yyyy-MM-dd");
 const currentWeekKey = () => format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
 const taskOriginStorageKey = (userId: string) => `vistaTaskOrigins:${userId}`;
 
-type StoredTaskOrigin = Pick<WeeklyTask, "source_note_id" | "source_note_title" | "source_notebook_title">;
+type StoredTaskOrigin = Pick<WeeklyTask, "notebook_id" | "source_note_id" | "source_note_title" | "source_notebook_title">;
 
 const loadTaskOrigins = (userId?: string): Record<string, StoredTaskOrigin> => {
   if (!userId || typeof window === "undefined") return {};
@@ -89,6 +91,25 @@ const saveTaskOrigin = (userId: string | undefined, taskId: string, origin: Stor
     ...current,
     [taskId]: origin,
   }));
+};
+
+const updateTaskOriginsBySourceNote = (
+  userId: string | undefined,
+  taskIds: string[],
+  notebookId: string,
+  notebookTitle: string
+) => {
+  if (!userId || typeof window === "undefined" || taskIds.length === 0) return;
+  const current = loadTaskOrigins(userId);
+  const next = { ...current };
+  taskIds.forEach((taskId) => {
+    next[taskId] = {
+      ...next[taskId],
+      notebook_id: notebookId,
+      source_notebook_title: notebookTitle,
+    };
+  });
+  window.localStorage.setItem(taskOriginStorageKey(userId), JSON.stringify(next));
 };
 
 export function useWeeklyTasks() {
@@ -139,7 +160,7 @@ export function useWeeklyTasks() {
   const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ["tasks"] });
 
   const createTask = useMutation({
-    mutationFn: async ({ title, assignee, priority, progress_target, task_date }: CreateTaskInput) => {
+    mutationFn: async ({ title, assignee, priority, progress_target, task_date, notebook_id }: CreateTaskInput) => {
       const day = task_date || todayKey();
       const { data, error } = await supabase
         .from("weekly_tasks")
@@ -153,6 +174,7 @@ export function useWeeklyTasks() {
           task_date: day,
           week_start: format(startOfWeek(parseISO(day), { weekStartsOn: 1 }), "yyyy-MM-dd"),
           status: "pending" as DbTaskStatus,
+          notebook_id: notebook_id || null,
         } satisfies WeeklyTaskInsert)
         .select()
         .single();
@@ -161,8 +183,9 @@ export function useWeeklyTasks() {
       return data;
     },
     onSuccess: (createdTask, variables) => {
-      if (variables.source_note_id || variables.source_note_title || variables.source_notebook_title) {
+      if (variables.notebook_id || variables.source_note_id || variables.source_note_title || variables.source_notebook_title) {
         saveTaskOrigin(user?.id, createdTask.id, {
+          notebook_id: variables.notebook_id || null,
           source_note_id: variables.source_note_id,
           source_note_title: variables.source_note_title,
           source_notebook_title: variables.source_notebook_title,
@@ -201,6 +224,38 @@ export function useWeeklyTasks() {
 
       const { error } = await supabase.from("weekly_tasks").update(payload).eq("id", id);
       if (error) throw error;
+    },
+    onSuccess: invalidateTasks,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateTasksFromSourceNote = useMutation({
+    mutationFn: async ({
+      source_note_id,
+      notebook_id,
+      source_notebook_title,
+    }: {
+      source_note_id: string;
+      notebook_id: string;
+      source_notebook_title: string;
+    }) => {
+      const matchingTasks = (query.data || []).filter((task) => task.source_note_id === source_note_id);
+      if (matchingTasks.length === 0) return 0;
+
+      updateTaskOriginsBySourceNote(
+        user?.id,
+        matchingTasks.map((task) => task.id),
+        notebook_id,
+        source_notebook_title
+      );
+
+      const { error } = await supabase
+        .from("weekly_tasks")
+        .update({ notebook_id } satisfies WeeklyTaskUpdate)
+        .in("id", matchingTasks.map((task) => task.id));
+      if (error) throw error;
+
+      return matchingTasks.length;
     },
     onSuccess: invalidateTasks,
     onError: (e: Error) => toast.error(e.message),
@@ -329,6 +384,7 @@ export function useWeeklyTasks() {
     ...query,
     createTask,
     updateTask,
+    updateTasksFromSourceNote,
     incrementTaskProgress,
     deleteTask,
     addPendingReason,

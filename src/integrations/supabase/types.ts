@@ -263,6 +263,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          notebook_id: string | null
           priority: string
           progress_current: number
           progress_target: number | null
@@ -278,6 +279,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          notebook_id?: string | null
           priority?: string
           progress_current?: number
           progress_target?: number | null
@@ -293,6 +295,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          notebook_id?: string | null
           priority?: string
           progress_current?: number
           progress_target?: number | null
@@ -303,7 +306,15 @@ export type Database = {
           user_id?: string
           week_start?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "weekly_tasks_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
