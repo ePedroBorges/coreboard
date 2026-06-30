@@ -530,7 +530,12 @@ const Index = () => {
                 onCreateTaskFromPage={createTaskFromPage}
               />
             ) : activeView === "tasks" || activeView === "calendar" ? (
-              <WeeklyTaskManager pinnedTaskIds={pinnedTaskIds} onTogglePinnedTask={togglePinnedTask} />
+              <WeeklyTaskManager
+                notebooks={notebooks.data || []}
+                defaultNotebookId={defaultNotebookId}
+                pinnedTaskIds={pinnedTaskIds}
+                onTogglePinnedTask={togglePinnedTask}
+              />
             ) : activeView === "notes" ? (
               <NotesLibrary
                 notes={allPages.data || []}

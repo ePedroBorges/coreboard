@@ -32,7 +32,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DEFAULT_NOTEBOOK_NAME } from "@/lib/noteUtils";
 import { cn } from "@/lib/utils";
+import { Notebook } from "@/types/notes";
 
 const statusLabel: Record<TaskStatus, string> = {
   pending: "Pendente",
@@ -55,11 +57,18 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => i);
 const monthName = (m: number) => format(new Date(2000, m, 1), "LLLL", { locale: ptBR });
 
 interface WeeklyTaskManagerProps {
+  notebooks?: Notebook[];
+  defaultNotebookId?: string;
   pinnedTaskIds?: string[];
   onTogglePinnedTask?: (taskId: string) => void;
 }
 
-export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: WeeklyTaskManagerProps) {
+export function WeeklyTaskManager({
+  notebooks = [],
+  defaultNotebookId,
+  pinnedTaskIds = [],
+  onTogglePinnedTask,
+}: WeeklyTaskManagerProps) {
   const today = new Date();
   const [view, setView] = useState<"day" | "pending" | "completed" | "all">("day");
   const [year, setYear] = useState(today.getFullYear());
@@ -71,6 +80,7 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [newTarget, setNewTarget] = useState<string>("");
   const [newDate, setNewDate] = useState<string>(format(today, "yyyy-MM-dd"));
+  const [newNotebookId, setNewNotebookId] = useState<string>(defaultNotebookId || "none");
 
   const {
     data: tasks = [],
@@ -117,21 +127,38 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
     [tasks, selectedDay]
   );
 
+  const notebookTitleById = useMemo(() => {
+    const map = new Map<string, string>();
+    notebooks.forEach((notebook) => map.set(notebook.id, notebook.title));
+    return map;
+  }, [notebooks]);
+
+  useEffect(() => {
+    setNewNotebookId((current) => current === "none" && defaultNotebookId ? defaultNotebookId : current);
+  }, [defaultNotebookId]);
+
   const handleCreateTask = () => {
     if (!newTitle.trim()) return;
     const target = newTarget.trim() ? Math.max(1, parseInt(newTarget, 10)) : null;
+    const taskNotebookId = newNotebookId !== "none" ? newNotebookId : null;
+    const taskNotebookTitle = taskNotebookId
+      ? notebookTitleById.get(taskNotebookId) || DEFAULT_NOTEBOOK_NAME
+      : undefined;
     createTask.mutate({
       title: newTitle.trim(),
       assignee: newAssignee.trim(),
       priority: newPriority,
       progress_target: target,
       task_date: newDate || format(today, "yyyy-MM-dd"),
+      notebook_id: taskNotebookId,
+      source_notebook_title: taskNotebookTitle,
     });
     setNewTitle("");
     setNewAssignee("");
     setNewPriority("medium");
     setNewTarget("");
     setNewDate(format(selectedDay, "yyyy-MM-dd"));
+    setNewNotebookId(defaultNotebookId || "none");
   };
 
   const years = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
@@ -232,9 +259,9 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
                 <h2 className="text-sm font-semibold text-foreground">Nova tarefa</h2>
                 <p className="text-xs text-muted-foreground">Capture uma ação clara para hoje ou para outro dia.</p>
               </div>
-              <span className="text-xs text-muted-foreground">Projeto/Meta é opcional.</span>
+              <span className="text-xs text-muted-foreground">Caderno e projeto/meta são opcionais.</span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_150px_150px_120px_120px_auto]">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_150px_150px_150px_120px_120px_auto]">
               <Input
                 value={newTitle}
                 onChange={(event) => setNewTitle(event.target.value)}
@@ -248,6 +275,19 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
                 placeholder="Responsável"
                 className="h-11 bg-card/60 text-muted-foreground focus:text-foreground"
               />
+              <Select value={newNotebookId} onValueChange={setNewNotebookId}>
+                <SelectTrigger className="h-11 bg-card/80">
+                  <SelectValue placeholder="Caderno" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem caderno</SelectItem>
+                  {notebooks.map((notebook) => (
+                    <SelectItem key={notebook.id} value={notebook.id}>
+                      {notebook.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 type="date"
                 value={newDate}
@@ -424,7 +464,10 @@ export function WeeklyTaskManager({ pinnedTaskIds = [], onTogglePinnedTask }: We
             {displayedTasks.map((task) => (
               <TaskCard
                 key={task.id}
-                task={task}
+                task={{
+                  ...task,
+                  source_notebook_title: task.source_notebook_title || (task.notebook_id ? notebookTitleById.get(task.notebook_id) : undefined),
+                }}
                 pinned={pinnedTaskIds.includes(task.id)}
                 onTogglePinned={() => onTogglePinnedTask?.(task.id)}
                 onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
@@ -547,6 +590,11 @@ const TaskCard = memo(function TaskCard({
             {task.source_note_title && (
               <Badge variant="outline" className="rounded text-[10px]">
                 Origem: {task.source_note_title}
+              </Badge>
+            )}
+            {task.source_notebook_title && (
+              <Badge variant="outline" className="rounded text-[10px]">
+                Caderno: {task.source_notebook_title}
               </Badge>
             )}
           </div>
