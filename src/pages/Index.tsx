@@ -342,7 +342,7 @@ const Index = () => {
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="shrink-0 border-b border-border/60 bg-background/80 px-3 py-3 backdrop-blur sm:px-4">
-              <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="mx-auto max-w-6xl">
                 <div className="relative min-w-0 flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -352,12 +352,9 @@ const Index = () => {
                     className="h-11 pl-9"
                   />
                 </div>
-                <Button className="h-11 gap-2" onClick={() => openQuickCapture()}>
-                  <Plus className="h-4 w-4" />
-                  Capturar ideia
-                </Button>
               </div>
             </div>
+
 
             <div className="min-h-0 flex-1 overflow-auto">
             {normalizedSearch ? (
