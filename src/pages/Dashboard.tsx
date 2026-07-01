@@ -169,7 +169,7 @@ const Dashboard = () => {
           onOpenPage={() => navigate("/")}
         />
         <div className="flex-1 flex flex-col min-w-0">
-          <AppHeader canGoBack onBack={() => navigate("/")} />
+          <AppHeader canGoBack onBack={() => navigate("/")} onOpenSettings={() => navigate("/")} />
           <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-24 [-webkit-overflow-scrolling:touch] sm:p-6 lg:pb-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
