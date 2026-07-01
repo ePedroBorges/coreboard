@@ -19,6 +19,7 @@ export interface TaskPendingReason {
   task_id: string;
   user_id: string;
   reason: string;
+  description: string | null;
   responsible: string | null;
   priority: Priority;
   progress_current: number;
@@ -31,6 +32,7 @@ export interface WeeklyTask {
   id: string;
   user_id: string;
   title: string;
+  description: string | null;
   task_date: string;
   status: TaskStatus;
   week_start: string;
@@ -50,6 +52,7 @@ export interface WeeklyTask {
 
 type CreateTaskInput = {
   title: string;
+  description?: string;
   assignee?: string;
   priority?: Priority;
   progress_target?: number | null;
@@ -63,6 +66,7 @@ type CreateTaskInput = {
 type AddPendingReasonInput = {
   taskId: string;
   reason: string;
+  description?: string;
   responsible?: string;
   priority?: Priority;
   progress_target?: number | null;
@@ -81,6 +85,15 @@ const isMissingNotebookColumnError = (error: unknown) => {
       ? String((error as { message?: unknown }).message)
       : String(error);
   return message.includes("notebook_id") && message.includes("schema cache");
+};
+
+const isMissingOptionalTaskColumnError = (error: unknown) => {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "object" && error && "message" in error
+      ? String((error as { message?: unknown }).message)
+      : String(error);
+  return (message.includes("notebook_id") || message.includes("description")) && message.includes("schema cache");
 };
 
 const loadTaskOrigins = (userId?: string): Record<string, StoredTaskOrigin> => {
@@ -169,10 +182,11 @@ export function useWeeklyTasks() {
   const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ["tasks"] });
 
   const createTask = useMutation({
-    mutationFn: async ({ title, assignee, priority, progress_target, task_date, notebook_id }: CreateTaskInput) => {
+    mutationFn: async ({ title, description, assignee, priority, progress_target, task_date, notebook_id }: CreateTaskInput) => {
       const day = task_date || todayKey();
       const basePayload = {
         title,
+        description: description?.trim() || null,
         assignee: assignee?.trim() || null,
         priority: priority || "medium",
         progress_target: progress_target ?? null,
@@ -186,6 +200,8 @@ export function useWeeklyTasks() {
       const payload = notebook_id
         ? ({ ...basePayload, notebook_id } satisfies WeeklyTaskInsert)
         : (basePayload as WeeklyTaskInsert);
+      const { description: _description, ...fallbackBasePayload } = basePayload;
+      void _description;
 
       let result = await supabase
         .from("weekly_tasks")
@@ -193,10 +209,10 @@ export function useWeeklyTasks() {
         .select()
         .single();
 
-      if (result.error && notebook_id && isMissingNotebookColumnError(result.error)) {
+      if (result.error && (notebook_id || description) && isMissingOptionalTaskColumnError(result.error)) {
         result = await supabase
           .from("weekly_tasks")
-          .insert(basePayload as WeeklyTaskInsert)
+          .insert(fallbackBasePayload as WeeklyTaskInsert)
           .select()
           .single();
       }
@@ -249,9 +265,10 @@ export function useWeeklyTasks() {
       
 
       let result = await supabase.from("weekly_tasks").update(payload).eq("id", id);
-      if (result.error && notebook_id !== undefined && isMissingNotebookColumnError(result.error)) {
-        const { notebook_id: _notebookId, ...fallbackPayload } = payload;
+      if (result.error && isMissingOptionalTaskColumnError(result.error)) {
+        const { notebook_id: _notebookId, description: _description, ...fallbackPayload } = payload;
         void _notebookId;
+        void _description;
         result = await supabase.from("weekly_tasks").update(fallbackPayload).eq("id", id);
       }
       if (notebook_id !== undefined) {
@@ -339,19 +356,25 @@ export function useWeeklyTasks() {
   });
 
   const addPendingReason = useMutation({
-    mutationFn: async ({ taskId, reason, responsible, priority, progress_target }: AddPendingReasonInput) => {
+    mutationFn: async ({ taskId, reason, description, responsible, priority, progress_target }: AddPendingReasonInput) => {
       const payload: PendingReasonInsert = {
         task_id: taskId,
         user_id: user!.id,
         reason,
+        description: description?.trim() || null,
         responsible: responsible?.trim() || null,
         priority: priority || "medium",
         progress_target: progress_target ?? null,
         progress_current: 0,
       };
-      const { error } = await supabase.from("task_pending_reasons").insert(payload);
+      let result = await supabase.from("task_pending_reasons").insert(payload);
+      if (result.error && description && isMissingOptionalTaskColumnError(result.error)) {
+        const { description: _description, ...fallbackPayload } = payload;
+        void _description;
+        result = await supabase.from("task_pending_reasons").insert(fallbackPayload);
+      }
 
-      if (error) throw error;
+      if (result.error) throw result.error;
     },
     onSuccess: () => {
       invalidateTasks();
@@ -363,11 +386,19 @@ export function useWeeklyTasks() {
   const updatePendingReason = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<TaskPendingReason> & { id: string }) => {
       const payload: PendingReasonUpdate = { ...updates };
-      const { error } = await supabase
+      let result = await supabase
         .from("task_pending_reasons")
         .update(payload)
         .eq("id", id);
-      if (error) throw error;
+      if (result.error && isMissingOptionalTaskColumnError(result.error)) {
+        const { description: _description, ...fallbackPayload } = payload;
+        void _description;
+        result = await supabase
+          .from("task_pending_reasons")
+          .update(fallbackPayload)
+          .eq("id", id);
+      }
+      if (result.error) throw result.error;
     },
     onSuccess: invalidateTasks,
     onError: (e: Error) => toast.error(e.message),

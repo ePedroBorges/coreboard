@@ -13,6 +13,22 @@ const defaultSettings: UserSettings = {
 };
 
 const settingsKey = (userId: string) => `vistaUserSettings:${userId}`;
+const onboardingMarkerKey = (userId: string) => `vistaShowOnboarding:${userId}`;
+
+export const markOnboardingForNewUser = (userId?: string) => {
+  if (!userId || typeof window === "undefined") return;
+  window.localStorage.setItem(onboardingMarkerKey(userId), "true");
+};
+
+export const shouldShowInitialOnboarding = (userId?: string) => {
+  if (!userId || typeof window === "undefined") return false;
+  return window.localStorage.getItem(onboardingMarkerKey(userId)) === "true";
+};
+
+export const clearInitialOnboardingMarker = (userId?: string) => {
+  if (!userId || typeof window === "undefined") return;
+  window.localStorage.removeItem(onboardingMarkerKey(userId));
+};
 
 const readLocalSettings = (userId?: string): UserSettings => {
   if (!userId || typeof window === "undefined") return defaultSettings;

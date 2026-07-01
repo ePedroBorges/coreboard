@@ -83,6 +83,7 @@ export function WeeklyTaskManager({
   const [selectedDay, setSelectedDay] = useState<Date>(today);
 
   const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
   const [newAssignee, setNewAssignee] = useState("");
   const [newPriority, setNewPriority] = useState<Priority>("medium");
   const [newTarget, setNewTarget] = useState<string>("");
@@ -154,6 +155,7 @@ export function WeeklyTaskManager({
       : undefined;
     createTask.mutate({
       title: newTitle.trim(),
+      description: newDescription.trim(),
       assignee: newAssignee.trim(),
       priority: newPriority,
       progress_target: target,
@@ -162,6 +164,7 @@ export function WeeklyTaskManager({
       source_notebook_title: taskNotebookTitle,
     });
     setNewTitle("");
+    setNewDescription("");
     setNewAssignee("");
     setNewPriority("medium");
     setNewTarget("");
@@ -286,13 +289,19 @@ export function WeeklyTaskManager({
               </div>
               <span className="text-xs text-muted-foreground">Caderno e projeto/meta são opcionais.</span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_150px_150px_150px_120px_120px_auto]">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(180px,0.8fr)_150px_150px_120px_120px_auto]">
               <Input
                 value={newTitle}
                 onChange={(event) => setNewTitle(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
                 placeholder="Título da tarefa"
                 className="h-11 bg-card/80"
+              />
+              <Textarea
+                value={newDescription}
+                onChange={(event) => setNewDescription(event.target.value)}
+                placeholder="Mini descrição"
+                className="min-h-11 resize-none bg-card/80"
               />
               <Input
                 value={newAssignee}
@@ -535,6 +544,12 @@ export function WeeklyTaskManager({
               placeholder="Título da tarefa"
               className="h-11 bg-background/70"
             />
+            <Textarea
+              value={newDescription}
+              onChange={(event) => setNewDescription(event.target.value)}
+              placeholder="Mini descrição"
+              className="min-h-20 resize-none bg-background/70"
+            />
             <Input
               type="date"
               value={newDate}
@@ -608,7 +623,7 @@ const TaskCard = memo(function TaskCard({
   onTogglePinned?: () => void;
   onUpdate: (updates: Partial<WeeklyTask>) => void;
   onDelete: () => void;
-  onAddReason: (input: { reason: string; responsible?: string; priority?: Priority; progress_target?: number | null }) => void;
+  onAddReason: (input: { reason: string; description?: string; responsible?: string; priority?: Priority; progress_target?: number | null }) => void;
   onUpdateReason: (id: string, updates: Partial<TaskPendingReason>) => void;
   onDeleteReason: (id: string) => void;
   onCompleteReason: (id: string) => void;
@@ -616,8 +631,10 @@ const TaskCard = memo(function TaskCard({
   const [expanded, setExpanded] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(task.title);
+  const [descriptionDraft, setDescriptionDraft] = useState(task.description || "");
 
   const [reason, setReason] = useState("");
+  const [reasonDescription, setReasonDescription] = useState("");
   const [responsible, setResponsible] = useState("");
   const [rPriority, setRPriority] = useState<Priority>("medium");
   const [rTarget, setRTarget] = useState<string>("");
@@ -625,21 +642,33 @@ const TaskCard = memo(function TaskCard({
   const openReasons = task.pending_reasons.filter((pendingReason) => !pendingReason.completed_at).length;
   const statusColor = task.status === "completed" ? "bg-success" : "bg-warning";
 
+  useEffect(() => {
+    setTitleDraft(task.title);
+    setDescriptionDraft(task.description || "");
+  }, [task.description, task.title]);
+
   const handleSaveTitle = () => {
     const title = titleDraft.trim();
     if (title && title !== task.title) onUpdate({ title });
     setEditingTitle(false);
   };
 
+  const handleSaveDescription = () => {
+    const description = descriptionDraft.trim();
+    if (description !== (task.description || "")) onUpdate({ description });
+  };
+
   const handleAddReason = () => {
     if (!reason.trim()) return;
     onAddReason({
       reason: reason.trim(),
+      description: reasonDescription.trim(),
       responsible: responsible.trim(),
       priority: rPriority,
       progress_target: rTarget.trim() ? Math.max(1, parseInt(rTarget, 10)) : null,
     });
     setReason("");
+    setReasonDescription("");
     setResponsible("");
     setRPriority("medium");
     setRTarget("");
@@ -705,6 +734,11 @@ const TaskCard = memo(function TaskCard({
               </Badge>
             )}
           </div>
+          {task.description && (
+            <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-muted-foreground">
+              {task.description}
+            </p>
+          )}
           <div className="mt-2 flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span className="flex min-w-0 items-center gap-1 break-words">
               <UserRound className="h-3 w-3 shrink-0" />
@@ -786,6 +820,19 @@ const TaskCard = memo(function TaskCard({
             </Button>
           </div>
 
+          <div className="space-y-2 rounded-md border border-border/50 bg-card/70 p-3">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Mini descrição
+            </div>
+            <Textarea
+              value={descriptionDraft}
+              onChange={(event) => setDescriptionDraft(event.target.value)}
+              onBlur={handleSaveDescription}
+              placeholder="Adicione um contexto rápido para esta tarefa"
+              className="min-h-20 resize-none bg-background/45"
+            />
+          </div>
+
           {task.progress_target && (
             <div className="rounded-md border border-border/50 bg-card/70 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -819,11 +866,17 @@ const TaskCard = memo(function TaskCard({
               ))}
             </div>
 
-            <div className="mt-3 grid gap-2 rounded-md border border-border/50 bg-card/70 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_140px_120px_120px_auto]">
+            <div className="mt-3 grid gap-2 rounded-md border border-border/50 bg-card/70 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(180px,0.8fr)_140px_120px_120px_auto]">
               <Textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="Motivo da pendência"
+                className="min-h-10 resize-none"
+              />
+              <Textarea
+                value={reasonDescription}
+                onChange={(event) => setReasonDescription(event.target.value)}
+                placeholder="Mini descrição da pendência"
                 className="min-h-10 resize-none"
               />
               <Input value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="Responsável" className="h-10" />
@@ -867,13 +920,24 @@ function ReasonRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(reason.reason);
+  const [descriptionDraft, setDescriptionDraft] = useState(reason.description || "");
 
   const isDone = !!reason.completed_at;
+
+  useEffect(() => {
+    setDraft(reason.reason);
+    setDescriptionDraft(reason.description || "");
+  }, [reason.description, reason.reason]);
 
   const save = () => {
     const text = draft.trim();
     if (text && text !== reason.reason) onUpdate({ reason: text });
     setEditing(false);
+  };
+
+  const saveDescription = () => {
+    const description = descriptionDraft.trim();
+    if (description !== (reason.description || "")) onUpdate({ description });
   };
 
   const handleReasonProgressCommit = (value: number) => {
@@ -920,6 +984,14 @@ function ReasonRow({
             <span>Criada {format(parseISO(reason.created_at), "dd/MM/yyyy")}</span>
             {reason.completed_at && <span>Concluída {format(parseISO(reason.completed_at), "dd/MM/yyyy")}</span>}
           </div>
+          <Textarea
+            value={descriptionDraft}
+            onChange={(event) => setDescriptionDraft(event.target.value)}
+            onBlur={saveDescription}
+            placeholder="Mini descrição da pendência"
+            className="mt-2 min-h-16 resize-none bg-background/45 text-xs"
+            disabled={isDone}
+          />
         </div>
 
         <Select value={reason.priority} onValueChange={(value) => onUpdate({ priority: value as Priority })} disabled={isDone}>

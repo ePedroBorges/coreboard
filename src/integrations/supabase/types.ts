@@ -214,6 +214,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          description: string | null
           id: string
           priority: string
           progress_current: number
@@ -226,6 +227,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           priority?: string
           progress_current?: number
@@ -238,6 +240,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           priority?: string
           progress_current?: number
@@ -262,6 +265,7 @@ export type Database = {
           assignee: string | null
           completed_at: string | null
           created_at: string
+          description: string | null
           id: string
           notebook_id: string | null
           priority: string
@@ -278,6 +282,7 @@ export type Database = {
           assignee?: string | null
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           notebook_id?: string | null
           priority?: string
@@ -294,6 +299,7 @@ export type Database = {
           assignee?: string | null
           completed_at?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           notebook_id?: string | null
           priority?: string

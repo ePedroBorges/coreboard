@@ -299,6 +299,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
       .from("weekly_tasks")
       .insert({
         title: task.title || "Tarefa importada",
+        description: task.description || null,
         assignee: task.assignee || null,
         completed_at: task.completed_at || null,
         notebook_id: task.notebook_id ? notebookIdMap.get(task.notebook_id) || null : null,
@@ -322,6 +323,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
     const { error } = await supabase.from("task_pending_reasons").insert({
       task_id: taskId,
       reason: reason.reason,
+      description: reason.description || null,
       responsible: reason.responsible || null,
       priority: reason.priority || "medium",
       progress_current: reason.progress_current || 0,
@@ -404,15 +406,16 @@ export async function loadSampleData(userId: string) {
   const today = format(new Date(), "yyyy-MM-dd");
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const taskInputs = [
-    { title: "Revisar landing page do VISTA", notebook: "VISTA", priority: "high" },
-    { title: "Criar post sobre produtividade", notebook: "AnchorLab", priority: "medium" },
-    { title: "Testar fluxo anotação → tarefa", notebook: "VISTA", priority: "high" },
-    { title: "Organizar caderno AnchorLab", notebook: "AnchorLab", priority: "medium" },
-    { title: "Validar app por 7 dias sem Google Keep", notebook: "Geral", priority: "high" },
+    { title: "Revisar landing page do VISTA", notebook: "VISTA", priority: "high", description: "Checar clareza da promessa, CTA e links principais." },
+    { title: "Criar post sobre produtividade", notebook: "AnchorLab", priority: "medium", description: "Usar aprendizado do beta como gancho para LinkedIn." },
+    { title: "Testar fluxo anotação → tarefa", notebook: "VISTA", priority: "high", description: "Criar uma anotação real, transformar em tarefa e validar calendário." },
+    { title: "Organizar caderno AnchorLab", notebook: "AnchorLab", priority: "medium", description: "Separar ideias, clientes e validações em anotações acionáveis." },
+    { title: "Validar app por 7 dias sem Google Keep", notebook: "Geral", priority: "high", description: "Usar o app no dia a dia e registrar atritos no checklist de beta." },
   ];
 
   const { error: taskError } = await supabase.from("weekly_tasks").insert(taskInputs.map((task) => ({
     title: task.title,
+    description: task.description,
     notebook_id: notebooks.get(task.notebook)?.id || notebooks.get("Geral")!.id,
     priority: task.priority,
     progress_current: 0,

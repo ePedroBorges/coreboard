@@ -8,7 +8,7 @@ import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages, useAllPages } from "@/hooks/usePages";
 import { Priority, useWeeklyTasks, WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useUserSettings } from "@/hooks/useUserSettings";
+import { clearInitialOnboardingMarker, shouldShowInitialOnboarding, useUserSettings } from "@/hooks/useUserSettings";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PageEditor } from "@/components/editor/PageEditor";
@@ -159,7 +159,7 @@ const Index = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (user?.id && !userSettings.settings.hasSeenOnboarding) {
+    if (user?.id && !userSettings.settings.hasSeenOnboarding && shouldShowInitialOnboarding(user.id)) {
       setOnboardingOpen(true);
     }
   }, [user?.id, userSettings.settings.hasSeenOnboarding]);
@@ -268,12 +268,13 @@ const Index = () => {
 
   const handleFinishOnboarding = useCallback(() => {
     userSettings.setHasSeenOnboarding(true);
+    clearInitialOnboardingMarker(user?.id);
     setOnboardingOpen(false);
     setActiveView("today");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
     setSearchQuery("");
-  }, [userSettings]);
+  }, [user?.id, userSettings]);
 
   const handleOpenNotebook = useCallback((id: string) => {
     pushNavigationState();
@@ -497,7 +498,6 @@ const Index = () => {
           onSelectToday={handleSelectToday}
           onSelectNotes={handleSelectNotes}
           onSelectCalendar={handleSelectCalendar}
-          onSelectSettings={handleSelectSettings}
           notebooks={notebooks.data || []}
           pinnedNotebooks={pinnedNotebooks}
           pinnedTasks={pinnedTasks}
@@ -1455,6 +1455,11 @@ function NotebookTaskCard({
           )}>
             {task.title}
           </h3>
+          {task.description && (
+            <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-muted-foreground">
+              {task.description}
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Badge variant="outline" className="rounded">
               {task.task_date ? format(parseISO(task.task_date), "dd/MM/yyyy") : "Sem data"}
@@ -1620,13 +1625,14 @@ function LegacyNotesLibrary({
 function taskMatchesQuery(task: WeeklyTask, query: string, notebookTitle = "") {
   return [
     task.title,
+    task.description || "",
     task.assignee || "",
     task.source_note_title || "",
     task.source_notebook_title || "",
     notebookTitle,
     task.priority,
     task.status,
-    task.pending_reasons.map((reason) => reason.reason).join(" "),
+    task.pending_reasons.map((reason) => [reason.reason, reason.description || ""].join(" ")).join(" "),
   ].join(" ").toLowerCase().includes(query);
 }
 

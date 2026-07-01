@@ -52,15 +52,6 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
 
       <div className="flex items-center gap-2 sm:gap-1">
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 sm:h-8 sm:w-8 lg:hidden"
-          onClick={onOpenSettings}
-          title="Configurações"
-        >
-          <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
-        </Button>
-        <Button
           variant={location.pathname === "/dashboard" ? "secondary" : "ghost"}
           size="icon"
           className="h-10 w-10 sm:h-8 sm:w-8"
@@ -68,6 +59,15 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
           title="Dashboard"
         >
           <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 sm:h-8 sm:w-8"
+          onClick={onOpenSettings}
+          title="Configurações"
+        >
+          <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
         <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" onClick={toggleTheme}>
           {theme === "dark" ? <Sun className="h-5 w-5 sm:h-4 sm:w-4" /> : <Moon className="h-5 w-5 sm:h-4 sm:w-4" />}

@@ -293,6 +293,11 @@ function TodayPriorities({
                     >
                       {task.title}
                     </h3>
+                    {task.description && (
+                      <p className="mt-2 line-clamp-2 break-words text-sm leading-6 text-muted-foreground">
+                        {task.description}
+                      </p>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       <Badge variant="outline" className="rounded">
                         {priorityLabel[task.priority]}

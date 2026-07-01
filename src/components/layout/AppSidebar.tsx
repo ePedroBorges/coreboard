@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, CalendarDays, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Settings, Star } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Star } from "lucide-react";
 import { Notebook, Page } from "@/types/notes";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { getNoteTitle } from "@/lib/noteUtils";
@@ -34,7 +34,6 @@ interface AppSidebarProps {
   onSelectToday?: () => void;
   onSelectNotes?: () => void;
   onSelectCalendar?: () => void;
-  onSelectSettings?: () => void;
   onOpenNotebook: (id: string) => void;
   onOpenPage: (page: Page) => void;
   onSelectTasks: () => void;
@@ -53,7 +52,6 @@ export function AppSidebar({
   onSelectToday,
   onSelectNotes,
   onSelectCalendar,
-  onSelectSettings,
   onOpenNotebook,
   onOpenPage,
   onSelectTasks,
@@ -206,16 +204,6 @@ export function AppSidebar({
             </SidebarGroup>
           )}
 
-          <SidebarGroup>
-            <SidebarGroupLabel className="font-mono-accent text-[10px] uppercase tracking-wider text-muted-foreground">
-              {!collapsed && "Conta"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <NavItem active={activeView === "settings"} icon={Settings} label="Configurações" onClick={() => runAndClose(onSelectSettings)} collapsed={collapsed} />
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter className="p-2">
