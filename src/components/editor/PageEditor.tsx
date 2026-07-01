@@ -172,9 +172,9 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   }, [focusMode, handleForceSave, onExitFocus]);
 
   return (
-    <div className={cn("min-w-0", focusMode && "mx-auto max-w-3xl")}>
-      <div className="border-b border-border px-4 py-3 sm:px-6">
-        <div className="flex items-center justify-between gap-3">
+    <div className={cn("min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0", focusMode && "mx-auto max-w-3xl")}>
+      <div className="border-b border-border px-3 py-2.5 sm:px-6 sm:py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex shrink-0 items-center gap-1">
               {dirty ? (
@@ -193,7 +193,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
             </span>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1">
             {onCreateTaskFromPage && (
               <Button
                 variant="secondary"
@@ -284,22 +284,22 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         </div>
       </div>
 
-      <div className="px-4 pb-3 pt-6 sm:px-6 sm:pt-8">
+      <div className="px-3 pb-3 pt-5 sm:px-6 sm:pt-8">
         <input
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
-          className="w-full border-none bg-transparent text-xl font-bold outline-none placeholder:text-muted-foreground/30 sm:text-2xl"
+          className="w-full border-none bg-transparent text-2xl font-bold leading-tight outline-none placeholder:text-muted-foreground/30 sm:text-2xl"
           placeholder="Título da anotação"
         />
       </div>
 
-      <div className="px-4 pb-4 sm:px-6">
+      <div className="px-3 pb-4 sm:px-6">
         <div className="grid gap-3 sm:grid-cols-[minmax(180px,260px)_minmax(0,1fr)]">
           {notebooks.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="page-notebook" className="text-xs text-muted-foreground">Caderno</Label>
               <Select value={page.notebook_id} onValueChange={handleNotebookChange}>
-                <SelectTrigger id="page-notebook" className="h-9">
+                <SelectTrigger id="page-notebook" className="h-11 sm:h-9">
                   <SelectValue placeholder="Selecione um caderno" />
                 </SelectTrigger>
                 <SelectContent>
@@ -319,8 +319,8 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         </div>
       </div>
 
-      <div className="px-4 pb-28 sm:px-6 lg:pb-16">
-        <div className="rounded-lg border border-border/50 bg-card/35 p-3 sm:p-4">
+      <div className="px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-16">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-border/50 bg-card/35 p-2.5 sm:p-4">
           <BlockEditor blocks={blocks} onChange={handleBlocksChange} />
         </div>
       </div>

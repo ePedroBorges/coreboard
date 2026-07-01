@@ -132,7 +132,7 @@ export function TodayView({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:p-6 lg:gap-5">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:gap-4 sm:p-6 lg:gap-5">
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Hoje</h1>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
@@ -208,7 +208,7 @@ function QuickCaptureBar({
               if ((event.ctrlKey || event.metaKey) && event.key === "Enter") onSave();
             }}
             placeholder="Escreva uma anotação, tarefa ou link..."
-            className="min-h-24 resize-none bg-background/55 text-base leading-6 sm:text-sm"
+            className="min-h-20 resize-none bg-background/55 text-base leading-6 sm:min-h-24 sm:text-sm"
           />
           <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
             {options.map((option) => {

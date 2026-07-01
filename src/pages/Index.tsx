@@ -480,7 +480,7 @@ const Index = () => {
         />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <AppHeader canGoBack={navigationStack.length > 0} onBack={handleGoBack} />
+          <AppHeader canGoBack={activeView === "diary" && navigationStack.length > 0} onBack={handleGoBack} />
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="shrink-0 border-b border-border/60 bg-background/80 px-3 py-3 backdrop-blur sm:px-4">
@@ -491,14 +491,14 @@ const Index = () => {
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder={searchPlaceholder}
-                    className="h-11 w-full pl-9 text-base md:text-sm"
+                    className="h-10 w-full pl-9 text-base md:h-11 md:text-sm"
                   />
                 </div>
               </div>
             </div>
 
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-24 [-webkit-overflow-scrolling:touch] lg:pb-0">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(6.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] lg:pb-0">
             {normalizedSearch ? (
               <GlobalSearchResults
                 query={searchQuery}
@@ -619,7 +619,7 @@ const Index = () => {
             </div>
           </main>
 
-          <footer className="shrink-0 border-t border-border bg-background/60 backdrop-blur px-4 py-2">
+          <footer className="hidden shrink-0 border-t border-border bg-background/60 px-4 py-2 backdrop-blur lg:block">
             <a
               href="https://www.linkedin.com/company/anchorlab"
               target="_blank"
@@ -687,7 +687,7 @@ function CreateTaskFromNoteDialog({
 
   return (
     <Dialog open={!!page} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Criar tarefa a partir da anotação</DialogTitle>
           <DialogDescription>
@@ -1140,7 +1140,7 @@ function NotesLibrary({
         setRenameNotebookName("");
       }
     }}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[calc(100vw-1.5rem)] rounded-lg sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Renomear caderno</DialogTitle>
           <DialogDescription>Escolha um nome claro para manter suas anotações organizadas.</DialogDescription>
@@ -1171,7 +1171,7 @@ function NotesLibrary({
         setDeleteTargetId("");
       }
     }}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg sm:max-w-md">
+      <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Excluir caderno?</DialogTitle>
           <DialogDescription>

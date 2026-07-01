@@ -26,6 +26,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -81,6 +88,7 @@ export function WeeklyTaskManager({
   const [newTarget, setNewTarget] = useState<string>("");
   const [newDate, setNewDate] = useState<string>(format(today, "yyyy-MM-dd"));
   const [newNotebookId, setNewNotebookId] = useState<string>(defaultNotebookId || "none");
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
 
   const {
     data: tasks = [],
@@ -159,6 +167,18 @@ export function WeeklyTaskManager({
     setNewTarget("");
     setNewDate(format(selectedDay, "yyyy-MM-dd"));
     setNewNotebookId(defaultNotebookId || "none");
+    setTaskDialogOpen(false);
+  };
+
+  const handleSelectDay = (day: Date) => {
+    setSelectedDay(day);
+    setNewDate(format(day, "yyyy-MM-dd"));
+  };
+
+  const handleGoToToday = () => {
+    setYear(today.getFullYear());
+    setMonth(today.getMonth());
+    handleSelectDay(today);
   };
 
   const years = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
@@ -194,8 +214,13 @@ export function WeeklyTaskManager({
           : "Nenhuma tarefa nesta data. Planeje uma ação ou crie uma tarefa.";
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:p-6 lg:gap-6">
-      <section className="overflow-hidden rounded-lg border border-border/70 bg-card/80 shadow-sm ring-1 ring-white/5">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:p-6 md:gap-4 lg:gap-6">
+      <section className="space-y-1 md:hidden">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Calendário</h1>
+        <p className="text-sm leading-6 text-muted-foreground">Planeje tarefas por data.</p>
+      </section>
+
+      <section className="hidden overflow-hidden rounded-lg border border-border/70 bg-card/80 shadow-sm ring-1 ring-white/5 md:block">
         <div className="border-b border-border/60 p-4 sm:p-5">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
@@ -325,9 +350,9 @@ export function WeeklyTaskManager({
       </section>
 
       {view === "day" && (
-        <section className="space-y-3 rounded-lg border border-border/60 bg-card/70 p-3 shadow-sm ring-1 ring-white/5 sm:p-4">
+        <section className="space-y-3 rounded-lg border border-border/60 bg-card/70 p-2.5 shadow-sm ring-1 ring-white/5 sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="hidden md:block">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <CalendarDays className="h-4 w-4 text-primary" />
                 Planejamento por dia
@@ -336,7 +361,7 @@ export function WeeklyTaskManager({
                 Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center md:w-auto">
               <Select value={String(month)} onValueChange={(value) => setMonth(parseInt(value, 10))}>
                 <SelectTrigger className="h-10 w-full sm:w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -357,11 +382,7 @@ export function WeeklyTaskManager({
                 className="col-span-2 sm:col-span-1"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setYear(today.getFullYear());
-                  setMonth(today.getMonth());
-                  setSelectedDay(today);
-                }}
+                onClick={handleGoToToday}
               >
                 Hoje
               </Button>
@@ -369,12 +390,12 @@ export function WeeklyTaskManager({
           </div>
 
           <div>
-            <div className="mx-auto mb-1 grid max-w-md grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
+            <div className="mx-auto mb-1 grid w-full max-w-md grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
               {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => (
                 <div key={day}>{day}</div>
               ))}
             </div>
-            <div className="mx-auto grid max-w-md grid-cols-7 gap-1">
+            <div className="mx-auto grid w-full max-w-md grid-cols-7 gap-1">
               {(() => {
                 const first = monthDays[0];
                 const offset = (getDay(first) + 6) % 7;
@@ -401,14 +422,14 @@ export function WeeklyTaskManager({
                       return (
                         <button
                           key={day.toISOString()}
-                          onClick={() => setSelectedDay(day)}
+                          onClick={() => handleSelectDay(day)}
                           className={cn(
-                            "relative flex h-12 flex-col items-center justify-center rounded-md border text-xs transition-colors sm:h-14",
+                            "relative flex h-10 min-w-0 flex-col items-center justify-center rounded-md border text-[11px] transition-colors sm:h-14 sm:text-xs",
                             tone,
                             isSelected && "ring-2 ring-primary ring-offset-1 ring-offset-background"
                           )}
                         >
-                          <span className="text-sm font-semibold leading-none">{format(day, "dd")}</span>
+                          <span className="text-xs font-semibold leading-none sm:text-sm">{format(day, "dd")}</span>
                           {count > 0 && (
                             <span
                               className={cn(
@@ -431,6 +452,10 @@ export function WeeklyTaskManager({
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> Pendentes</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Concluídas</span>
             </div>
+            <Button className="mt-3 h-11 w-full gap-2 md:hidden" onClick={() => setTaskDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nova tarefa
+            </Button>
           </div>
         </section>
       )}
@@ -438,10 +463,16 @@ export function WeeklyTaskManager({
       <section className="space-y-3">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-foreground">Execução</h2>
-            <p className="text-xs text-muted-foreground">Priorize, conclua e registre bloqueios sem perder o contexto.</p>
+            <h2 className="text-base font-semibold text-foreground">
+              <span className="md:hidden">Tarefas da data selecionada</span>
+              <span className="hidden md:inline">Execução</span>
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              <span className="md:hidden">{format(selectedDay, "dd/MM/yyyy")}</span>
+              <span className="hidden md:inline">Priorize, conclua e registre bloqueios sem perder o contexto.</span>
+            </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
             <NotebookPen className="h-3.5 w-3.5 text-primary" />
             Capture ideias em Anotações e transforme em ação.
           </div>
@@ -452,7 +483,7 @@ export function WeeklyTaskManager({
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
         ) : displayedTasks.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
+          <div className="rounded-lg border border-dashed border-border bg-card/50 p-5 text-center sm:p-8">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
               <ListChecks className="h-5 w-5" />
             </div>
@@ -481,6 +512,76 @@ export function WeeklyTaskManager({
           </div>
         )}
       </section>
+
+      <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
+        <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border-border/70 bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-md md:hidden">
+          <DialogHeader>
+            <DialogTitle>Nova tarefa</DialogTitle>
+            <DialogDescription>
+              Planeje uma ação para {format(selectedDay, "dd/MM/yyyy")}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Input
+              value={newTitle}
+              onChange={(event) => setNewTitle(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
+              placeholder="Título da tarefa"
+              className="h-11 bg-background/70"
+            />
+            <Input
+              type="date"
+              value={newDate}
+              onChange={(event) => setNewDate(event.target.value)}
+              className="h-11 bg-background/70"
+              aria-label="Dia da tarefa"
+            />
+            <Select value={newPriority} onValueChange={(value) => setNewPriority(value as Priority)}>
+              <SelectTrigger className="h-11 bg-background/70"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Baixa</SelectItem>
+                <SelectItem value="medium">Média</SelectItem>
+                <SelectItem value="high">Alta</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={newNotebookId} onValueChange={setNewNotebookId}>
+              <SelectTrigger className="h-11 bg-background/70">
+                <SelectValue placeholder="Caderno" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem caderno</SelectItem>
+                {notebooks.map((notebook) => (
+                  <SelectItem key={notebook.id} value={notebook.id}>
+                    {notebook.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={newAssignee}
+              onChange={(event) => setNewAssignee(event.target.value)}
+              placeholder="Responsável"
+              className="h-11 bg-background/70"
+            />
+            <Input
+              type="number"
+              min={1}
+              value={newTarget}
+              onChange={(event) => setNewTarget(event.target.value)}
+              placeholder="Projeto/Meta"
+              className="h-11 bg-background/70"
+            />
+            <Button
+              onClick={handleCreateTask}
+              className="mt-1 h-11 gap-2"
+              disabled={!newTitle.trim() || createTask.isPending}
+            >
+              {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Criar tarefa
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

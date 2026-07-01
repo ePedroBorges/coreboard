@@ -81,7 +81,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-lg border-border/70 bg-card p-4 sm:max-w-2xl sm:p-6">
+      <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border-border/70 bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-2xl sm:p-6">
         <DialogHeader>
           <DialogTitle>Captura avançada</DialogTitle>
           <DialogDescription>
