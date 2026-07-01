@@ -255,16 +255,17 @@ function MobileBottomNavButton({
     <button
       type="button"
       aria-label={label}
+      aria-current={active ? "page" : undefined}
       title={label}
       onClick={onClick}
       className={cn(
         "flex h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded text-[10px] font-medium transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-primary/15 text-primary ring-1 ring-primary/40"
           : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
       <span className="max-w-full truncate">{label}</span>
     </button>
   );
