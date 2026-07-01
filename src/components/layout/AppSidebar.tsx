@@ -33,7 +33,6 @@ interface AppSidebarProps {
   onMouseLeave: () => void;
   onSelectToday?: () => void;
   onSelectNotes?: () => void;
-  onSelectCalendar?: () => void;
   onOpenNotebook: (id: string) => void;
   onOpenPage: (page: Page) => void;
   onSelectTasks: () => void;
