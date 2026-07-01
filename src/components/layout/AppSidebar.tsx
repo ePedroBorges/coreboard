@@ -70,7 +70,7 @@ export function AppSidebar({
         activeView={activeView}
         onSelectToday={() => runAndClose(onSelectToday)}
         onSelectNotes={() => runAndClose(onSelectNotes)}
-        onSelectCalendar={() => runAndClose(onSelectCalendar)}
+        onSelectTasks={() => runAndClose(onSelectTasks)}
       />
 
       <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
