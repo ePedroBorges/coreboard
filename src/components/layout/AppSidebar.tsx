@@ -220,12 +220,12 @@ function MobileBottomNavigation({
   activeView,
   onSelectToday,
   onSelectNotes,
-  onSelectCalendar,
+  onSelectTasks,
 }: {
   activeView: AppView;
   onSelectToday: () => void;
   onSelectNotes: () => void;
-  onSelectCalendar: () => void;
+  onSelectTasks: () => void;
 }) {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-sidebar-border bg-sidebar/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 text-sidebar-foreground shadow-[0_-12px_30px_-24px_rgba(0,0,0,0.8)] backdrop-blur lg:hidden">
@@ -233,7 +233,7 @@ function MobileBottomNavigation({
         <div className="grid min-w-0 grid-cols-3 gap-1 rounded-md border border-sidebar-border bg-background/25 p-1">
           <MobileBottomNavButton active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} />
           <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={onSelectNotes} />
-          <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={onSelectCalendar} />
+          <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={onSelectTasks} />
         </div>
       </div>
     </nav>
