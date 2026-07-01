@@ -278,7 +278,7 @@ export function WeeklyTaskManager({
                 onClick={() => setView(item.value)}
                 className={cn(
                   "h-9 shrink-0 gap-2 rounded px-3 text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground",
-                  view === item.value && "bg-secondary text-foreground shadow-sm"
+                  view === item.value && "bg-primary/15 text-primary ring-1 ring-primary/30 hover:bg-primary/20 hover:text-primary"
                 )}
               >
                 {item.icon}
