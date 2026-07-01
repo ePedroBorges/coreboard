@@ -272,7 +272,10 @@ function TodayPriorities({
       ) : tasks.length === 0 ? (
         <EmptyPanel
           icon={ListChecks}
-          text="Nenhuma prioridade para hoje. Crie uma tarefa ou transforme uma anotação em ação."
+          title="Nada urgente por agora."
+          text="Crie uma tarefa ou transforme uma anotação em ação."
+          cta="Criar tarefa"
+          onAction={onOpenTasks}
         />
       ) : (
         <div className="grid gap-2">
@@ -361,7 +364,10 @@ function RecentNotes({
       ) : notes.length === 0 ? (
         <EmptyPanel
           icon={NotebookPen}
-          text="Nenhuma anotação ainda. Escreva uma ideia, salve um link ou crie um checklist."
+          title="Nenhuma anotação ainda."
+          text="Escreva uma ideia, salve um link ou crie um checklist."
+          cta="Nova anotação"
+          onAction={onOpenNotes}
         />
       ) : (
         <div className="grid gap-2">
@@ -534,11 +540,29 @@ function LoadingPanel() {
   );
 }
 
-function EmptyPanel({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
+function EmptyPanel({
+  icon: Icon,
+  title,
+  text,
+  cta,
+  onAction,
+}: {
+  icon: React.ElementType;
+  title: string;
+  text: string;
+  cta?: string;
+  onAction?: () => void;
+}) {
   return (
     <div className="rounded-md border border-dashed border-border bg-background/35 p-6 text-center">
       <Icon className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-      <p className="text-sm leading-6 text-muted-foreground">{text}</p>
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-muted-foreground">{text}</p>
+      {cta && onAction && (
+        <Button variant="outline" size="sm" className="mt-3 h-9" onClick={onAction}>
+          {cta}
+        </Button>
+      )}
     </div>
   );
 }

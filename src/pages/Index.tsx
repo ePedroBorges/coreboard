@@ -8,12 +8,15 @@ import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages, useAllPages } from "@/hooks/usePages";
 import { Priority, useWeeklyTasks, WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useUserSettings } from "@/hooks/useUserSettings";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { PageEditor } from "@/components/editor/PageEditor";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
 import { TodayView } from "@/components/today/TodayView";
+import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
+import { SettingsView } from "@/components/settings/SettingsView";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +48,7 @@ const defaultDiaryName = () => {
   return `${capitalized} ${format(new Date(), "yyyy")} - Caderno`;
 };
 
-type AppView = "today" | "tasks" | "calendar" | "notes" | "diary";
+type AppView = "today" | "tasks" | "calendar" | "notes" | "diary" | "settings";
 
 type AppNavigationState = {
   activeView: AppView;
@@ -97,7 +100,9 @@ const Index = () => {
   const [navigationStack, setNavigationStack] = useState<AppNavigationState[]>([]);
   const [pinnedNotebookIds, setPinnedNotebookIds] = useState<string[]>([]);
   const [pinnedTaskIds, setPinnedTaskIds] = useState<string[]>([]);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const isMobile = useIsMobile();
+  const userSettings = useUserSettings(user?.id);
 
   const notebooks = useNotebooks();
   const pages = usePages(selectedNotebookId || undefined);
@@ -152,6 +157,12 @@ const Index = () => {
     setPinnedNotebookIds(loadPinnedIds(user?.id, "notebooks"));
     setPinnedTaskIds(loadPinnedIds(user?.id, "tasks"));
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && !userSettings.settings.hasSeenOnboarding) {
+      setOnboardingOpen(true);
+    }
+  }, [user?.id, userSettings.settings.hasSeenOnboarding]);
 
   const currentNavigationState = useMemo<AppNavigationState>(() => ({
     activeView,
@@ -246,6 +257,23 @@ const Index = () => {
     setSelectedPageId(null);
     setSearchQuery("");
   }, [pushNavigationState]);
+
+  const handleSelectSettings = useCallback(() => {
+    pushNavigationState();
+    setActiveView("settings");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
+    setSearchQuery("");
+  }, [pushNavigationState]);
+
+  const handleFinishOnboarding = useCallback(() => {
+    userSettings.setHasSeenOnboarding(true);
+    setOnboardingOpen(false);
+    setActiveView("today");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
+    setSearchQuery("");
+  }, [userSettings]);
 
   const handleOpenNotebook = useCallback((id: string) => {
     pushNavigationState();
@@ -469,6 +497,7 @@ const Index = () => {
           onSelectToday={handleSelectToday}
           onSelectNotes={handleSelectNotes}
           onSelectCalendar={handleSelectCalendar}
+          onSelectSettings={handleSelectSettings}
           notebooks={notebooks.data || []}
           pinnedNotebooks={pinnedNotebooks}
           pinnedTasks={pinnedTasks}
@@ -480,7 +509,11 @@ const Index = () => {
         />
 
         <div className="flex-1 flex flex-col min-w-0">
-          <AppHeader canGoBack={activeView === "diary" && navigationStack.length > 0} onBack={handleGoBack} />
+          <AppHeader
+            canGoBack={activeView === "diary" && navigationStack.length > 0}
+            onBack={handleGoBack}
+            onOpenSettings={handleSelectSettings}
+          />
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="shrink-0 border-b border-border/60 bg-background/80 px-3 py-3 backdrop-blur sm:px-4">
@@ -564,6 +597,18 @@ const Index = () => {
                 })}
                 onCreateTaskFromPage={createTaskFromPage}
               />
+            ) : activeView === "settings" ? (
+              <SettingsView
+                user={user}
+                notebooks={notebooks.data || []}
+                notes={allPages.data || []}
+                tasks={normalizedTasks}
+                settings={userSettings.settings}
+                onChecklistChange={userSettings.setChecklistItem}
+                onSettingsImported={userSettings.updateSettings}
+                onOpenOnboarding={() => setOnboardingOpen(true)}
+                onGoToday={handleSelectToday}
+              />
             ) : selectedPage ? (
               <PageEditor
                 page={selectedPage}
@@ -639,6 +684,7 @@ const Index = () => {
         defaultNotebookId={quickCaptureNotebookId || defaultNotebookId}
         onSave={handleQuickCaptureSave}
       />
+      <OnboardingDialog open={onboardingOpen} onFinish={handleFinishOnboarding} />
       <CreateTaskFromNoteDialog
         page={taskSourcePage}
         notebookTitle={taskSourcePage ? notebookTitleForPage(taskSourcePage) : DEFAULT_NOTEBOOK_NAME}
@@ -1081,11 +1127,18 @@ function NotesLibrary({
           ) : sortedNotes.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
               <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                {isNotebookSelected
-                  ? "Este caderno ainda está vazio. Crie uma anotação para começar."
-                  : "Nenhuma anotação ainda. Escreva uma ideia, salve um link ou crie um checklist."}
+              <p className="text-sm font-medium text-foreground">
+                {isNotebookSelected ? "Este caderno está vazio." : "Nenhuma anotação ainda."}
               </p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {isNotebookSelected
+                  ? "Crie uma anotação para começar a organizar este tema."
+                  : "Escreva uma ideia, salve um link ou crie um checklist."}
+              </p>
+              <Button className="mt-4 h-10 gap-2" onClick={() => onCreateNote(activeNotebookId)}>
+                <Plus className="h-4 w-4" />
+                Nova anotação
+              </Button>
             </div>
           ) : (
             <div className="grid gap-2 md:gap-3 lg:grid-cols-2">
@@ -1608,8 +1661,9 @@ function GlobalSearchResults({
       {!hasResults ? (
         <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
           <Search className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            Nada encontrado. Tente buscar por tarefa, anotação, caderno, link ou tag.
+          <p className="text-sm font-medium text-foreground">Nada encontrado.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Tente buscar por tarefa, anotação, caderno, link ou tag.
           </p>
         </div>
       ) : (

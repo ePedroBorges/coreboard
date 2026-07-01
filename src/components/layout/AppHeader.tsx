@@ -7,6 +7,7 @@ import {
   BarChart3,
   LogOut,
   Moon,
+  Settings,
   Sun,
 } from "lucide-react";
 import {
@@ -21,9 +22,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 interface AppHeaderProps {
   canGoBack: boolean;
   onBack: () => void;
+  onOpenSettings: () => void;
 }
 
-export function AppHeader({ canGoBack, onBack }: AppHeaderProps) {
+export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps) {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -49,6 +51,15 @@ export function AppHeader({ canGoBack, onBack }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 sm:h-8 sm:w-8 lg:hidden"
+          onClick={onOpenSettings}
+          title="Configurações"
+        >
+          <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
+        </Button>
         <Button
           variant={location.pathname === "/dashboard" ? "secondary" : "ghost"}
           size="icon"

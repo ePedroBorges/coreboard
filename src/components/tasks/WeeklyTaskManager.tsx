@@ -211,7 +211,7 @@ export function WeeklyTaskManager({
         ? "Nenhuma pendência no momento. Ótimo sinal."
         : view === "all"
           ? "Seu espaço de execução está vazio. Crie sua primeira tarefa do dia."
-          : "Nenhuma tarefa nesta data. Planeje uma ação ou crie uma tarefa.";
+          : "Planeje uma tarefa ou escolha outro dia.";
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:p-6 md:gap-4 lg:gap-6">
@@ -487,8 +487,14 @@ export function WeeklyTaskManager({
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
               <ListChecks className="h-5 w-5" />
             </div>
-            <p className="text-sm font-medium text-foreground">Tudo limpo por aqui.</p>
+            <p className="text-sm font-medium text-foreground">
+              {view === "day" ? "Tudo limpo nesta data." : "Tudo limpo por aqui."}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">{emptyMessage}</p>
+            <Button className="mt-4 h-10 gap-2 md:hidden" onClick={() => setTaskDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nova tarefa
+            </Button>
           </div>
         ) : (
           <div className="grid gap-3">
