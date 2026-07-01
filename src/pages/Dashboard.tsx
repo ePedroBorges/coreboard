@@ -159,7 +159,6 @@ const Dashboard = () => {
           onSelectToday={() => navigate("/")}
           onSelectTasks={() => navigate("/")}
           onSelectNotes={() => navigate("/")}
-          onSelectCalendar={() => navigate("/")}
           notebooks={notebooks.data || []}
           pinnedNotebooks={[]}
           pinnedTasks={[]}
