@@ -288,12 +288,13 @@ function NavItem({
     <SidebarMenuItem>
       <SidebarMenuButton
         onClick={onClick}
+        aria-current={active ? "page" : undefined}
         className={cn(
-          "min-h-[44px] text-sm sm:min-h-0 sm:text-xs",
-          active && "bg-sidebar-accent text-sidebar-accent-foreground"
+          "min-h-[44px] text-sm sm:min-h-0 sm:text-xs relative",
+          active && "bg-primary/15 text-primary font-semibold hover:bg-primary/20 hover:text-primary before:absolute before:left-0 before:top-1 before:bottom-1 before:w-0.5 before:rounded-r before:bg-primary"
         )}
       >
-        <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+        <Icon className={cn("h-4 w-4 sm:h-3.5 sm:w-3.5", active && "text-primary")} />
         {!collapsed && <span>{label}</span>}
       </SidebarMenuButton>
     </SidebarMenuItem>
