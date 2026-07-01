@@ -110,7 +110,7 @@ export function AppSidebar({
               <SidebarMenu>
                 <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={() => runAndClose(onSelectToday)} collapsed={collapsed} />
                 <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
-                <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={() => runAndClose(onSelectCalendar)} collapsed={collapsed} />
+                <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={() => runAndClose(onSelectTasks)} collapsed={collapsed} />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
