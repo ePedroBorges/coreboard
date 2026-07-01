@@ -8,9 +8,11 @@ import {
   FileJson,
   LifeBuoy,
   Loader2,
+  Moon,
   RotateCcw,
   Settings,
   Sparkles,
+  Sun,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -29,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
+import { useTheme } from "@/hooks/useTheme";
 import { UserSettings } from "@/hooks/useUserSettings";
 import { Notebook, Page } from "@/types/notes";
 import {
@@ -77,6 +80,7 @@ export function SettingsView({
   onGoToday,
 }: SettingsViewProps) {
   const queryClient = useQueryClient();
+  const { theme, toggleTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [pendingBackup, setPendingBackup] = useState<VistaBackup | null>(null);
@@ -254,8 +258,12 @@ export function SettingsView({
 
           <SettingsCard title="Preferências" icon={Settings}>
             <div className="space-y-3 text-sm text-muted-foreground">
-              <InfoRow label="Tema atual" value="Escuro" />
-              <p>Tema claro e modo automático serão adicionados futuramente.</p>
+              <InfoRow label="Tema atual" value={theme === "dark" ? "Escuro" : "Claro"} />
+              <Button variant="outline" className="h-10 w-full gap-2" onClick={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                Alternar para {theme === "dark" ? "Claro" : "Escuro"}
+              </Button>
+              <p>O tema escolhido fica salvo neste navegador. Modo automático será adicionado futuramente.</p>
               <Button variant="outline" className="h-10 w-full gap-2" onClick={onOpenOnboarding}>
                 <RotateCcw className="h-4 w-4" />
                 Ver onboarding novamente

@@ -11,7 +11,6 @@ import {
   Clock3,
   ListChecks,
   Loader2,
-  NotebookPen,
   Pencil,
   Pin,
   Plus,
@@ -62,6 +61,11 @@ const priorityClass: Record<Priority, string> = {
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i);
 const monthName = (m: number) => format(new Date(2000, m, 1), "LLLL", { locale: ptBR });
+const taskDateTime = (task: WeeklyTask, field: "task_date" | "completed_at" = "task_date") => {
+  const rawDate = task[field] || task.task_date || task.created_at;
+  const time = rawDate ? parseISO(rawDate).getTime() : Number.MAX_SAFE_INTEGER;
+  return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
+};
 
 interface WeeklyTaskManagerProps {
   notebooks?: Notebook[];
@@ -187,18 +191,44 @@ export function WeeklyTaskManager({
   const years = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
 
   const displayedTasks = useMemo(() => {
-    if (view === "day") return tasksForSelectedDay;
-    if (view === "pending") return tasks.filter((task) => task.status === "pending");
-    if (view === "completed") return tasks.filter((task) => task.status === "completed");
-    return tasks;
+    if (view === "day") return [...tasksForSelectedDay].sort((a, b) => taskDateTime(a) - taskDateTime(b));
+    if (view === "pending") {
+      return tasks
+        .filter((task) => task.status === "pending")
+        .sort((a, b) => taskDateTime(a) - taskDateTime(b));
+    }
+    if (view === "completed") {
+      return tasks
+        .filter((task) => task.status === "completed")
+        .sort((a, b) => taskDateTime(b, "completed_at") - taskDateTime(a, "completed_at"));
+    }
+    return [...tasks].sort((a, b) => taskDateTime(a) - taskDateTime(b));
   }, [tasks, tasksForSelectedDay, view]);
 
-  const viewTabs: Array<{ value: typeof view; label: string; icon: ReactNode }> = [
-    { value: "day", label: "Por dia", icon: <CalendarDays className="h-3.5 w-3.5" /> },
-    { value: "pending", label: "Pendentes", icon: <Clock3 className="h-3.5 w-3.5" /> },
-    { value: "completed", label: "Concluídas", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    { value: "all", label: "Todas as tarefas", icon: <ListChecks className="h-3.5 w-3.5" /> },
+  const viewTabs: Array<{ value: typeof view; label: string; shortLabel: string; icon: ReactNode }> = [
+    { value: "day", label: "Por dia", shortLabel: "Por dia", icon: <CalendarDays className="h-3.5 w-3.5" /> },
+    { value: "pending", label: "Pendentes", shortLabel: "Pendentes", icon: <Clock3 className="h-3.5 w-3.5" /> },
+    { value: "completed", label: "Concluídas", shortLabel: "Concluídas", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+    { value: "all", label: "Todas as tarefas", shortLabel: "Todas", icon: <ListChecks className="h-3.5 w-3.5" /> },
   ];
+
+  const selectedDayLabel = format(selectedDay, "dd/MM/yyyy");
+  const listTitle =
+    view === "day"
+      ? `Tarefas de ${selectedDayLabel}`
+      : view === "pending"
+        ? "Tarefas pendentes"
+        : view === "completed"
+          ? "Tarefas concluídas"
+          : "Todas as tarefas";
+  const listDescription =
+    view === "day"
+      ? "Planeje, conclua e registre bloqueios para a data selecionada."
+      : view === "pending"
+        ? "Todas as tarefas abertas, ordenadas pela data mais próxima."
+        : view === "completed"
+          ? "Histórico das tarefas finalizadas recentemente."
+          : "Visão geral de tarefas pendentes e concluídas.";
 
   const focusSummary =
     tasks.length === 0
@@ -226,6 +256,23 @@ export function WeeklyTaskManager({
           <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
           <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
           <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
+        </div>
+        <div className="flex gap-1 overflow-x-auto rounded-md border border-border/60 bg-card/70 p-1 [-webkit-overflow-scrolling:touch]">
+          {viewTabs.map((item) => (
+            <Button
+              key={item.value}
+              variant="ghost"
+              size="sm"
+              onClick={() => setView(item.value)}
+              className={cn(
+                "h-10 shrink-0 gap-2 rounded px-3 text-xs text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground",
+                view === item.value && "bg-primary/15 text-primary ring-1 ring-primary/30 hover:bg-primary/20 hover:text-primary"
+              )}
+            >
+              {item.icon}
+              {item.shortLabel}
+            </Button>
+          ))}
         </div>
       </section>
 
@@ -287,6 +334,7 @@ export function WeeklyTaskManager({
             ))}
           </div>
 
+          {view === "day" ? (
           <div className="rounded-md border border-border/60 bg-background/45 p-3 sm:p-4">
             <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -361,6 +409,18 @@ export function WeeklyTaskManager({
               </Button>
             </div>
           </div>
+          ) : (
+            <div className="flex flex-col gap-3 rounded-md border border-border/60 bg-background/45 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">{listTitle}</h2>
+                <p className="text-xs leading-5 text-muted-foreground">{listDescription}</p>
+              </div>
+              <Button className="h-10 shrink-0 gap-2" onClick={() => setTaskDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Nova tarefa
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -479,18 +539,16 @@ export function WeeklyTaskManager({
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              <span className="md:hidden">Tarefas da data selecionada</span>
-              <span className="hidden md:inline">Execução</span>
+              {listTitle}
             </h2>
             <p className="text-xs text-muted-foreground">
-              <span className="md:hidden">{format(selectedDay, "dd/MM/yyyy")}</span>
-              <span className="hidden md:inline">Priorize, conclua e registre bloqueios sem perder o contexto.</span>
+              {listDescription}
             </p>
           </div>
-          <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
-            <NotebookPen className="h-3.5 w-3.5 text-primary" />
-            Capture ideias em Anotações e transforme em ação.
-          </div>
+          <Button className="h-10 gap-2 md:hidden" onClick={() => setTaskDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Nova tarefa
+          </Button>
         </div>
 
         {isLoading ? (
@@ -535,7 +593,7 @@ export function WeeklyTaskManager({
       </section>
 
       <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
-        <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border-border/70 bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-md md:hidden">
+        <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border-border/70 bg-card p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Nova tarefa</DialogTitle>
             <DialogDescription>
@@ -1121,4 +1179,3 @@ function FluidProgressRange({
     />
   );
 }
-

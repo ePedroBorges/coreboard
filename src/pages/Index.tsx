@@ -509,7 +509,7 @@ const Index = () => {
 
         <div className="flex-1 flex flex-col min-w-0">
           <AppHeader
-            canGoBack={activeView === "diary" && navigationStack.length > 0}
+            canGoBack={(activeView === "diary" || activeView === "settings") && navigationStack.length > 0}
             onBack={handleGoBack}
             onOpenSettings={handleSelectSettings}
           />

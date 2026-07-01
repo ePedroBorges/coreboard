@@ -44,6 +44,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from("pages")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []).map((page) => ({
@@ -58,7 +59,7 @@ const Dashboard = () => {
     queryKey: ["all-tags", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase.from("tags").select("*");
+      const { data, error } = await supabase.from("tags").select("*").eq("user_id", user.id);
       if (error) throw error;
       return data;
     },
@@ -174,7 +175,7 @@ const Dashboard = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold">Dashboard</h1>
-                <p className="text-sm text-muted-foreground font-mono-accent">Visão geral das suas notas</p>
+                <p className="text-sm text-muted-foreground font-mono-accent">Visão geral das suas anotações e produtividade.</p>
               </div>
 
               {/* Filters */}

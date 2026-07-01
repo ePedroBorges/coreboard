@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 type Theme = "dark" | "light";
+const THEME_STORAGE_KEY = "vista_tasks_theme";
+const LEGACY_THEME_STORAGE_KEY = "smartnotes-theme";
 
 interface ThemeContextType {
   theme: Theme;
@@ -11,15 +13,16 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = localStorage.getItem("smartnotes-theme");
-    return (stored as Theme) || "dark";
+    const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+    return stored === "light" || stored === "dark" ? stored : "dark";
   });
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
-    localStorage.setItem("smartnotes-theme", theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));

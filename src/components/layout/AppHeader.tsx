@@ -57,6 +57,7 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
           className="h-10 w-10 sm:h-8 sm:w-8"
           onClick={() => navigate(location.pathname === "/dashboard" ? "/" : "/dashboard")}
           title="Dashboard"
+          aria-label="Abrir Dashboard"
         >
           <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
@@ -66,6 +67,7 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
           className="h-10 w-10 sm:h-8 sm:w-8"
           onClick={onOpenSettings}
           title="Configurações"
+          aria-label="Abrir Configurações"
         >
           <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
