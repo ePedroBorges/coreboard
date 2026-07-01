@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, CalendarDays, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Star } from "lucide-react";
+import { BookOpen, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Star } from "lucide-react";
 import { Notebook, Page } from "@/types/notes";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { getNoteTitle } from "@/lib/noteUtils";
@@ -33,7 +33,6 @@ interface AppSidebarProps {
   onMouseLeave: () => void;
   onSelectToday?: () => void;
   onSelectNotes?: () => void;
-  onSelectCalendar?: () => void;
   onOpenNotebook: (id: string) => void;
   onOpenPage: (page: Page) => void;
   onSelectTasks: () => void;
@@ -51,7 +50,6 @@ export function AppSidebar({
   onMouseLeave,
   onSelectToday,
   onSelectNotes,
-  onSelectCalendar,
   onOpenNotebook,
   onOpenPage,
   onSelectTasks,
@@ -72,7 +70,7 @@ export function AppSidebar({
         activeView={activeView}
         onSelectToday={() => runAndClose(onSelectToday)}
         onSelectNotes={() => runAndClose(onSelectNotes)}
-        onSelectCalendar={() => runAndClose(onSelectCalendar)}
+        onSelectTasks={() => runAndClose(onSelectTasks)}
       />
 
       <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
@@ -112,7 +110,7 @@ export function AppSidebar({
               <SidebarMenu>
                 <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={() => runAndClose(onSelectToday)} collapsed={collapsed} />
                 <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
-                <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={() => runAndClose(onSelectCalendar)} collapsed={collapsed} />
+                <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={() => runAndClose(onSelectTasks)} collapsed={collapsed} />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -222,12 +220,12 @@ function MobileBottomNavigation({
   activeView,
   onSelectToday,
   onSelectNotes,
-  onSelectCalendar,
+  onSelectTasks,
 }: {
   activeView: AppView;
   onSelectToday: () => void;
   onSelectNotes: () => void;
-  onSelectCalendar: () => void;
+  onSelectTasks: () => void;
 }) {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-sidebar-border bg-sidebar/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 text-sidebar-foreground shadow-[0_-12px_30px_-24px_rgba(0,0,0,0.8)] backdrop-blur lg:hidden">
@@ -235,7 +233,7 @@ function MobileBottomNavigation({
         <div className="grid min-w-0 grid-cols-3 gap-1 rounded-md border border-sidebar-border bg-background/25 p-1">
           <MobileBottomNavButton active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} />
           <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={onSelectNotes} />
-          <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={CalendarDays} label="Calendário" onClick={onSelectCalendar} />
+          <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={onSelectTasks} />
         </div>
       </div>
     </nav>
@@ -257,16 +255,17 @@ function MobileBottomNavButton({
     <button
       type="button"
       aria-label={label}
+      aria-current={active ? "page" : undefined}
       title={label}
       onClick={onClick}
       className={cn(
         "flex h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded text-[10px] font-medium transition-colors",
         active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          ? "bg-primary/15 text-primary ring-1 ring-primary/40"
           : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" />
+      <Icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
       <span className="max-w-full truncate">{label}</span>
     </button>
   );
@@ -289,12 +288,13 @@ function NavItem({
     <SidebarMenuItem>
       <SidebarMenuButton
         onClick={onClick}
+        aria-current={active ? "page" : undefined}
         className={cn(
-          "min-h-[44px] text-sm sm:min-h-0 sm:text-xs",
-          active && "bg-sidebar-accent text-sidebar-accent-foreground"
+          "min-h-[44px] text-sm sm:min-h-0 sm:text-xs relative",
+          active && "bg-primary/15 text-primary font-semibold hover:bg-primary/20 hover:text-primary before:absolute before:left-0 before:top-1 before:bottom-1 before:w-0.5 before:rounded-r before:bg-primary"
         )}
       >
-        <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+        <Icon className={cn("h-4 w-4 sm:h-3.5 sm:w-3.5", active && "text-primary")} />
         {!collapsed && <span>{label}</span>}
       </SidebarMenuButton>
     </SidebarMenuItem>

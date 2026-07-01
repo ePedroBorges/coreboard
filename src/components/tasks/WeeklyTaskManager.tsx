@@ -218,9 +218,15 @@ export function WeeklyTaskManager({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:p-6 md:gap-4 lg:gap-6">
-      <section className="space-y-1 md:hidden">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Calendário</h1>
-        <p className="text-sm leading-6 text-muted-foreground">Planeje tarefas por data.</p>
+      <section className="space-y-2 md:hidden">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tarefas</h1>
+        <p className="text-sm leading-6 text-muted-foreground">Planeje e conclua suas prioridades.</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
+          <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
+          <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
+          <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
+        </div>
       </section>
 
       <section className="hidden overflow-hidden rounded-lg border border-border/70 bg-card/80 shadow-sm ring-1 ring-white/5 md:block">
@@ -232,10 +238,10 @@ export function WeeklyTaskManager({
                 AnchorLab Productivity
               </div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Calendário
+                Tarefas
               </h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
-                Planeje tarefas por data e acompanhe sua execução.
+                Planeje ações por data, acompanhe pendências e conclua prioridades.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
@@ -272,7 +278,7 @@ export function WeeklyTaskManager({
                 onClick={() => setView(item.value)}
                 className={cn(
                   "h-9 shrink-0 gap-2 rounded px-3 text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground",
-                  view === item.value && "bg-secondary text-foreground shadow-sm"
+                  view === item.value && "bg-primary/15 text-primary ring-1 ring-primary/30 hover:bg-primary/20 hover:text-primary"
                 )}
               >
                 {item.icon}
@@ -289,28 +295,28 @@ export function WeeklyTaskManager({
               </div>
               <span className="text-xs text-muted-foreground">Caderno e projeto/meta são opcionais.</span>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(180px,0.8fr)_150px_150px_120px_120px_auto]">
+            <div className="grid gap-2 sm:grid-cols-6">
               <Input
                 value={newTitle}
                 onChange={(event) => setNewTitle(event.target.value)}
                 onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
                 placeholder="Título da tarefa"
-                className="h-11 bg-card/80"
-              />
-              <Textarea
-                value={newDescription}
-                onChange={(event) => setNewDescription(event.target.value)}
-                placeholder="Mini descrição"
-                className="min-h-11 resize-none bg-card/80"
+                className="h-11 bg-card/80 sm:col-span-4"
               />
               <Input
                 value={newAssignee}
                 onChange={(event) => setNewAssignee(event.target.value)}
                 placeholder="Responsável"
-                className="h-11 bg-card/60 text-muted-foreground focus:text-foreground"
+                className="h-11 bg-card/60 sm:col-span-2"
+              />
+              <Textarea
+                value={newDescription}
+                onChange={(event) => setNewDescription(event.target.value)}
+                placeholder="Descrição (opcional)"
+                className="min-h-11 resize-none bg-card/80 sm:col-span-6"
               />
               <Select value={newNotebookId} onValueChange={setNewNotebookId}>
-                <SelectTrigger className="h-11 bg-card/80">
+                <SelectTrigger className="h-11 bg-card/80 sm:col-span-2">
                   <SelectValue placeholder="Caderno" />
                 </SelectTrigger>
                 <SelectContent>
@@ -326,11 +332,11 @@ export function WeeklyTaskManager({
                 type="date"
                 value={newDate}
                 onChange={(event) => setNewDate(event.target.value)}
-                className="h-11 bg-card/80"
+                className="h-11 bg-card/80 sm:col-span-2"
                 aria-label="Dia da tarefa"
               />
               <Select value={newPriority} onValueChange={(value) => setNewPriority(value as Priority)}>
-                <SelectTrigger className="h-11 bg-card/80"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-11 bg-card/80 sm:col-span-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
                   <SelectItem value="medium">Média</SelectItem>
@@ -342,16 +348,16 @@ export function WeeklyTaskManager({
                 min={1}
                 value={newTarget}
                 onChange={(event) => setNewTarget(event.target.value)}
-                placeholder="Projeto/Meta"
-                className="h-11 bg-card/80"
+                placeholder="Meta"
+                className="h-11 bg-card/80 sm:col-span-1"
               />
               <Button
                 onClick={handleCreateTask}
-                className="h-11 gap-2 sm:col-span-2 lg:col-span-1"
+                className="h-11 w-full gap-2 sm:col-span-6"
                 disabled={!newTitle.trim() || createTask.isPending}
               >
                 {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Nova tarefa
+                Criar tarefa
               </Button>
             </div>
           </div>

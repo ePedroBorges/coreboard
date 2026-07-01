@@ -497,7 +497,6 @@ const Index = () => {
           onMouseLeave={() => undefined}
           onSelectToday={handleSelectToday}
           onSelectNotes={handleSelectNotes}
-          onSelectCalendar={handleSelectCalendar}
           notebooks={notebooks.data || []}
           pinnedNotebooks={pinnedNotebooks}
           pinnedTasks={pinnedTasks}
