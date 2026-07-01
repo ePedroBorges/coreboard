@@ -218,9 +218,15 @@ export function WeeklyTaskManager({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:p-6 md:gap-4 lg:gap-6">
-      <section className="space-y-1 md:hidden">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Calendário</h1>
-        <p className="text-sm leading-6 text-muted-foreground">Planeje tarefas por data.</p>
+      <section className="space-y-2 md:hidden">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tarefas</h1>
+        <p className="text-sm leading-6 text-muted-foreground">Planeje e conclua suas prioridades.</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
+          <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
+          <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
+          <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
+        </div>
       </section>
 
       <section className="hidden overflow-hidden rounded-lg border border-border/70 bg-card/80 shadow-sm ring-1 ring-white/5 md:block">
@@ -232,10 +238,10 @@ export function WeeklyTaskManager({
                 AnchorLab Productivity
               </div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Calendário
+                Tarefas
               </h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
-                Planeje tarefas por data e acompanhe sua execução.
+                Planeje ações por data, acompanhe pendências e conclua prioridades.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
