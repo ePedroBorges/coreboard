@@ -50,7 +50,6 @@ export function AppSidebar({
   onMouseLeave,
   onSelectToday,
   onSelectNotes,
-  onSelectCalendar,
   onOpenNotebook,
   onOpenPage,
   onSelectTasks,
