@@ -112,6 +112,14 @@ export function AppSidebar({
                 <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={() => runAndClose(onSelectToday)} collapsed={collapsed} />
                 <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
                 <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={() => runAndClose(onSelectTasks)} collapsed={collapsed} />
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="min-h-[44px] text-sm sm:min-h-0 sm:text-xs">
+                    <Link to="/planos" onClick={() => isMobile && setOpenMobile(false)}>
+                      <Sparkles className="h-4 w-4 text-primary sm:h-3.5 sm:w-3.5" />
+                      {!collapsed && <span>Planos</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
