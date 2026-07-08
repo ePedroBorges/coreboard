@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { BookOpen, Loader2 } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 
 type AuthMode = "login" | "signup" | "forgot";
 
@@ -40,7 +41,7 @@ const Auth = () => {
       } else if (mode === "signup") {
         const { error } = await signUp(email, password, username);
         if (error) throw error;
-        toast.success("Conta criada! Verifique seu email para confirmar.");
+        toast.success("Conta criada! Verifique seu email para confirmar o cadastro.");
       } else {
         const { error } = await resetPassword(email);
         if (error) throw error;
@@ -49,6 +50,19 @@ const Auth = () => {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Erro inesperado");
     } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) throw result.error;
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao entrar com Google");
       setSubmitting(false);
     }
   };
