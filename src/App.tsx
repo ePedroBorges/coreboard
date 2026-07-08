@@ -10,16 +10,14 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
+import Pricing from "./pages/Pricing";
+import CheckoutReturn from "./pages/CheckoutReturn";
 import NotFound from "./pages/NotFound";
 import { toast } from "sonner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 30_000,
-      refetchOnWindowFocus: false,
-    },
+    queries: { retry: 1, staleTime: 30_000, refetchOnWindowFocus: false },
   },
 });
 
@@ -44,6 +42,12 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/hoje" element={<Index />} />
+                <Route path="/anotacoes" element={<Index />} />
+                <Route path="/tarefas" element={<Index />} />
+                <Route path="/configuracoes" element={<Index />} />
+                <Route path="/planos" element={<Pricing />} />
+                <Route path="/checkout/return" element={<CheckoutReturn />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/dashboard" element={<Dashboard />} />
