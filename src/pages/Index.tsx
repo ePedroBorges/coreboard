@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { BookOpen, CheckCircle2, Clock3, Link2, Linkedin, ListChecks, Loader2, MoveRight, NotebookPen, Pencil, Pin, Plus, Search, Star, Tag, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotebooks } from "@/hooks/useNotebooks";
@@ -84,9 +84,27 @@ const sameNavigationState = (a?: AppNavigationState, b?: AppNavigationState) => 
   a.searchQuery === b.searchQuery
 );
 
+const VIEW_TO_PATH: Record<AppView, string> = {
+  today: "/hoje",
+  notes: "/anotacoes",
+  diary: "/anotacoes",
+  tasks: "/tarefas",
+  calendar: "/tarefas",
+  settings: "/configuracoes",
+};
+const PATH_TO_VIEW: Record<string, AppView> = {
+  "/": "today",
+  "/hoje": "today",
+  "/anotacoes": "notes",
+  "/tarefas": "tasks",
+  "/configuracoes": "settings",
+};
+
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
-  const [activeView, setActiveView] = useState<AppView>("today");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activeView, setActiveView] = useState<AppView>(() => PATH_TO_VIEW[location.pathname] ?? "today");
   const [selectedNotebookId, setSelectedNotebookId] = useState<string | null>(null);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [focusMode, setFocusMode] = useState(false);
