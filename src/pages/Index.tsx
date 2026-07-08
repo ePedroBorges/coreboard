@@ -176,6 +176,24 @@ const Index = () => {
     setPinnedTaskIds(loadPinnedIds(user?.id, "tasks"));
   }, [user?.id]);
 
+  // Sync URL -> activeView on browser back/forward or refresh
+  useEffect(() => {
+    const mapped = PATH_TO_VIEW[location.pathname];
+    if (mapped && mapped !== activeView && activeView !== "diary") {
+      setActiveView(mapped);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // Sync activeView -> URL when user changes tabs
+  useEffect(() => {
+    const target = VIEW_TO_PATH[activeView];
+    if (target && target !== location.pathname && !selectedPageId) {
+      navigate(target, { replace: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView, selectedPageId]);
+
   useEffect(() => {
     if (user?.id && !userSettings.settings.hasSeenOnboarding && shouldShowInitialOnboarding(user.id)) {
       setOnboardingOpen(true);
