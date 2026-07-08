@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Star } from "lucide-react";
+import { BookOpen, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Sparkles, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Notebook, Page } from "@/types/notes";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { getNoteTitle } from "@/lib/noteUtils";
