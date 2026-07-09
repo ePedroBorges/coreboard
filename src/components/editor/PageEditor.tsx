@@ -320,7 +320,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
       </div>
 
       <div className="px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-16">
-        <div className="min-w-0 overflow-hidden rounded-lg border border-border/50 bg-card/35 p-2.5 sm:p-4">
+        <div className="min-w-0 rounded-lg border border-border/50 bg-card/35 p-2.5 sm:p-4">
           <BlockEditor blocks={blocks} onChange={handleBlocksChange} />
         </div>
       </div>
