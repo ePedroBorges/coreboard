@@ -49,8 +49,14 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Bem-vindo de volta.");
       } else {
-        const { error } = await signUp(email.trim(), password);
+        const { error, needsEmailConfirmation } = await signUp(email.trim(), password);
         if (error) throw error;
+
+        if (needsEmailConfirmation) {
+          toast.info("Conta criada. Confirme seu email para liberar o acesso ou desative Confirm Email no Supabase.");
+          setMode("login");
+          return;
+        }
 
         const login = await signIn(email.trim(), password);
         if (login.error) throw login.error;
@@ -121,7 +127,7 @@ const Auth = () => {
 
             <Alert className="mt-4">
               <AlertDescription className="text-xs">
-                Se o Supabase ainda estiver com Confirm Email ativo, ele pode bloquear o login ate essa opcao ser desativada no painel.
+                Para criar conta e entrar direto, desative Confirm Email em Authentication &gt; Providers &gt; Email no Supabase. Se a confirmacao estiver ativa, confirme o email antes de entrar.
               </AlertDescription>
             </Alert>
 

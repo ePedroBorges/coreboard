@@ -10,14 +10,18 @@ import {
   LayoutTemplate,
   LifeBuoy,
   Loader2,
+  LogOut,
+  Mail,
   Moon,
   Paperclip,
   RotateCcw,
   Settings,
+  ShieldCheck,
   Sparkles,
   Sun,
   Trash2,
   Upload,
+  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +40,7 @@ import { Label } from "@/components/ui/label";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/hooks/useAuth";
 import { UserSettings } from "@/hooks/useUserSettings";
 import { Notebook, Page } from "@/types/notes";
 import {
@@ -84,6 +89,7 @@ export function SettingsView({
   onGoToday,
 }: SettingsViewProps) {
   const queryClient = useQueryClient();
+  const { signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { isPro, loading: subscriptionLoading, plan } = useSubscription();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +189,9 @@ export function SettingsView({
   };
 
   const completedChecklist = checklistItems.filter((item) => settings.validationChecklist[item.id]).length;
+  const userName = user.user_metadata?.username || user.user_metadata?.name || "Nao informado";
+  const emailVerified = user.email_confirmed_at ? "Confirmado" : "Pendente";
+  const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "Nao informado";
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-3 sm:p-6">
@@ -283,11 +292,27 @@ export function SettingsView({
         </section>
 
         <section className="space-y-4">
-          <SettingsCard title="Conta" icon={CheckCircle2}>
+          <SettingsCard title="Usuario" icon={UserRound}>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <InfoRow label="Nome" value={user.user_metadata?.username || user.user_metadata?.name || "Não informado"} />
-              <InfoRow label="E-mail" value={user.email || "Não informado"} />
+              <InfoRow label="Nome" value={userName} />
+              <InfoRow label="E-mail" value={user.email || "Nao informado"} />
+              <InfoRow label="Email" value={emailVerified} />
+              <InfoRow label="Criado em" value={createdAt} />
               <InfoRow label="Status" value="Logado" />
+              <div className="grid gap-2 pt-1 sm:grid-cols-2">
+                <Button variant="outline" className="h-10 gap-2" onClick={() => window.location.href = `mailto:${user.email || ""}`}>
+                  <Mail className="h-4 w-4" />
+                  Abrir email
+                </Button>
+                <Button variant="outline" className="h-10 gap-2" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </Button>
+              </div>
+              <p className="rounded-md border border-primary/20 bg-primary/10 p-3 text-xs leading-5 text-primary">
+                <ShieldCheck className="mr-1 inline h-3.5 w-3.5" />
+                Os dados exibidos aqui vem da sessao segura do Supabase.
+              </p>
             </div>
           </SettingsCard>
 

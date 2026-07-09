@@ -257,7 +257,7 @@ export function WeeklyTaskManager({
           <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
           <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
         </div>
-        <div className="flex gap-1 overflow-x-auto rounded-md border border-border/60 bg-card/70 p-1 [-webkit-overflow-scrolling:touch]">
+        <div className="grid grid-cols-2 gap-1 rounded-md border border-border/60 bg-card/70 p-1">
           {viewTabs.map((item) => (
             <Button
               key={item.value}
@@ -265,12 +265,12 @@ export function WeeklyTaskManager({
               size="sm"
               onClick={() => setView(item.value)}
               className={cn(
-                "h-10 shrink-0 gap-2 rounded px-3 text-xs text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground",
+                "h-10 min-w-0 justify-start gap-2 rounded px-2 text-xs text-muted-foreground transition-colors hover:bg-secondary/80 hover:text-foreground",
                 view === item.value && "bg-primary/15 text-primary ring-1 ring-primary/30 hover:bg-primary/20 hover:text-primary"
               )}
             >
               {item.icon}
-              {item.shortLabel}
+              <span className="truncate">{item.shortLabel}</span>
             </Button>
           ))}
         </div>
@@ -428,6 +428,15 @@ export function WeeklyTaskManager({
         <section className="space-y-3 rounded-lg border border-border/60 bg-card/70 p-2.5 shadow-sm ring-1 ring-white/5 sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="hidden md:block">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                Planejamento por dia
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Tarefas de <strong>{format(selectedDay, "dd/MM/yyyy")}</strong>
+              </p>
+            </div>
+            <div className="md:hidden">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <CalendarDays className="h-4 w-4 text-primary" />
                 Planejamento por dia

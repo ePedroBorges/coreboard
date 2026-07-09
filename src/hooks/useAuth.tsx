@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null; needsEmailConfirmation: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -42,7 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
     if (!error) markOnboardingForNewUser(data.user?.id);
-    return { error: error as Error | null };
+    return {
+      error: error as Error | null,
+      needsEmailConfirmation: !error && !!data.user && !data.session,
+    };
   };
 
   const signIn = async (email: string, password: string) => {
