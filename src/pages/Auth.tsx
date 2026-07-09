@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { BookOpen, Loader2 } from "lucide-react";
+import { BookOpen, Loader2, MailCheck } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 
 type AuthMode = "login" | "signup" | "forgot";
 
@@ -18,6 +20,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -28,6 +31,15 @@ const Auth = () => {
   }
 
   if (user) return <Navigate to="/" replace />;
+
+  const humanizeAuthError = (message: string) => {
+    if (/email not confirmed/i.test(message)) return "Você precisa confirmar seu e-mail antes de entrar. Verifique sua caixa de entrada e a pasta de spam.";
+    if (/invalid login credentials/i.test(message)) return "E-mail ou senha incorretos.";
+    if (/user already registered/i.test(message)) return "Este e-mail já está cadastrado. Faça login.";
+    if (/rate limit/i.test(message)) return "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
+    if (/pwned/i.test(message)) return "Esta senha foi encontrada em vazamentos de dados. Escolha outra mais forte.";
+    return message;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,14 +53,34 @@ const Auth = () => {
       } else if (mode === "signup") {
         const { error } = await signUp(email, password, username);
         if (error) throw error;
-        toast.success("Conta criada! Verifique seu email para confirmar o cadastro.");
+        setAwaitingConfirmation(email);
+        toast.success("Conta criada! Confirme seu e-mail para ativar o acesso.");
       } else {
         const { error } = await resetPassword(email);
         if (error) throw error;
-        toast.success("Email de recuperação enviado!");
+        toast.success("E-mail de recuperação enviado! Verifique também a caixa de spam.");
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erro inesperado");
+      const message = err instanceof Error ? err.message : "Erro inesperado";
+      toast.error(humanizeAuthError(message));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!awaitingConfirmation) return;
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: awaitingConfirmation,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      toast.success("E-mail reenviado. Confira a caixa de entrada e o spam.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? humanizeAuthError(err.message) : "Falha ao reenviar");
     } finally {
       setSubmitting(false);
     }
@@ -66,6 +98,45 @@ const Auth = () => {
       setSubmitting(false);
     }
   };
+
+  if (awaitingConfirmation) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md border-border/50">
+          <CardHeader className="items-center text-center">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <MailCheck className="h-7 w-7 text-primary" />
+            </div>
+            <CardTitle>Confirme seu e-mail</CardTitle>
+            <CardDescription className="pt-2">
+              Enviamos um link de confirmação para <strong className="font-mono-accent break-all">{awaitingConfirmation}</strong>. Clique nele para ativar sua conta.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Alert>
+              <AlertDescription className="text-xs">
+                Não recebeu? Verifique a pasta de <strong>spam ou promoções</strong>. O e-mail pode levar alguns minutos para chegar.
+              </AlertDescription>
+            </Alert>
+            <Button onClick={handleResendConfirmation} disabled={submitting} className="w-full" variant="secondary">
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reenviar e-mail de confirmação
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setAwaitingConfirmation(null);
+                setMode("login");
+              }}
+            >
+              Já confirmei — voltar ao login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
