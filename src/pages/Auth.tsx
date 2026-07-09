@@ -1,26 +1,33 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
+import { BookOpen, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
-import { BookOpen, Loader2, MailCheck } from "lucide-react";
-import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
 
-type AuthMode = "login" | "signup" | "forgot";
+type AuthMode = "login" | "signup";
+
+const humanizeAuthError = (message: string) => {
+  if (/email not confirmed/i.test(message)) {
+    return "Este projeto ainda esta exigindo confirmacao de email no Supabase. Desative Confirm Email em Authentication > Providers > Email.";
+  }
+  if (/invalid login credentials/i.test(message)) return "Email ou senha incorretos.";
+  if (/user already registered/i.test(message)) return "Este email ja esta cadastrado. Faca login.";
+  if (/rate limit/i.test(message)) return "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
+  if (/pwned/i.test(message)) return "Esta senha foi encontrada em vazamentos de dados. Escolha outra mais forte.";
+  return message;
+};
 
 const Auth = () => {
-  const { user, loading, signIn, signUp, resetPassword } = useAuth();
+  const { user, loading, signIn, signUp } = useAuth();
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [awaitingConfirmation, setAwaitingConfirmation] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -32,241 +39,107 @@ const Auth = () => {
 
   if (user) return <Navigate to="/" replace />;
 
-  const humanizeAuthError = (message: string) => {
-    if (/email not confirmed/i.test(message)) return "Você precisa confirmar seu e-mail antes de entrar. Verifique sua caixa de entrada e a pasta de spam.";
-    if (/invalid login credentials/i.test(message)) return "E-mail ou senha incorretos.";
-    if (/user already registered/i.test(message)) return "Este e-mail já está cadastrado. Faça login.";
-    if (/rate limit/i.test(message)) return "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.";
-    if (/pwned/i.test(message)) return "Esta senha foi encontrada em vazamentos de dados. Escolha outra mais forte.";
-    return message;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setSubmitting(true);
 
     try {
       if (mode === "login") {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(email.trim(), password);
         if (error) throw error;
-        toast.success("Bem-vindo de volta!");
-      } else if (mode === "signup") {
-        const { error } = await signUp(email, password, username);
-        if (error) throw error;
-        setAwaitingConfirmation(email);
-        toast.success("Conta criada! Confirme seu e-mail para ativar o acesso.");
+        toast.success("Bem-vindo de volta.");
       } else {
-        const { error } = await resetPassword(email);
+        const { error } = await signUp(email.trim(), password);
         if (error) throw error;
-        toast.success("E-mail de recuperação enviado! Verifique também a caixa de spam.");
+
+        const login = await signIn(email.trim(), password);
+        if (login.error) throw login.error;
+        toast.success("Conta criada. Acesso liberado.");
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro inesperado";
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro inesperado";
       toast.error(humanizeAuthError(message));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleResendConfirmation = async () => {
-    if (!awaitingConfirmation) return;
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: awaitingConfirmation,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (error) throw error;
-      toast.success("E-mail reenviado. Confira a caixa de entrada e o spam.");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? humanizeAuthError(err.message) : "Falha ao reenviar");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setSubmitting(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-      if (result.error) throw result.error;
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erro ao entrar com Google");
-      setSubmitting(false);
-    }
-  };
-
-  if (awaitingConfirmation) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md border-border/50">
-          <CardHeader className="items-center text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-              <MailCheck className="h-7 w-7 text-primary" />
-            </div>
-            <CardTitle>Confirme seu e-mail</CardTitle>
-            <CardDescription className="pt-2">
-              Enviamos um link de confirmação para <strong className="font-mono-accent break-all">{awaitingConfirmation}</strong>. Clique nele para ativar sua conta.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Alert>
-              <AlertDescription className="text-xs">
-                Não recebeu? Verifique a pasta de <strong>spam ou promoções</strong>. O e-mail pode levar alguns minutos para chegar.
-              </AlertDescription>
-            </Alert>
-            <Button onClick={handleResendConfirmation} disabled={submitting} className="w-full" variant="secondary">
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Reenviar e-mail de confirmação
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => {
-                setAwaitingConfirmation(null);
-                setMode("login");
-              }}
-            >
-              Já confirmei — voltar ao login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 glow-sm">
             <BookOpen className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">VISTA Tasks Control</h1>
-          <p className="font-mono-accent text-xs text-muted-foreground">Controle total em suas atividades e ideias</p>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">VISTA Tasks Control</h1>
+            <p className="font-mono-accent text-xs text-muted-foreground">Controle total em suas atividades e ideias</p>
+          </div>
         </div>
 
         <Card className="border-border/50">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-lg">
-              {mode === "login" && "Entrar"}
-              {mode === "signup" && "Criar conta"}
-              {mode === "forgot" && "Recuperar senha"}
-            </CardTitle>
+            <CardTitle className="text-lg">{mode === "login" ? "Entrar" : "Criar conta"}</CardTitle>
             <CardDescription>
-              {mode === "login" && "Entre com suas credenciais"}
-              {mode === "signup" && "Preencha os dados para se cadastrar"}
-              {mode === "forgot" && "Informe seu email para redefinir a senha"}
+              Use apenas email e senha. Nenhum codigo e solicitado no app.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === "signup" && (
-                <div className="space-y-2">
-                  <Label htmlFor="username">Nome de usuário</Label>
-                  <Input
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="seu_username"
-                    className="font-mono-accent text-sm"
-                  />
-                </div>
-              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
                   placeholder="voce@email.com"
                   required
+                  autoComplete="email"
                 />
               </div>
-              {mode !== "forgot" && (
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                </div>
-              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Digite sua senha"
+                  required
+                  minLength={6}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                />
+              </div>
+
               <Button type="submit" className="w-full glow-sm" disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === "login" && "Entrar"}
-                {mode === "signup" && "Criar conta"}
-                {mode === "forgot" && "Enviar email"}
+                {mode === "login" ? "Entrar" : "Criar conta"}
               </Button>
             </form>
 
-            {mode !== "forgot" && (
-              <>
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">ou</span>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  disabled={submitting}
-                  onClick={handleGoogleSignIn}
-                >
-                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Continuar com Google
-                </Button>
-              </>
-            )}
+            <Alert className="mt-4">
+              <AlertDescription className="text-xs">
+                Se o Supabase ainda estiver com Confirm Email ativo, ele pode bloquear o login ate essa opcao ser desativada no painel.
+              </AlertDescription>
+            </Alert>
 
-            <div className="mt-4 space-y-2 text-center text-sm">
-              {mode === "login" && (
-                <>
-                  <button
-                    onClick={() => setMode("forgot")}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    Esqueceu a senha?
-                  </button>
-                  <p className="text-muted-foreground">
-                    Não tem conta?{" "}
-                    <button onClick={() => setMode("signup")} className="text-primary hover:underline">
-                      Criar conta
-                    </button>
-                  </p>
-                </>
-              )}
-              {mode === "signup" && (
+            <div className="mt-4 text-center text-sm">
+              {mode === "login" ? (
                 <p className="text-muted-foreground">
-                  Já tem conta?{" "}
-                  <button onClick={() => setMode("login")} className="text-primary hover:underline">
+                  Nao tem conta?{" "}
+                  <button type="button" onClick={() => setMode("signup")} className="text-primary hover:underline">
+                    Criar conta
+                  </button>
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  Ja tem conta?{" "}
+                  <button type="button" onClick={() => setMode("login")} className="text-primary hover:underline">
                     Entrar
                   </button>
                 </p>
-              )}
-              {mode === "forgot" && (
-                <button onClick={() => setMode("login")} className="text-primary hover:underline">
-                  Voltar ao login
-                </button>
               )}
             </div>
           </CardContent>

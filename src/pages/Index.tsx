@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { clearInitialOnboardingMarker, shouldShowInitialOnboarding, useUserSettings } from "@/hooks/useUserSettings";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { CommandPalette } from "@/components/CommandPalette";
 import { PageEditor } from "@/components/editor/PageEditor";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
@@ -110,6 +111,7 @@ const Index = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(true);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [quickCaptureNotebookId, setQuickCaptureNotebookId] = useState<string | undefined>();
   const [quickCapturePending, setQuickCapturePending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -302,6 +304,18 @@ const Index = () => {
     setSearchQuery("");
   }, [pushNavigationState]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandPaletteOpen((current) => !current);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const handleFinishOnboarding = useCallback(() => {
     userSettings.setHasSeenOnboarding(true);
     clearInitialOnboardingMarker(user?.id);
@@ -437,6 +451,14 @@ const Index = () => {
     setSelectedPageId(page.id);
   }, [pushNavigationState]);
 
+  const openTask = useCallback((task: WeeklyTask) => {
+    pushNavigationState();
+    setActiveView("tasks");
+    setSelectedNotebookId(null);
+    setSelectedPageId(null);
+    setSearchQuery(task.title);
+  }, [pushNavigationState]);
+
   const handleDeleteNotebook = useCallback((id: string, targetNotebookId?: string) => {
     const fallbackNotebookId = targetNotebookId || defaultNotebookId || notebooks.data?.find((notebook) => notebook.id !== id)?.id;
     notebooks.deleteNotebook.mutate({ id, targetNotebookId }, {
@@ -548,6 +570,7 @@ const Index = () => {
             canGoBack={(activeView === "diary" || activeView === "settings") && navigationStack.length > 0}
             onBack={handleGoBack}
             onOpenSettings={handleSelectSettings}
+            onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           />
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -718,6 +741,20 @@ const Index = () => {
         notebooks={notebooks.data || []}
         defaultNotebookId={quickCaptureNotebookId || defaultNotebookId}
         onSave={handleQuickCaptureSave}
+      />
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        notebooks={notebooks.data || []}
+        notes={allPages.data || []}
+        tasks={normalizedTasks}
+        notebookTitleById={notebookTitleById}
+        onOpenNotebook={handleOpenNotebook}
+        onOpenNote={openPage}
+        onOpenTask={openTask}
+        onCreateNote={() => openQuickCapture()}
+        onCreateTask={handleSelectTasks}
+        onOpenSettings={handleSelectSettings}
       />
       <OnboardingDialog open={onboardingOpen} onFinish={handleFinishOnboarding} />
       <CreateTaskFromNoteDialog

@@ -4,11 +4,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   ClipboardCopy,
+  Bell,
   Download,
   FileJson,
+  LayoutTemplate,
   LifeBuoy,
   Loader2,
   Moon,
+  Paperclip,
   RotateCcw,
   Settings,
   Sparkles,
@@ -31,6 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useTheme } from "@/hooks/useTheme";
 import { UserSettings } from "@/hooks/useUserSettings";
 import { Notebook, Page } from "@/types/notes";
@@ -81,6 +85,7 @@ export function SettingsView({
 }: SettingsViewProps) {
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
+  const { isPro, loading: subscriptionLoading, plan } = useSubscription();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [pendingBackup, setPendingBackup] = useState<VistaBackup | null>(null);
@@ -200,6 +205,36 @@ export function SettingsView({
               <p className="rounded-md border border-primary/20 bg-primary/10 p-3 text-primary">
                 Transforme anotações em tarefas executáveis.
               </p>
+            </div>
+          </SettingsCard>
+
+          <SettingsCard title="Recursos Pro" icon={Sparkles}>
+            <div className="grid gap-2 text-sm text-muted-foreground">
+              <InfoRow label="Plano" value={subscriptionLoading ? "Verificando..." : plan.toUpperCase()} />
+              <ProFeatureRow
+                icon={Sparkles}
+                title="IA anotacao para tarefa"
+                description="Use a captura avancada e o comando Criar tarefa para transformar uma nota em tarefa com origem preservada."
+                active
+              />
+              <ProFeatureRow
+                icon={Bell}
+                title="Lembretes e recorrencia"
+                description="Planejamento por data ja esta ativo nas tarefas. Notificacoes nativas e repeticao automatica dependem da proxima migracao de schema."
+                active={isPro}
+              />
+              <ProFeatureRow
+                icon={Paperclip}
+                title="Anexos"
+                description="Anexe arquivos e imagens dentro do editor de anotacoes pelo bloco Imagem ou arquivo."
+                active
+              />
+              <ProFeatureRow
+                icon={LayoutTemplate}
+                title="Templates"
+                description="Use dados de exemplo e captura avancada como base. Biblioteca editavel de templates entra na proxima rodada de schema."
+                active={isPro}
+              />
             </div>
           </SettingsCard>
 
@@ -423,6 +458,35 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div className="flex min-w-0 items-center justify-between gap-3">
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <span className="min-w-0 truncate text-right font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function ProFeatureRow({
+  icon: Icon,
+  title,
+  description,
+  active,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  active: boolean;
+}) {
+  return (
+    <div className="flex gap-3 rounded-md border border-border/60 bg-background/35 p-3">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <Badge variant={active ? "secondary" : "outline"} className="rounded-full">
+            {active ? "Ativo" : "Pro"}
+          </Badge>
+        </div>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+      </div>
     </div>
   );
 }

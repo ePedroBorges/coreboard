@@ -7,6 +7,7 @@ import {
   BarChart3,
   LogOut,
   Moon,
+  Search,
   Settings,
   Sun,
 } from "lucide-react";
@@ -23,9 +24,10 @@ interface AppHeaderProps {
   canGoBack: boolean;
   onBack: () => void;
   onOpenSettings: () => void;
+  onOpenCommandPalette: () => void;
 }
 
-export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps) {
+export function AppHeader({ canGoBack, onBack, onOpenSettings, onOpenCommandPalette }: AppHeaderProps) {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -35,13 +37,13 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
 
   return (
     <header
-      className="flex items-center justify-between border-b border-border px-3 sm:px-2 shrink-0"
+      className="z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-2 backdrop-blur sm:px-2"
       style={{
-        minHeight: "3.5rem",
+        minHeight: "calc(3.5rem + env(safe-area-inset-top, 0px))",
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
-      <div className="flex items-center gap-2 sm:gap-1">
+      <div className="flex min-w-0 items-center gap-1">
         <SidebarTrigger className="h-10 w-10 lg:h-8 lg:w-8" title="Menu" />
         {canGoBack && (
           <Button
@@ -56,7 +58,17 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
         )}
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-1">
+      <div className="flex min-w-0 shrink-0 items-center justify-end gap-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 sm:h-8 sm:w-8"
+          onClick={onOpenCommandPalette}
+          title="Buscar tudo"
+          aria-label="Abrir busca global"
+        >
+          <Search className="h-5 w-5 sm:h-4 sm:w-4" />
+        </Button>
         <Button
           variant={location.pathname === "/dashboard" ? "secondary" : "ghost"}
           size="icon"
