@@ -8,6 +8,7 @@ import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages, useAllPages } from "@/hooks/usePages";
 import { Priority, useWeeklyTasks, WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNotifications } from "@/hooks/useNotifications";
 import { clearInitialOnboardingMarker, shouldShowInitialOnboarding, useUserSettings } from "@/hooks/useUserSettings";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -41,6 +42,7 @@ import {
   taskTitleFromNote,
 } from "@/lib/noteUtils";
 import { cn } from "@/lib/utils";
+import { calculateGamificationStats } from "@/lib/gamification";
 import { toast } from "sonner";
 
 const defaultDiaryName = () => {
@@ -171,6 +173,17 @@ const Index = () => {
       source_notebook_title: task.source_notebook_title || getTaskNotebookTitle(task),
     };
   }), [getTaskNotebookId, getTaskNotebookTitle, pageById, tasks.data]);
+  const completedChecklist = useMemo(
+    () => Object.values(userSettings.settings.validationChecklist).filter(Boolean).length,
+    [userSettings.settings.validationChecklist]
+  );
+  const gamification = useMemo(() => calculateGamificationStats({
+    tasks: normalizedTasks,
+    notes: allPages.data || [],
+    notebookCount: notebooks.data?.length || 0,
+    completedChecklist,
+  }), [allPages.data, completedChecklist, notebooks.data?.length, normalizedTasks]);
+  const notifications = useNotifications(user?.id, normalizedTasks);
 
   useEffect(() => {
     setNavigationStack([]);
@@ -619,6 +632,7 @@ const Index = () => {
                   status: task.status === "completed" ? "pending" : "completed",
                 })}
                 onCreateTaskFromPage={createTaskFromPage}
+                gamification={gamification}
               />
             ) : activeView === "tasks" || activeView === "calendar" ? (
               <WeeklyTaskManager
@@ -666,6 +680,8 @@ const Index = () => {
                 onSettingsImported={userSettings.updateSettings}
                 onOpenOnboarding={() => setOnboardingOpen(true)}
                 onGoToday={handleSelectToday}
+                gamification={gamification}
+                notifications={notifications}
               />
             ) : selectedPage ? (
               <PageEditor

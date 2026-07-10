@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   BarChart3,
-  CreditCard,
   LogOut,
   Moon,
   Search,
@@ -80,16 +79,6 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings, onOpenCommandPale
           aria-label="Abrir Dashboard"
         >
           <BarChart3 className="h-5 w-5 sm:h-4 sm:w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 sm:h-8 sm:w-8"
-          onClick={onOpenSettings}
-          title="Configurações"
-          aria-label="Abrir Configurações"
-        >
-          <Settings className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
         <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" onClick={toggleTheme}>
           {theme === "dark" ? <Sun className="h-5 w-5 sm:h-4 sm:w-4" /> : <Moon className="h-5 w-5 sm:h-4 sm:w-4" />}

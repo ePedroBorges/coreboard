@@ -85,6 +85,52 @@ export function makeNoteBlocks(content: string, checklistItems: { text: string; 
   return setNoteTags([...textBlocks, ...checklistBlocks], tags);
 }
 
+export function makeLineByLineNoteBlocks(content: string, checklistItems: { text: string; checked?: boolean }[], tags: string[]): Block[] {
+  const textBlocks = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map<Block>((line) => ({
+      id: generateNoteId(),
+      type: "paragraph",
+      content: line,
+    }));
+
+  const checklistBlocks = checklistItems
+    .map((item) => item.text.trim())
+    .filter(Boolean)
+    .map<Block>((text) => ({
+      id: generateNoteId(),
+      type: "checklist",
+      content: text,
+      checked: false,
+    }));
+
+  return setNoteTags([...textBlocks, ...checklistBlocks], tags);
+}
+
+export function makeFreeformNoteBlocks(content: string, checklistItems: { text: string; checked?: boolean }[], tags: string[]): Block[] {
+  const textBlocks = content.trim()
+    ? [{
+        id: generateNoteId(),
+        type: "freeform" as const,
+        content: content.trim(),
+      }]
+    : [];
+
+  const checklistBlocks = checklistItems
+    .map((item) => item.text.trim())
+    .filter(Boolean)
+    .map<Block>((text) => ({
+      id: generateNoteId(),
+      type: "checklist",
+      content: text,
+      checked: false,
+    }));
+
+  return setNoteTags([...textBlocks, ...checklistBlocks], tags);
+}
+
 export function noteMatchesQuery(page: Page, query: string) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;

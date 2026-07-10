@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, KeyboardEvent } from "react";
 import { Block, BlockType } from "@/types/notes";
 import { cn } from "@/lib/utils";
 import {
@@ -100,6 +100,56 @@ function EditableContent({
       onKeyDown={onKeyDown}
       className={className}
       data-placeholder={placeholder}
+    />
+  );
+}
+
+function AutoResizeTextarea({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  placeholder,
+  refCallback,
+}: {
+  value: string;
+  onChange: (text: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  placeholder?: string;
+  refCallback?: (el: HTMLTextAreaElement | null) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const resize = () => {
+    const element = ref.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.max(element.scrollHeight, 128)}px`;
+  };
+
+  useLayoutEffect(() => {
+    resize();
+  }, [value]);
+
+  return (
+    <textarea
+      ref={(el) => {
+        ref.current = el;
+        refCallback?.(el);
+      }}
+      value={value}
+      onChange={(event) => {
+        onChange(event.target.value);
+        requestAnimationFrame(resize);
+      }}
+      onFocus={() => {
+        onFocus();
+        requestAnimationFrame(resize);
+      }}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      className="min-h-32 w-full resize-none overflow-hidden rounded-md border border-border/50 bg-background/45 px-3 py-2 text-base leading-6 outline-none focus:border-primary/45 sm:text-sm"
     />
   );
 }
@@ -283,14 +333,13 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                 </div>
               ) : block.type === "freeform" ? (
                 isEditing ? (
-                  <textarea
-                    ref={(el) => { blockRefs.current[index] = el; }}
+                  <AutoResizeTextarea
+                    refCallback={(el) => { blockRefs.current[index] = el; }}
                     value={block.content}
-                    onChange={(event) => updateBlock(index, { content: event.target.value })}
+                    onChange={(text) => updateBlock(index, { content: text })}
                     onFocus={() => setEditingBlockId(block.id)}
                     onBlur={() => setEditingBlockId(null)}
                     placeholder="Escreva livremente..."
-                    className="min-h-32 w-full resize-y rounded-md border border-border/50 bg-background/45 px-3 py-2 text-base leading-6 outline-none focus:border-primary/45 sm:text-sm"
                   />
                 ) : (
                   <RichTextBlock

@@ -1,0 +1,18 @@
+{
+  "name": "VISTA Tasks Control",
+  "short_name": "VISTA",
+  "description": "Capture ideias, organize pensamentos e transforme anotacoes em acao.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08111F",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/vista-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

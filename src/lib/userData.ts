@@ -383,7 +383,7 @@ export async function loadSampleData(userId: string) {
   const noteInputs = [
     { title: "Ideias para posts LinkedIn", notebook: "AnchorLab", text: "Post sobre transformar anotações soltas em tarefas executáveis.\nPost sobre rotina de validação de MVP." },
     { title: "Links da landing page", notebook: "VISTA", text: "https://www.anchorlab.com.br\nhttps://linearsistemas.com.br/\nhttps://www.totvs.com/logistica/" },
-    { title: "Melhorias do VISTA Tasks Control", notebook: "VISTA", text: "Polir onboarding, backup, importação e estados vazios para beta fechado." },
+    { title: "Melhorias do VISTA Tasks Control", notebook: "VISTA", text: "Polir onboarding, backup, importacao e estados vazios para a versao atual." },
     { title: "Checklist semanal AnchorLab", notebook: "AnchorLab", checklist: ["Revisar prioridades", "Atualizar roadmap", "Publicar aprendizado da semana"] },
     { title: "Roadmap MEMIQ", notebook: "MEMIQ", text: "Organizar hipóteses, entrevistas e próximos experimentos." },
     { title: "Prospects VISTA", notebook: "Clientes", text: "Mapear empresas com operação intensa de tarefas, logística e atendimento." },
@@ -407,10 +407,10 @@ export async function loadSampleData(userId: string) {
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const taskInputs = [
     { title: "Revisar landing page do VISTA", notebook: "VISTA", priority: "high", description: "Checar clareza da promessa, CTA e links principais." },
-    { title: "Criar post sobre produtividade", notebook: "AnchorLab", priority: "medium", description: "Usar aprendizado do beta como gancho para LinkedIn." },
+    { title: "Criar post sobre produtividade", notebook: "AnchorLab", priority: "medium", description: "Usar aprendizado de produtividade como gancho para LinkedIn." },
     { title: "Testar fluxo anotação → tarefa", notebook: "VISTA", priority: "high", description: "Criar uma anotação real, transformar em tarefa e validar calendário." },
     { title: "Organizar caderno AnchorLab", notebook: "AnchorLab", priority: "medium", description: "Separar ideias, clientes e validações em anotações acionáveis." },
-    { title: "Validar app por 7 dias sem Google Keep", notebook: "Geral", priority: "high", description: "Usar o app no dia a dia e registrar atritos no checklist de beta." },
+    { title: "Validar app por 7 dias sem Google Keep", notebook: "Geral", priority: "high", description: "Usar o app no dia a dia e registrar atritos no checklist de evolucao." },
   ];
 
   const { error: taskError } = await supabase.from("weekly_tasks").insert(taskInputs.map((task) => ({

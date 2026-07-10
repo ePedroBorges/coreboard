@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -43,14 +44,17 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
+import { NotificationControls } from "@/hooks/useNotifications";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useTheme, PRO_THEME_VARIANTS, THEME_VARIANT_META, ThemeVariant } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { UserSettings } from "@/hooks/useUserSettings";
+import { GamificationPanel } from "@/components/gamification/GamificationPanel";
 import { Notebook, Page } from "@/types/notes";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cn } from "@/lib/utils";
+import { GamificationStats } from "@/lib/gamification";
 import {
   collectUserBackup,
   downloadBackup,
@@ -62,7 +66,7 @@ import {
   VistaBackup,
 } from "@/lib/userData";
 
-const betaSummary = "Estou testando o VISTA Tasks Control, um app para transformar anotações em tarefas executáveis. Feedback desejado: clareza, organização, bugs e utilidade no dia a dia.";
+const appSummary = "Estou usando o VISTA Tasks Control, um app para transformar anotacoes em tarefas executaveis. Feedback desejado: clareza, organizacao, velocidade e utilidade no dia a dia.";
 
 const checklistItems = [
   { id: "first-note", label: "Criei minha primeira anotação" },
@@ -83,6 +87,8 @@ interface SettingsViewProps {
   onSettingsImported: (settings: UserSettings) => void;
   onOpenOnboarding: () => void;
   onGoToday: () => void;
+  gamification: GamificationStats;
+  notifications: NotificationControls;
 }
 
 export function SettingsView({
@@ -95,6 +101,8 @@ export function SettingsView({
   onSettingsImported,
   onOpenOnboarding,
   onGoToday,
+  gamification,
+  notifications,
 }: SettingsViewProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -109,6 +117,7 @@ export function SettingsView({
   const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
   const [resetText, setResetText] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
+  const [notificationBusy, setNotificationBusy] = useState(false);
 
   const invalidateUserData = async () => {
     await Promise.all([
@@ -190,12 +199,12 @@ export function SettingsView({
   });
 
   const copySummary = async () => {
-    await navigator.clipboard.writeText(betaSummary);
+    await navigator.clipboard.writeText(appSummary);
     toast.success("Resumo do app copiado.");
   };
 
   const sendFeedback = () => {
-    window.location.href = `mailto:contato@anchorlab.com.br?subject=${encodeURIComponent("Feedback VISTA Tasks Control")}&body=${encodeURIComponent(betaSummary)}`;
+    window.location.href = `mailto:contato@anchorlab.com.br?subject=${encodeURIComponent("Feedback VISTA Tasks Control")}&body=${encodeURIComponent(appSummary)}`;
   };
 
   const openBillingPortal = async () => {
@@ -235,6 +244,15 @@ export function SettingsView({
     toast.success(`Tema alterado para ${meta.label}.`);
   };
 
+  const handleNotificationChange = async (enabled: boolean) => {
+    setNotificationBusy(true);
+    try {
+      await notifications.setNotificationsEnabled(enabled);
+    } finally {
+      setNotificationBusy(false);
+    }
+  };
+
   const completedChecklist = checklistItems.filter((item) => settings.validationChecklist[item.id]).length;
   const userName = user.user_metadata?.username || user.user_metadata?.name || "Nao informado";
   const emailVerified = user.email_confirmed_at ? "Confirmado" : "Pendente";
@@ -268,6 +286,8 @@ export function SettingsView({
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-4">
+          <GamificationPanel stats={gamification} />
+
           <SettingsCard title="Sua conta" icon={UserRound}>
             <div className="grid gap-2 text-sm text-muted-foreground">
               <InfoRow label="Nome" value={userName} />
@@ -289,7 +309,7 @@ export function SettingsView({
 
           <SettingsCard title="Checklist de validação" icon={CheckCircle2}>
             <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">Progresso do beta</span>
+              <span className="text-sm text-muted-foreground">Progresso do perfil</span>
               <Badge variant="secondary" className="rounded-full">{completedChecklist}/{checklistItems.length}</Badge>
             </div>
             <div className="space-y-2">
@@ -403,6 +423,28 @@ export function SettingsView({
               Ver onboarding novamente
             </Button>
           </SettingsCard>
+
+          <SettingsCard title="Notificações" icon={Bell}>
+            <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 bg-background/35 p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Lembretes de tarefas pendentes</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Agenda notificações locais no Android para tarefas pendentes com data definida.
+                </p>
+              </div>
+              <Switch
+                checked={notifications.enabled}
+                disabled={!notifications.supported || notificationBusy}
+                onCheckedChange={handleNotificationChange}
+                aria-label="Ativar notificações"
+              />
+            </div>
+            {!notifications.supported && (
+              <p className="text-xs text-muted-foreground">
+                Notificações não estão disponíveis neste ambiente.
+              </p>
+            )}
+          </SettingsCard>
         </TabsContent>
 
         <TabsContent value="dados" className="space-y-4">
@@ -438,12 +480,12 @@ export function SettingsView({
           <SettingsCard title="Produto" icon={Sparkles}>
             <div className="grid gap-2 text-sm text-muted-foreground">
               <InfoRow label="Nome" value="VISTA Tasks Control" />
-              <InfoRow label="Versão" value="1.0 beta" />
+              <InfoRow label="Versão" value="1.0" />
               <InfoRow label="Desenvolvido por" value="AnchorLab" />
             </div>
           </SettingsCard>
 
-          <SettingsCard title="Beta fechado" icon={LifeBuoy}>
+          <SettingsCard title="Ajuda e feedback" icon={LifeBuoy}>
             <p className="text-sm leading-6 text-muted-foreground">
               Use o VISTA Tasks Control no seu dia a dia e envie feedback sobre clareza, velocidade e utilidade.
             </p>

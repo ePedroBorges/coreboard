@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { BookOpen, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,7 @@ type AuthMode = "login" | "signup";
 
 const humanizeAuthError = (message: string) => {
   if (/email not confirmed/i.test(message)) {
-    return "Este projeto ainda esta exigindo confirmacao de email no Supabase. Desative Confirm Email em Authentication > Providers > Email.";
+    return "Confirme seu email antes de entrar.";
   }
   if (/invalid login credentials/i.test(message)) return "Email ou senha incorretos.";
   if (/user already registered/i.test(message)) return "Este email ja esta cadastrado. Faca login.";
@@ -53,7 +52,7 @@ const Auth = () => {
         if (error) throw error;
 
         if (needsEmailConfirmation) {
-          toast.info("Conta criada. Confirme seu email para liberar o acesso ou desative Confirm Email no Supabase.");
+          toast.info("Conta criada. Confirme seu email para liberar o acesso.");
           setMode("login");
           return;
         }
@@ -74,9 +73,7 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 glow-sm">
-            <BookOpen className="h-7 w-7 text-primary" />
-          </div>
+          <img src="/vista-icon.svg" alt="VISTA Tasks Control" className="h-14 w-14 rounded-lg glow-sm" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight">VISTA Tasks Control</h1>
             <p className="font-mono-accent text-xs text-muted-foreground">Controle total em suas atividades e ideias</p>
@@ -124,12 +121,6 @@ const Auth = () => {
                 {mode === "login" ? "Entrar" : "Criar conta"}
               </Button>
             </form>
-
-            <Alert className="mt-4">
-              <AlertDescription className="text-xs">
-                Para criar conta e entrar direto, desative Confirm Email em Authentication &gt; Providers &gt; Email no Supabase. Se a confirmacao estiver ativa, confirme o email antes de entrar.
-              </AlertDescription>
-            </Alert>
 
             <div className="mt-4 text-center text-sm">
               {mode === "login" ? (

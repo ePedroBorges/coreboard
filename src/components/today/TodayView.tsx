@@ -27,7 +27,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { GamificationPanel } from "@/components/gamification/GamificationPanel";
 import { cn } from "@/lib/utils";
+import { GamificationStats } from "@/lib/gamification";
 import {
   getNotePreview,
   getNoteTags,
@@ -54,6 +56,7 @@ interface TodayViewProps {
   onOpenNote: (page: Page) => void;
   onToggleTaskStatus: (task: WeeklyTask) => void;
   onCreateTaskFromPage: (page: Page) => void;
+  gamification: GamificationStats;
 }
 
 const priorityLabel: Record<Priority, string> = {
@@ -82,6 +85,7 @@ export function TodayView({
   onOpenNote,
   onToggleTaskStatus,
   onCreateTaskFromPage,
+  gamification,
 }: TodayViewProps) {
   const [captureText, setCaptureText] = useState("");
   const [captureMode, setCaptureMode] = useState<CaptureMode>("note");
@@ -133,11 +137,17 @@ export function TodayView({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:gap-4 sm:p-6 lg:gap-5">
-      <section className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Hoje</h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-          Capture ideias, organize anotações e execute suas prioridades.
-        </p>
+      <section className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Hoje</h1>
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+            Capture ideias, organize anotações e execute suas prioridades.
+          </p>
+        </div>
+        <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm">
+          <div className="font-semibold text-primary">{gamification.levelName}</div>
+          <div className="text-xs text-muted-foreground">{gamification.xpToNextLevel} XP para subir</div>
+        </div>
       </section>
 
       <QuickCaptureBar
@@ -170,6 +180,7 @@ export function TodayView({
         <CompactStats stats={stats} />
         <CollapsibleCalendar tasks={tasks} onOpenCalendar={onOpenCalendar} />
       </div>
+      <GamificationPanel stats={gamification} compact />
     </div>
   );
 }
