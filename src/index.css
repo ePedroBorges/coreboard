@@ -71,6 +71,71 @@
     --success: 165 80% 45%;
     --warning: 38 92% 50%;
   }
+
+  /* Premium theme variants — override accent tokens on top of base dark/light */
+  .dark.theme-midnight {
+    --primary: 265 85% 65%;
+    --primary-foreground: 220 18% 7%;
+    --ring: 265 85% 65%;
+    --accent: 295 75% 60%;
+    --glow: 275 85% 65%;
+    --sidebar-primary: 265 85% 65%;
+    --sidebar-ring: 265 85% 65%;
+  }
+  .light.theme-midnight {
+    --primary: 265 75% 50%;
+    --ring: 265 75% 50%;
+    --accent: 295 70% 50%;
+    --glow: 275 75% 55%;
+  }
+
+  .dark.theme-sunset {
+    --primary: 22 92% 58%;
+    --primary-foreground: 220 18% 7%;
+    --ring: 22 92% 58%;
+    --accent: 350 82% 60%;
+    --glow: 22 92% 58%;
+    --sidebar-primary: 22 92% 58%;
+    --sidebar-ring: 22 92% 58%;
+  }
+  .light.theme-sunset {
+    --primary: 22 92% 48%;
+    --ring: 22 92% 48%;
+    --accent: 350 82% 52%;
+    --glow: 22 92% 50%;
+  }
+
+  .dark.theme-forest {
+    --primary: 158 70% 48%;
+    --primary-foreground: 220 18% 7%;
+    --ring: 158 70% 48%;
+    --accent: 175 70% 45%;
+    --glow: 158 70% 48%;
+    --sidebar-primary: 158 70% 48%;
+    --sidebar-ring: 158 70% 48%;
+  }
+  .light.theme-forest {
+    --primary: 158 70% 38%;
+    --ring: 158 70% 38%;
+    --accent: 175 70% 38%;
+    --glow: 158 70% 42%;
+  }
+
+  .dark.theme-mono {
+    --primary: 0 0% 92%;
+    --primary-foreground: 220 18% 7%;
+    --ring: 0 0% 92%;
+    --accent: 0 0% 70%;
+    --glow: 0 0% 92%;
+    --sidebar-primary: 0 0% 92%;
+    --sidebar-ring: 0 0% 92%;
+  }
+  .light.theme-mono {
+    --primary: 220 20% 15%;
+    --ring: 220 20% 15%;
+    --accent: 220 10% 40%;
+    --glow: 220 20% 25%;
+  }
 }
 
 @layer base {
