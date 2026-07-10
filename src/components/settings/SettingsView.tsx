@@ -1,18 +1,22 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   ClipboardCopy,
   Bell,
+  CreditCard,
   Download,
   FileJson,
   LayoutTemplate,
   LifeBuoy,
   Loader2,
   LogOut,
+  Lock,
   Mail,
   Moon,
+  Palette,
   Paperclip,
   RotateCcw,
   Settings,
@@ -28,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -39,10 +44,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme, PRO_THEME_VARIANTS, THEME_VARIANT_META, ThemeVariant } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { UserSettings } from "@/hooks/useUserSettings";
 import { Notebook, Page } from "@/types/notes";
+import { supabase } from "@/integrations/supabase/client";
+import { getStripeEnvironment } from "@/lib/stripe";
+import { cn } from "@/lib/utils";
 import {
   collectUserBackup,
   downloadBackup,
