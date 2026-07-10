@@ -97,9 +97,18 @@ export function SettingsView({
   onGoToday,
 }: SettingsViewProps) {
   const queryClient = useQueryClient();
-  const { signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const { isPro, loading: subscriptionLoading, plan } = useSubscription();
+  const navigate = useNavigate();
+  const { signOut, resetPassword } = useAuth();
+  const { theme, toggleTheme, variant, setVariant } = useTheme();
+  const { isPro, loading: subscriptionLoading, plan, subscription, isLifetime } = useSubscription();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [pendingBackup, setPendingBackup] = useState<VistaBackup | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [sampleConfirmOpen, setSampleConfirmOpen] = useState(false);
+  const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
+  const [resetText, setResetText] = useState("");
+  const [portalLoading, setPortalLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [pendingBackup, setPendingBackup] = useState<VistaBackup | null>(null);
