@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   BarChart3,
+  CreditCard,
   LogOut,
   Moon,
   Search,
   Settings,
+  Sparkles,
   Sun,
 } from "lucide-react";
 import {
@@ -103,9 +105,17 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings, onOpenCommandPale
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem className="font-mono-accent text-xs text-muted-foreground" disabled>
               {user?.email}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenSettings}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/planos")}>
+              <Sparkles className="mr-2 h-4 w-4 text-primary" />
+              Planos & Billing
             </DropdownMenuItem>
             <DropdownMenuItem onClick={signOut}>
               <LogOut className="mr-2 h-4 w-4" />
