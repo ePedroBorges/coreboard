@@ -109,13 +109,6 @@ export function SettingsView({
   const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
   const [resetText, setResetText] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [pendingBackup, setPendingBackup] = useState<VistaBackup | null>(null);
-  const [resetOpen, setResetOpen] = useState(false);
-  const [sampleConfirmOpen, setSampleConfirmOpen] = useState(false);
-  const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
-  const [resetText, setResetText] = useState("");
 
   const invalidateUserData = async () => {
     await Promise.all([
