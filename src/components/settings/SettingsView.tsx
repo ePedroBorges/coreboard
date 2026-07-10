@@ -198,10 +198,50 @@ export function SettingsView({
     window.location.href = `mailto:contato@anchorlab.com.br?subject=${encodeURIComponent("Feedback VISTA Tasks Control")}&body=${encodeURIComponent(betaSummary)}`;
   };
 
+  const openBillingPortal = async () => {
+    if (!subscription) {
+      navigate("/planos");
+      return;
+    }
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-portal-session", {
+        body: { returnUrl: window.location.origin + "/settings", environment: getStripeEnvironment() },
+      });
+      if (error || !data?.url) throw new Error(error?.message || "Falha ao abrir portal");
+      window.open(data.url, "_blank");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao abrir portal");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!user.email) return;
+    const { error } = await resetPassword(user.email);
+    if (error) toast.error(error.message);
+    else toast.success("Enviamos um link de redefinição para seu email.");
+  };
+
+  const handleSetVariant = (v: ThemeVariant) => {
+    const meta = THEME_VARIANT_META[v];
+    if (meta.pro && !isPro) {
+      toast.error("Tema Pro. Assine para desbloquear.");
+      navigate("/planos");
+      return;
+    }
+    setVariant(v);
+    toast.success(`Tema alterado para ${meta.label}.`);
+  };
+
   const completedChecklist = checklistItems.filter((item) => settings.validationChecklist[item.id]).length;
   const userName = user.user_metadata?.username || user.user_metadata?.name || "Nao informado";
   const emailVerified = user.email_confirmed_at ? "Confirmado" : "Pendente";
   const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "Nao informado";
+  const periodEnd = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString("pt-BR")
+    : null;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-3 py-3 sm:p-6">
@@ -210,54 +250,163 @@ export function SettingsView({
           <Settings className="h-4 w-4" />
           Configurações
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">VISTA Tasks Control</h1>
-        <p className="text-sm leading-6 text-muted-foreground">Transforme anotações em tarefas executáveis.</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          {userName !== "Nao informado" ? userName : user.email?.split("@")[0]}
+        </h1>
+        <p className="text-sm leading-6 text-muted-foreground">
+          {user.email} · Plano {plan.toUpperCase()}
+        </p>
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.75fr)]">
-        <section className="space-y-4">
-          <SettingsCard title="Produto" icon={Sparkles}>
+      <Tabs defaultValue="perfil" className="w-full">
+        <TabsList className="mb-4 grid w-full grid-cols-2 gap-1 sm:grid-cols-5">
+          <TabsTrigger value="perfil" className="gap-1.5"><UserRound className="h-3.5 w-3.5" />Perfil</TabsTrigger>
+          <TabsTrigger value="plano" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" />Plano</TabsTrigger>
+          <TabsTrigger value="aparencia" className="gap-1.5"><Palette className="h-3.5 w-3.5" />Aparência</TabsTrigger>
+          <TabsTrigger value="dados" className="gap-1.5"><FileJson className="h-3.5 w-3.5" />Dados</TabsTrigger>
+          <TabsTrigger value="ajuda" className="gap-1.5"><LifeBuoy className="h-3.5 w-3.5" />Ajuda</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="perfil" className="space-y-4">
+          <SettingsCard title="Sua conta" icon={UserRound}>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <InfoRow label="Nome" value="VISTA Tasks Control" />
-              <InfoRow label="Versão" value="1.0 beta" />
-              <InfoRow label="Desenvolvido por" value="AnchorLab" />
-              <p className="rounded-md border border-primary/20 bg-primary/10 p-3 text-primary">
-                Transforme anotações em tarefas executáveis.
-              </p>
+              <InfoRow label="Nome" value={userName} />
+              <InfoRow label="Email" value={user.email || "Nao informado"} />
+              <InfoRow label="Confirmação de email" value={emailVerified} />
+              <InfoRow label="Criado em" value={createdAt} />
+              <div className="grid gap-2 pt-2 sm:grid-cols-2">
+                <Button variant="outline" className="h-10 gap-2" onClick={handlePasswordReset}>
+                  <ShieldCheck className="h-4 w-4" />
+                  Redefinir senha
+                </Button>
+                <Button variant="outline" className="h-10 gap-2" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                  Sair da conta
+                </Button>
+              </div>
+            </div>
+          </SettingsCard>
+
+          <SettingsCard title="Checklist de validação" icon={CheckCircle2}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-sm text-muted-foreground">Progresso do beta</span>
+              <Badge variant="secondary" className="rounded-full">{completedChecklist}/{checklistItems.length}</Badge>
+            </div>
+            <div className="space-y-2">
+              {checklistItems.map((item) => (
+                <label key={item.id} className="flex min-h-10 items-center gap-3 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-sm">
+                  <Checkbox
+                    checked={!!settings.validationChecklist[item.id]}
+                    onCheckedChange={(checked) => onChecklistChange(item.id, !!checked)}
+                  />
+                  <span className="leading-5">{item.label}</span>
+                </label>
+              ))}
+            </div>
+          </SettingsCard>
+        </TabsContent>
+
+        <TabsContent value="plano" className="space-y-4">
+          <SettingsCard title="Plano atual" icon={Sparkles}>
+            <div className="grid gap-2 text-sm text-muted-foreground">
+              <InfoRow label="Plano" value={subscriptionLoading ? "Verificando..." : plan.toUpperCase()} />
+              {subscription && <InfoRow label="Status" value={subscription.status} />}
+              {periodEnd && !isLifetime && (
+                <InfoRow label={subscription?.cancel_at_period_end ? "Acesso até" : "Renova em"} value={periodEnd} />
+              )}
+              {isLifetime && <InfoRow label="Acesso" value="Vitalício" />}
+              <div className="grid gap-2 pt-2 sm:grid-cols-2">
+                {!isPro && (
+                  <Button className="h-10 gap-2" onClick={() => navigate("/planos")}>
+                    <Sparkles className="h-4 w-4" />
+                    Fazer upgrade para Pro
+                  </Button>
+                )}
+                {isPro && !isLifetime && (
+                  <Button variant="outline" className="h-10 gap-2" onClick={openBillingPortal} disabled={portalLoading}>
+                    {portalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                    Gerenciar assinatura
+                  </Button>
+                )}
+                <Button variant="outline" className="h-10 gap-2" onClick={() => navigate("/planos")}>
+                  Ver todos os planos
+                </Button>
+              </div>
             </div>
           </SettingsCard>
 
           <SettingsCard title="Recursos Pro" icon={Sparkles}>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <InfoRow label="Plano" value={subscriptionLoading ? "Verificando..." : plan.toUpperCase()} />
-              <ProFeatureRow
-                icon={Sparkles}
-                title="IA anotacao para tarefa"
-                description="Use a captura avancada e o comando Criar tarefa para transformar uma nota em tarefa com origem preservada."
-                active
-              />
-              <ProFeatureRow
-                icon={Bell}
-                title="Lembretes e recorrencia"
-                description="Planejamento por data ja esta ativo nas tarefas. Notificacoes nativas e repeticao automatica dependem da proxima migracao de schema."
-                active={isPro}
-              />
-              <ProFeatureRow
-                icon={Paperclip}
-                title="Anexos"
-                description="Anexe arquivos e imagens dentro do editor de anotacoes pelo bloco Imagem ou arquivo."
-                active
-              />
-              <ProFeatureRow
-                icon={LayoutTemplate}
-                title="Templates"
-                description="Use dados de exemplo e captura avancada como base. Biblioteca editavel de templates entra na proxima rodada de schema."
-                active={isPro}
-              />
+              <ProFeatureRow icon={Palette} title="Temas premium" description="4 paletas exclusivas: Midnight, Sunset, Forest e Mono. Personalize a identidade visual do app." active={isPro} />
+              <ProFeatureRow icon={Sparkles} title="IA anotação → tarefa" description="Extraia tarefas automaticamente de qualquer anotação com um clique." active={isPro} />
+              <ProFeatureRow icon={Bell} title="Lembretes e recorrência" description="Notificações e tarefas que se repetem diária, semanal ou mensalmente." active={isPro} />
+              <ProFeatureRow icon={Paperclip} title="Anexos ilimitados" description="Faça upload de imagens e arquivos sem limite dentro das anotações." active={isPro} />
+              <ProFeatureRow icon={LayoutTemplate} title="Templates" description="Biblioteca de modelos prontos: reunião, projeto, diário, roadmap." active={isPro} />
+            </div>
+          </SettingsCard>
+        </TabsContent>
+
+        <TabsContent value="aparencia" className="space-y-4">
+          <SettingsCard title="Modo" icon={theme === "dark" ? Moon : Sun}>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <InfoRow label="Modo atual" value={theme === "dark" ? "Escuro" : "Claro"} />
+              <Button variant="outline" className="h-10 w-full gap-2" onClick={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                Alternar para {theme === "dark" ? "Claro" : "Escuro"}
+              </Button>
             </div>
           </SettingsCard>
 
-          <SettingsCard title="Dados" icon={FileJson}>
+          <SettingsCard title="Tema de cor" icon={Palette}>
+            <p className="mb-3 text-sm leading-6 text-muted-foreground">
+              Personalize a cor primária do app. Temas premium são exclusivos do plano Pro.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {(Object.keys(THEME_VARIANT_META) as ThemeVariant[]).map((v) => {
+                const meta = THEME_VARIANT_META[v];
+                const locked = meta.pro && !isPro;
+                const active = variant === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => handleSetVariant(v)}
+                    className={cn(
+                      "group relative flex flex-col items-start gap-2 rounded-md border p-3 text-left transition-all hover:border-primary/60",
+                      active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 bg-background/40",
+                    )}
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <span
+                        className="h-6 w-6 rounded-full ring-2 ring-background"
+                        style={{ backgroundColor: meta.swatch }}
+                      />
+                      {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                      {active && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                        {meta.label}
+                        {meta.pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
+                      </div>
+                      <p className="mt-0.5 text-xs leading-tight text-muted-foreground">{meta.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </SettingsCard>
+
+          <SettingsCard title="Onboarding" icon={RotateCcw}>
+            <Button variant="outline" className="h-10 w-full gap-2" onClick={onOpenOnboarding}>
+              <RotateCcw className="h-4 w-4" />
+              Ver onboarding novamente
+            </Button>
+          </SettingsCard>
+        </TabsContent>
+
+        <TabsContent value="dados" className="space-y-4">
+          <SettingsCard title="Backup e importação" icon={FileJson}>
             <p className="text-sm leading-6 text-muted-foreground">
               As ações abaixo afetam apenas os dados do usuário logado.
             </p>
@@ -283,6 +432,16 @@ export function SettingsView({
               onChange={(event) => handleImportFile(event.target.files?.[0])}
             />
           </SettingsCard>
+        </TabsContent>
+
+        <TabsContent value="ajuda" className="space-y-4">
+          <SettingsCard title="Produto" icon={Sparkles}>
+            <div className="grid gap-2 text-sm text-muted-foreground">
+              <InfoRow label="Nome" value="VISTA Tasks Control" />
+              <InfoRow label="Versão" value="1.0 beta" />
+              <InfoRow label="Desenvolvido por" value="AnchorLab" />
+            </div>
+          </SettingsCard>
 
           <SettingsCard title="Beta fechado" icon={LifeBuoy}>
             <p className="text-sm leading-6 text-muted-foreground">
@@ -294,72 +453,13 @@ export function SettingsView({
                 Copiar resumo do app
               </Button>
               <Button variant="outline" className="h-10 gap-2" onClick={sendFeedback}>
-                <LifeBuoy className="h-4 w-4" />
+                <Mail className="h-4 w-4" />
                 Enviar feedback
               </Button>
             </div>
           </SettingsCard>
-        </section>
-
-        <section className="space-y-4">
-          <SettingsCard title="Usuario" icon={UserRound}>
-            <div className="grid gap-2 text-sm text-muted-foreground">
-              <InfoRow label="Nome" value={userName} />
-              <InfoRow label="E-mail" value={user.email || "Nao informado"} />
-              <InfoRow label="Email" value={emailVerified} />
-              <InfoRow label="Criado em" value={createdAt} />
-              <InfoRow label="Status" value="Logado" />
-              <div className="grid gap-2 pt-1 sm:grid-cols-2">
-                <Button variant="outline" className="h-10 gap-2" onClick={() => window.location.href = `mailto:${user.email || ""}`}>
-                  <Mail className="h-4 w-4" />
-                  Abrir email
-                </Button>
-                <Button variant="outline" className="h-10 gap-2" onClick={signOut}>
-                  <LogOut className="h-4 w-4" />
-                  Sair
-                </Button>
-              </div>
-              <p className="rounded-md border border-primary/20 bg-primary/10 p-3 text-xs leading-5 text-primary">
-                <ShieldCheck className="mr-1 inline h-3.5 w-3.5" />
-                Os dados exibidos aqui vem da sessao segura do Supabase.
-              </p>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard title="Preferências" icon={Settings}>
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <InfoRow label="Tema atual" value={theme === "dark" ? "Escuro" : "Claro"} />
-              <Button variant="outline" className="h-10 w-full gap-2" onClick={toggleTheme}>
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                Alternar para {theme === "dark" ? "Claro" : "Escuro"}
-              </Button>
-              <p>O tema escolhido fica salvo neste navegador. Modo automático será adicionado futuramente.</p>
-              <Button variant="outline" className="h-10 w-full gap-2" onClick={onOpenOnboarding}>
-                <RotateCcw className="h-4 w-4" />
-                Ver onboarding novamente
-              </Button>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard title="Checklist de validação" icon={CheckCircle2}>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">Progresso do beta</span>
-              <Badge variant="secondary" className="rounded-full">{completedChecklist}/{checklistItems.length}</Badge>
-            </div>
-            <div className="space-y-2">
-              {checklistItems.map((item) => (
-                <label key={item.id} className="flex min-h-10 items-center gap-3 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-sm">
-                  <Checkbox
-                    checked={!!settings.validationChecklist[item.id]}
-                    onCheckedChange={(checked) => onChecklistChange(item.id, !!checked)}
-                  />
-                  <span className="leading-5">{item.label}</span>
-                </label>
-              ))}
-            </div>
-          </SettingsCard>
-        </section>
-      </div>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!pendingBackup} onOpenChange={(open) => !open && setPendingBackup(null)}>
         <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg sm:max-w-md">
