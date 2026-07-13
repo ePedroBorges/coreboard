@@ -146,7 +146,7 @@ export function SettingsView({
     onChecklistChange("exported-backup", true);
   });
 
-  const handleImportFile = async (file?: File) => {
+  const handleImportFile = async (file: File) => {
     if (!file) return;
     try {
       const raw = await file.text();
@@ -162,7 +162,7 @@ export function SettingsView({
   const handleImport = (mode: ImportMode) => runAction(`import-${mode}`, async () => {
     if (!pendingBackup) return;
     const result = await importBackupForUser(user.id, pendingBackup, mode);
-    onSettingsImported(pendingBackup.data.settings);
+    onSettingsImported(pendingBackup.data?.settings);
     await invalidateUserData();
     setPendingBackup(null);
     onGoToday();
@@ -204,7 +204,7 @@ export function SettingsView({
   };
 
   const sendFeedback = () => {
-    window.location.href = `mailto:contato@anchorlab.com.br?subject=${encodeURIComponent("Feedback VISTA Tasks Control")}&body=${encodeURIComponent(appSummary)}`;
+    window.location.href = `mailto:contato@anchorlab.com.brsubject=${encodeURIComponent("Feedback VISTA Tasks Control")}&body=${encodeURIComponent(appSummary)}`;
   };
 
   const openBillingPortal = async () => {
@@ -217,7 +217,7 @@ export function SettingsView({
       const { data, error } = await supabase.functions.invoke("create-portal-session", {
         body: { returnUrl: window.location.origin + "/settings", environment: getStripeEnvironment() },
       });
-      if (error || !data?.url) throw new Error(error?.message || "Falha ao abrir portal");
+      if (error || !data.url) throw new Error(error.message || "Falha ao abrir portal");
       window.open(data.url, "_blank");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao abrir portal");
@@ -254,11 +254,11 @@ export function SettingsView({
   };
 
   const completedChecklist = checklistItems.filter((item) => settings.validationChecklist[item.id]).length;
-  const userName = user.user_metadata?.username || user.user_metadata?.name || "Nao informado";
+  const userName = user.user_metadata.username || user.user_metadata.name || "Nao informado";
   const emailVerified = user.email_confirmed_at ? "Confirmado" : "Pendente";
-  const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "Nao informado";
-  const periodEnd = subscription?.current_period_end
-    ? new Date(subscription.current_period_end).toLocaleDateString("pt-BR")
+  const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "N?o informado";
+  const periodEnd = subscription.current_period_end
+    new Date(subscription.current_period_end).toLocaleDateString("pt-BR")
     : null;
 
   return (
@@ -329,10 +329,10 @@ export function SettingsView({
         <TabsContent value="plano" className="space-y-4">
           <SettingsCard title="Plano atual" icon={Sparkles}>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <InfoRow label="Plano" value={subscriptionLoading ? "Verificando..." : plan.toUpperCase()} />
+              <InfoRow label="Plano" value={subscriptionLoading "Verificando..." : plan.toUpperCase()} />
               {subscription && <InfoRow label="Status" value={subscription.status} />}
               {periodEnd && !isLifetime && (
-                <InfoRow label={subscription?.cancel_at_period_end ? "Acesso até" : "Renova em"} value={periodEnd} />
+                <InfoRow label={subscription.cancel_at_period_end "Acesso até" : "Renova em"} value={periodEnd} />
               )}
               {isLifetime && <InfoRow label="Acesso" value="Vitalício" />}
               <div className="grid gap-2 pt-2 sm:grid-cols-2">
@@ -344,7 +344,7 @@ export function SettingsView({
                 )}
                 {isPro && !isLifetime && (
                   <Button variant="outline" className="h-10 gap-2" onClick={openBillingPortal} disabled={portalLoading}>
-                    {portalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                    {portalLoading <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
                     Gerenciar assinatura
                   </Button>
                 )}
@@ -371,7 +371,7 @@ export function SettingsView({
             <div className="space-y-3 text-sm text-muted-foreground">
               <InfoRow label="Modo atual" value={theme === "dark" ? "Escuro" : "Claro"} />
               <Button variant="outline" className="h-10 w-full gap-2" onClick={toggleTheme}>
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === "dark" <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 Alternar para {theme === "dark" ? "Claro" : "Escuro"}
               </Button>
             </div>
@@ -393,7 +393,7 @@ export function SettingsView({
                     onClick={() => handleSetVariant(v)}
                     className={cn(
                       "group relative flex flex-col items-start gap-2 rounded-md border p-3 text-left transition-all hover:border-primary/60",
-                      active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 bg-background/40",
+                      active "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 bg-background/40",
                     )}
                   >
                     <div className="flex w-full items-center justify-between">
@@ -407,7 +407,7 @@ export function SettingsView({
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                         {meta.label}
-                        {meta.pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
+                        {meta.pro && <Badge variant={locked "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
                       </div>
                       <p className="mt-0.5 text-xs leading-tight text-muted-foreground">{meta.description}</p>
                     </div>
@@ -456,7 +456,7 @@ export function SettingsView({
               <ActionButton icon={Download} loading={busyAction === "export"} onClick={handleExport}>
                 Exportar backup
               </ActionButton>
-              <ActionButton icon={Upload} onClick={() => fileInputRef.current?.click()}>
+              <ActionButton icon={Upload} onClick={() => fileInputRef.current.click()}>
                 Importar backup
               </ActionButton>
               <ActionButton icon={Sparkles} loading={busyAction === "sample"} onClick={handleSampleData}>
@@ -511,9 +511,9 @@ export function SettingsView({
           </DialogHeader>
           {pendingBackup && (
             <div className="grid gap-2 rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
-              <InfoRow label="Cadernos" value={String(pendingBackup.data.notebooks.length)} />
-              <InfoRow label="Anotações" value={String(pendingBackup.data.notes.length)} />
-              <InfoRow label="Tarefas" value={String(pendingBackup.data.tasks.length)} />
+              <InfoRow label="Cadernos" value={String(pendingBackup.data?.notebooks.length)} />
+              <InfoRow label="Anotações" value={String(pendingBackup.data?.notes.length)} />
+              <InfoRow label="Tarefas" value={String(pendingBackup.data?.tasks.length)} />
               <InfoRow label="Exportado em" value={new Date(pendingBackup.exportedAt).toLocaleString("pt-BR")} />
             </div>
           )}
@@ -538,7 +538,7 @@ export function SettingsView({
       <Dialog open={sampleConfirmOpen} onOpenChange={setSampleConfirmOpen}>
         <DialogContent className="w-[calc(100vw-1.5rem)] rounded-lg sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar dados de exemplo?</DialogTitle>
+            <DialogTitle>Adicionar dados de exemplo</DialogTitle>
             <DialogDescription>
               Os exemplos serão adicionados aos seus dados atuais. Nada será apagado e outros usuários não serão afetados.
             </DialogDescription>
@@ -556,7 +556,7 @@ export function SettingsView({
       <Dialog open={replaceConfirmOpen} onOpenChange={setReplaceConfirmOpen}>
         <DialogContent className="w-[calc(100vw-1.5rem)] rounded-lg sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Substituir dados atuais?</DialogTitle>
+            <DialogTitle>Substituir dados atuais</DialogTitle>
             <DialogDescription>
               Esta ação apagará seus dados atuais antes da importação. Dados de outros usuários não serão afetados.
             </DialogDescription>
@@ -581,7 +581,7 @@ export function SettingsView({
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogContent className="w-[calc(100vw-1.5rem)] rounded-lg sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Resetar meus dados?</DialogTitle>
+            <DialogTitle>Resetar meus dados</DialogTitle>
             <DialogDescription>
               Esta ação apagará todos os seus cadernos, anotações e tarefas neste app. Dados de outros usuários não serão afetados.
             </DialogDescription>
@@ -658,8 +658,8 @@ function ProFeatureRow({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          <Badge variant={active ? "secondary" : "outline"} className="rounded-full">
-            {active ? "Ativo" : "Pro"}
+          <Badge variant={active "secondary" : "outline"} className="rounded-full">
+            {active "Ativo" : "Pro"}
           </Badge>
         </div>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
@@ -675,11 +675,11 @@ function ActionButton({
   ...props
 }: React.ComponentProps<typeof Button> & {
   icon: React.ElementType;
-  loading?: boolean;
+  loading: boolean;
 }) {
   return (
     <Button {...props} className="h-10 w-full gap-2">
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+      {loading <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
       {children}
     </Button>
   );

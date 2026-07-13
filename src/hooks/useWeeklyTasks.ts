@@ -44,32 +44,32 @@ export interface WeeklyTask {
   created_at: string;
   updated_at: string;
   pending_reasons: TaskPendingReason[];
-  notebook_id?: string | null;
-  source_note_id?: string;
-  source_note_title?: string;
-  source_notebook_title?: string;
+  notebook_id: string | null;
+  source_note_id: string;
+  source_note_title: string;
+  source_notebook_title: string;
 }
 
 type CreateTaskInput = {
   title: string;
-  description?: string;
-  assignee?: string;
-  priority?: Priority;
-  progress_target?: number | null;
-  task_date?: string;
-  notebook_id?: string | null;
-  source_note_id?: string;
-  source_note_title?: string;
-  source_notebook_title?: string;
+  description: string;
+  assignee: string;
+  priority: Priority;
+  progress_target: number | null;
+  task_date: string;
+  notebook_id: string | null;
+  source_note_id: string;
+  source_note_title: string;
+  source_notebook_title: string;
 };
 
 type AddPendingReasonInput = {
   taskId: string;
   reason: string;
-  description?: string;
-  responsible?: string;
-  priority?: Priority;
-  progress_target?: number | null;
+  description: string;
+  responsible: string;
+  priority: Priority;
+  progress_target: number | null;
 };
 
 const todayKey = () => format(new Date(), "yyyy-MM-dd");
@@ -82,7 +82,7 @@ const isMissingNotebookColumnError = (error: unknown) => {
   const message = error instanceof Error
     ? error.message
     : typeof error === "object" && error && "message" in error
-      ? String((error as { message?: unknown }).message)
+      ? String((error as { message: unknown }).message)
       : String(error);
   return message.includes("notebook_id") && message.includes("schema cache");
 };
@@ -91,12 +91,12 @@ const isMissingOptionalTaskColumnError = (error: unknown) => {
   const message = error instanceof Error
     ? error.message
     : typeof error === "object" && error && "message" in error
-      ? String((error as { message?: unknown }).message)
+      ? String((error as { message: unknown }).message)
       : String(error);
   return (message.includes("notebook_id") || message.includes("description")) && message.includes("schema cache");
 };
 
-const loadTaskOrigins = (userId?: string): Record<string, StoredTaskOrigin> => {
+const loadTaskOrigins = (userId: string): Record<string, StoredTaskOrigin> => {
   if (!userId || typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(taskOriginStorageKey(userId));
@@ -139,7 +139,7 @@ export function useWeeklyTasks() {
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["tasks", user?.id],
+    queryKey: ["tasks", user.id],
     enabled: !!user,
     queryFn: async (): Promise<WeeklyTask[]> => {
       const { data: tasks, error } = await supabase
@@ -163,7 +163,7 @@ export function useWeeklyTasks() {
         reasons = (reasonRows || []) as unknown as TaskPendingReason[];
       }
 
-      const origins = loadTaskOrigins(user?.id);
+      const origins = loadTaskOrigins(user.id);
 
       return ((tasks || []) as WeeklyTaskRow[]).map((task) => ({
         ...task,
@@ -186,8 +186,8 @@ export function useWeeklyTasks() {
       const day = task_date || todayKey();
       const basePayload = {
         title,
-        description: description?.trim() || null,
-        assignee: assignee?.trim() || null,
+        description: description.trim() || null,
+        assignee: assignee.trim() || null,
         priority: priority || "medium",
         progress_target: progress_target ?? null,
         progress_current: 0,
@@ -222,7 +222,7 @@ export function useWeeklyTasks() {
     },
     onSuccess: (createdTask, variables) => {
       if (variables.notebook_id || variables.source_note_id || variables.source_note_title || variables.source_notebook_title) {
-        saveTaskOrigin(user?.id, createdTask.id, {
+        saveTaskOrigin(user.id, createdTask.id, {
           notebook_id: variables.notebook_id || null,
           source_note_id: variables.source_note_id,
           source_note_title: variables.source_note_title,
@@ -272,8 +272,8 @@ export function useWeeklyTasks() {
         result = await supabase.from("weekly_tasks").update(fallbackPayload).eq("id", id);
       }
       if (notebook_id !== undefined) {
-        const previous = loadTaskOrigins(user?.id)[id] || {};
-        saveTaskOrigin(user?.id, id, {
+        const previous = loadTaskOrigins(user.id)[id] || {};
+        saveTaskOrigin(user.id, id, {
           ...previous,
           notebook_id,
           source_notebook_title,
@@ -299,7 +299,7 @@ export function useWeeklyTasks() {
       if (matchingTasks.length === 0) return 0;
 
       updateTaskOriginsBySourceNote(
-        user?.id,
+        user.id,
         matchingTasks.map((task) => task.id),
         notebook_id,
         source_notebook_title
@@ -361,8 +361,8 @@ export function useWeeklyTasks() {
         task_id: taskId,
         user_id: user!.id,
         reason,
-        description: description?.trim() || null,
-        responsible: responsible?.trim() || null,
+        description: description.trim() || null,
+        responsible: responsible.trim() || null,
         priority: priority || "medium",
         progress_target: progress_target ?? null,
         progress_current: 0,
@@ -469,7 +469,7 @@ export function useTaskHistory() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["task-history", user?.id],
+    queryKey: ["task-history", user.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase

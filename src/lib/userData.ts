@@ -36,7 +36,7 @@ export type ImportMode = "merge" | "replace";
 
 const taskOriginStorageKey = (userId: string) => `vistaTaskOrigins:${userId}`;
 
-const requireUser = (userId?: string) => {
+const requireUser = (userId: string) => {
   if (!userId) throw new Error("Usuário não autenticado.");
 };
 
@@ -92,18 +92,16 @@ export async function collectUserBackup(userId: string, settings: UserSettings):
   const tagIds = tags.map((tag) => tag.id);
 
   const pageTagsResult = noteIds.length > 0 || tagIds.length > 0
-    ? await supabase
+    await supabase
       .from("page_tags")
       .select("*")
       .or([
-        noteIds.length ? `page_id.in.(${noteIds.join(",")})` : "",
-        tagIds.length ? `tag_id.in.(${tagIds.join(",")})` : "",
+        noteIds.length `page_id.in.(${noteIds.join(",")})` : "",
+        tagIds.length `tag_id.in.(${tagIds.join(",")})` : "",
       ].filter(Boolean).join(","))
     : { data: [], error: null };
 
-  const versionsResult = noteIds.length > 0
-    ? await supabase.from("page_versions").select("*").in("page_id", noteIds)
-    : { data: [], error: null };
+  const versionsResult = noteIds.length > 0 ? await supabase.from("page_versions").select("*").in("page_id", noteIds) : { data: [], error: null };
 
   if (pageTagsResult.error) throw pageTagsResult.error;
   if (versionsResult.error) throw versionsResult.error;
@@ -146,15 +144,15 @@ export function validateBackup(input: unknown): VistaBackup {
   return {
     ...backup,
     data: {
-      notebooks: Array.isArray(backup.data.notebooks) ? backup.data.notebooks : [],
-      notes: Array.isArray(backup.data.notes) ? backup.data.notes : [],
-      tasks: Array.isArray(backup.data.tasks) ? backup.data.tasks : [],
-      taskPendingReasons: Array.isArray(backup.data.taskPendingReasons) ? backup.data.taskPendingReasons : [],
-      tags: Array.isArray(backup.data.tags) ? backup.data.tags : [],
-      pageTags: Array.isArray(backup.data.pageTags) ? backup.data.pageTags : [],
-      pageVersions: Array.isArray(backup.data.pageVersions) ? backup.data.pageVersions : [],
-      taskOrigins: backup.data.taskOrigins || {},
-      settings: backup.data.settings || { hasSeenOnboarding: true, validationChecklist: {} },
+      notebooks: Array.isArray(backup.data?.notebooks) backup.data?.notebooks : [],
+      notes: Array.isArray(backup.data?.notes) backup.data?.notes : [],
+      tasks: Array.isArray(backup.data?.tasks) backup.data?.tasks : [],
+      taskPendingReasons: Array.isArray(backup.data?.taskPendingReasons) backup.data?.taskPendingReasons : [],
+      tags: Array.isArray(backup.data?.tags) backup.data?.tags : [],
+      pageTags: Array.isArray(backup.data?.pageTags) backup.data?.pageTags : [],
+      pageVersions: Array.isArray(backup.data?.pageVersions) backup.data?.pageVersions : [],
+      taskOrigins: backup.data?.taskOrigins || {},
+      settings: backup.data?.settings || { hasSeenOnboarding: true, validationChecklist: {} },
     },
   };
 }
@@ -184,7 +182,7 @@ export async function resetUserData(userId: string, recreateDefaults = true) {
   ];
 
   const results = await Promise.all(operations);
-  const firstError = results.find((result) => result.error)?.error;
+  const firstError = results.find((result) => result.error).error;
   if (firstError) throw firstError;
 
   setTaskOrigins(userId, {});
@@ -213,11 +211,11 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
 
   const notebookIdMap = new Map<string, string>();
   const existingByTitle = new Map((existingNotebooks || []).map((notebook) => [notebook.title.trim().toLowerCase(), notebook.id]));
-  let nextPosition = existingNotebooks?.length || 0;
+  let nextPosition = existingNotebooks.length || 0;
 
-  for (const notebook of validBackup.data.notebooks) {
+  for (const notebook of validBackup.data?.notebooks) {
     const title = notebook.title || "Caderno importado";
-    const existingId = mode === "merge" ? existingByTitle.get(title.trim().toLowerCase()) : undefined;
+    const existingId = mode === "merge" existingByTitle.get(title.trim().toLowerCase()) : undefined;
     if (existingId) {
       notebookIdMap.set(notebook.id, existingId);
       continue;
@@ -248,7 +246,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
 
   const fallbackNotebookId = Array.from(notebookIdMap.values())[0];
   const pageIdMap = new Map<string, string>();
-  for (const note of validBackup.data.notes) {
+  for (const note of validBackup.data?.notes) {
     const { data, error } = await supabase
       .from("pages")
       .insert({
@@ -266,7 +264,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
   }
 
   const tagIdMap = new Map<string, string>();
-  for (const tag of validBackup.data.tags) {
+  for (const tag of validBackup.data?.tags) {
     const { data, error } = await supabase
       .from("tags")
       .insert({
@@ -281,7 +279,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
     tagIdMap.set(tag.id, data.id);
   }
 
-  const pageTagsToInsert = validBackup.data.pageTags
+  const pageTagsToInsert = validBackup.data?.pageTags
     .map((pageTag) => ({
       page_id: pageIdMap.get(pageTag.page_id),
       tag_id: tagIdMap.get(pageTag.tag_id),
@@ -293,7 +291,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
   }
 
   const taskIdMap = new Map<string, string>();
-  for (const task of validBackup.data.tasks) {
+  for (const task of validBackup.data?.tasks) {
     const taskDate = task.task_date || format(new Date(), "yyyy-MM-dd");
     const { data, error } = await supabase
       .from("weekly_tasks")
@@ -317,7 +315,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
     taskIdMap.set(task.id, data.id);
   }
 
-  for (const reason of validBackup.data.taskPendingReasons) {
+  for (const reason of validBackup.data?.taskPendingReasons) {
     const taskId = taskIdMap.get(reason.task_id);
     if (!taskId) continue;
     const { error } = await supabase.from("task_pending_reasons").insert({
@@ -334,11 +332,11 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
     if (error) throw error;
   }
 
-  const nextOrigins: Record<string, unknown> = mode === "merge" ? getTaskOrigins(userId) : {};
-  Object.entries(validBackup.data.taskOrigins || {}).forEach(([oldTaskId, origin]) => {
+  const nextOrigins: Record<string, unknown> = mode === "merge" getTaskOrigins(userId) : {};
+  Object.entries(validBackup.data?.taskOrigins || {}).forEach(([oldTaskId, origin]) => {
     const newTaskId = taskIdMap.get(oldTaskId);
     if (!newTaskId || !origin || typeof origin !== "object") return;
-    const typedOrigin = origin as { notebook_id?: string; source_note_id?: string };
+    const typedOrigin = origin as { notebook_id: string; source_note_id: string };
     nextOrigins[newTaskId] = {
       ...typedOrigin,
       notebook_id: typedOrigin.notebook_id ? notebookIdMap.get(typedOrigin.notebook_id) || typedOrigin.notebook_id : typedOrigin.notebook_id,
@@ -363,7 +361,7 @@ export async function loadSampleData(userId: string) {
 
   const byTitle = new Map((existing || []).map((notebook) => [notebook.title.trim().toLowerCase(), notebook]));
   const notebooks = new Map<string, NotebookRow>();
-  let position = existing?.length || 0;
+  let position = existing.length || 0;
 
   for (const title of notebookTitles) {
     const current = byTitle.get(title.toLowerCase());
@@ -391,12 +389,12 @@ export async function loadSampleData(userId: string) {
 
   for (const [index, note] of noteInputs.entries()) {
     const content: Block[] = note.checklist
-      ? note.checklist.map((item) => makeBlock("checklist", item, { checked: false }))
+      note.checklist.map((item) => makeBlock("checklist", item, { checked: false }))
       : [makeBlock("freeform", note.text || "")];
     const { error } = await supabase.from("pages").insert({
       title: note.title,
       content: content as unknown as Json,
-      notebook_id: notebooks.get(note.notebook)?.id || notebooks.get("Geral")!.id,
+      notebook_id: notebooks.get(note.notebook).id || notebooks.get("Geral")!.id,
       position: index,
       user_id: userId,
     });
@@ -416,7 +414,7 @@ export async function loadSampleData(userId: string) {
   const { error: taskError } = await supabase.from("weekly_tasks").insert(taskInputs.map((task) => ({
     title: task.title,
     description: task.description,
-    notebook_id: notebooks.get(task.notebook)?.id || notebooks.get("Geral")!.id,
+    notebook_id: notebooks.get(task.notebook).id || notebooks.get("Geral")!.id,
     priority: task.priority,
     progress_current: 0,
     progress_target: null,

@@ -34,7 +34,7 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings, onOpenCommandPale
   const navigate = useNavigate();
   const location = useLocation();
 
-  const initials = user?.email?.slice(0, 2).toUpperCase() || "?";
+  const initials = user.email?.slice(0, 2).toUpperCase() || "";
 
   return (
     <header
@@ -96,7 +96,7 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings, onOpenCommandPale
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem className="font-mono-accent text-xs text-muted-foreground" disabled>
-              {user?.email}
+              {user.email}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onOpenSettings}>
               <Settings className="mr-2 h-4 w-4" />

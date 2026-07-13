@@ -243,7 +243,7 @@ function QuickCaptureBar({
 
         <div className="flex flex-col gap-2 sm:flex-row lg:w-44 lg:flex-col">
           <Button className="h-11 gap-2" onClick={onSave} disabled={!value.trim() || pending}>
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Salvar
           </Button>
           <Button type="button" variant="outline" className="h-11" onClick={onOpenAdvancedCapture}>
@@ -566,8 +566,8 @@ function EmptyPanel({
   icon: React.ElementType;
   title: string;
   text: string;
-  cta?: string;
-  onAction?: () => void;
+  cta: string;
+  onAction: () => void;
 }) {
   return (
     <div className="rounded-md border border-dashed border-border bg-background/35 p-6 text-center">

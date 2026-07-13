@@ -26,7 +26,7 @@ export function EmptyState({
         {!hasNotebooks ? (
           <>
             <div>
-              <h2 className="mb-1 text-lg font-semibold">Bem-vindo ao VISTA Tasks Control</h2>
+              <h2 className="mb-1 text-lg font-semibold">Bem-vindo ao VISTA Task Control</h2>
               <p className="text-sm text-muted-foreground">
                 Crie seu primeiro caderno para organizar anotações por tema.
               </p>

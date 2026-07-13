@@ -74,7 +74,7 @@ export function generatePagePdf(
         prefix = `${listCounter}.  `;
         break;
       case "checklist":
-        prefix = block.checked ? "☑  " : "☐  ";
+        prefix = block.checked "☑  " : "☐  ";
         break;
       default:
         listCounter = 0;
@@ -170,7 +170,7 @@ export function generateNotebookPdf(
         case "heading3": fontSize = 12; fontStyle = "bold"; break;
         case "bullet-list": prefix = "•  "; listCounter = 0; break;
         case "numbered-list": listCounter++; prefix = `${listCounter}.  `; break;
-        case "checklist": prefix = block.checked ? "☑  " : "☐  "; break;
+        case "checklist": prefix = block.checked "☑  " : "☐  "; break;
         default: listCounter = 0;
       }
 

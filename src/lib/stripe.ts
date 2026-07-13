@@ -5,8 +5,8 @@ type StripeEnv = "sandbox" | "live";
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 
 function paymentsEnvironment(): StripeEnv {
-  if (clientToken?.startsWith("pk_test_")) return "sandbox";
-  if (clientToken?.startsWith("pk_live_")) return "live";
+  if (clientToken.startsWith("pk_test_")) return "sandbox";
+  if (clientToken.startsWith("pk_live_")) return "live";
   throw new Error(
     "Pagamentos não estão configurados para este build. Complete o go-live no painel de pagamentos para aceitar pagamentos reais.",
   );
@@ -27,5 +27,5 @@ export function getStripeEnvironment(): StripeEnv {
 }
 
 export function isPaymentsConfigured(): boolean {
-  return clientToken?.startsWith("pk_test_") || clientToken?.startsWith("pk_live_") || false;
+  return clientToken.startsWith("pk_test_") || clientToken.startsWith("pk_live_") || false;
 }

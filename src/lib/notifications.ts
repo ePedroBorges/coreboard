@@ -10,7 +10,7 @@ export function areNotificationsSupported() {
   return Capacitor.isNativePlatform() || (typeof window !== "undefined" && "Notification" in window);
 }
 
-export function readNotificationsEnabled(userId?: string) {
+export function readNotificationsEnabled(userId: string) {
   if (!userId || typeof window === "undefined") return false;
   return window.localStorage.getItem(enabledKey(userId)) === "true";
 }
@@ -37,7 +37,7 @@ export async function requestNotificationPermission() {
   return false;
 }
 
-export async function scheduleTaskNotifications(tasks: WeeklyTask[], userId?: string) {
+export async function scheduleTaskNotifications(tasks: WeeklyTask[], userId: string) {
   if (!userId || !readNotificationsEnabled(userId)) return;
 
   const pendingTasks = tasks

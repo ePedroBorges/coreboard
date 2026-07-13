@@ -68,10 +68,10 @@ const taskDateTime = (task: WeeklyTask, field: "task_date" | "completed_at" = "t
 };
 
 interface WeeklyTaskManagerProps {
-  notebooks?: Notebook[];
-  defaultNotebookId?: string;
-  pinnedTaskIds?: string[];
-  onTogglePinnedTask?: (taskId: string) => void;
+  notebooks: Notebook[];
+  defaultNotebookId: string;
+  pinnedTaskIds: string[];
+  onTogglePinnedTask: (taskId: string) => void;
 }
 
 export function WeeklyTaskManager({
@@ -496,11 +496,11 @@ export function WeeklyTaskManager({
                       const hasCompleted = dayTasks.some((task) => task.status === "completed");
 
                       const tone = isToday
-                        ? "border-primary/60 bg-primary/10 text-primary"
+                        "border-primary/60 bg-primary/10 text-primary"
                         : hasPending
-                          ? "border-warning/60 bg-warning/10 text-warning"
+                          "border-warning/60 bg-warning/10 text-warning"
                           : hasCompleted
-                            ? "border-success/60 bg-success/10 text-success"
+                            "border-success/60 bg-success/10 text-success"
                             : "border-border/50 text-foreground hover:border-border hover:bg-secondary/40";
 
                       return (
@@ -518,7 +518,7 @@ export function WeeklyTaskManager({
                             <span
                               className={cn(
                                 "mt-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-background",
-                                isToday ? "bg-primary" : hasPending ? "bg-warning" : "bg-success"
+                                isToday "bg-primary" : hasPending "bg-warning" : "bg-success"
                               )}
                             >
                               {count}
@@ -560,7 +560,7 @@ export function WeeklyTaskManager({
           </Button>
         </div>
 
-        {isLoading ? (
+        {isLoading (
           <div className="flex min-h-52 items-center justify-center rounded-lg border border-border/60 bg-card/70">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
@@ -585,10 +585,10 @@ export function WeeklyTaskManager({
                 key={task.id}
                 task={{
                   ...task,
-                  source_notebook_title: task.source_notebook_title || (task.notebook_id ? notebookTitleById.get(task.notebook_id) : undefined),
+                  source_notebook_title: task.source_notebook_title || (task.notebook_id notebookTitleById.get(task.notebook_id) : undefined),
                 }}
                 pinned={pinnedTaskIds.includes(task.id)}
-                onTogglePinned={() => onTogglePinnedTask?.(task.id)}
+                onTogglePinned={() => onTogglePinnedTask.(task.id)}
                 onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
                 onDelete={() => deleteTask.mutate(task.id)}
                 onAddReason={(input) => addPendingReason.mutate({ taskId: task.id, ...input })}
@@ -693,10 +693,10 @@ const TaskCard = memo(function TaskCard({
 }: {
   task: WeeklyTask;
   pinned: boolean;
-  onTogglePinned?: () => void;
+  onTogglePinned: () => void;
   onUpdate: (updates: Partial<WeeklyTask>) => void;
   onDelete: () => void;
-  onAddReason: (input: { reason: string; description?: string; responsible?: string; priority?: Priority; progress_target?: number | null }) => void;
+  onAddReason: (input: { reason: string; description: string; responsible: string; priority: Priority; progress_target: number | null }) => void;
   onUpdateReason: (id: string, updates: Partial<TaskPendingReason>) => void;
   onDeleteReason: (id: string) => void;
   onCompleteReason: (id: string) => void;
@@ -751,7 +751,7 @@ const TaskCard = memo(function TaskCard({
     const reachedTarget = !!task.progress_target && value >= task.progress_target;
     onUpdate({
       progress_current: value,
-      status: reachedTarget ? "completed" : "pending",
+      status: reachedTarget "completed" : "pending",
     });
   };
 
@@ -764,7 +764,7 @@ const TaskCard = memo(function TaskCard({
           className="mt-0.5 shrink-0 rounded-md border border-border/50 bg-background/40 p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Expandir tarefa"
         >
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          {expanded <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
 
         <div className="min-w-0 flex-1">
@@ -785,7 +785,7 @@ const TaskCard = memo(function TaskCard({
                 task.status === "completed" ? "border-success/40 text-success" : "border-warning/40 text-warning"
               )}
             >
-              {task.status === "completed" ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}
+              {task.status === "completed" <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}
               {statusLabel[task.status]}
             </Badge>
             {openReasons > 0 && (
@@ -831,7 +831,7 @@ const TaskCard = memo(function TaskCard({
               size="icon"
               className="h-10 w-10 sm:h-9 sm:w-9"
               onClick={onTogglePinned}
-              title={pinned ? "Desafixar tarefa" : "Fixar tarefa"}
+              title={pinned "Desafixar tarefa" : "Fixar tarefa"}
             >
               <Pin className={cn("h-4 w-4", pinned && "fill-warning text-warning")} />
             </Button>
@@ -851,7 +851,7 @@ const TaskCard = memo(function TaskCard({
       {expanded && (
         <div className="space-y-4 border-t border-border/40 bg-background/25 p-3 sm:p-4">
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px_auto]">
-            {editingTitle ? (
+            {editingTitle (
               <Input
                 autoFocus
                 value={titleDraft}
@@ -1017,7 +1017,7 @@ function ReasonRow({
     const reachedTarget = !!reason.progress_target && value >= reason.progress_target;
     onUpdate({
       progress_current: value,
-      completed_at: reachedTarget ? new Date().toISOString() : null,
+      completed_at: reachedTarget new Date().toISOString() : null,
     });
   };
 
@@ -1025,7 +1025,7 @@ function ReasonRow({
     <div className="rounded-md border border-border/40 bg-background/35 p-2">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-start">
         <div className="min-w-0 flex-1">
-          {editing ? (
+          {editing (
             <Textarea
               autoFocus
               value={draft}
@@ -1113,7 +1113,7 @@ function Metric({
 }: {
   label: string;
   value: number;
-  tone?: "success" | "warning";
+  tone: "success" | "warning";
   icon: ReactNode;
 }) {
   return (

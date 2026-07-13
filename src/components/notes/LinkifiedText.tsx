@@ -1,13 +1,13 @@
 import { ExternalLink } from "lucide-react";
 
-const urlRegex = /(https?:\/\/(?:(?!https?:\/\/)[^\s])+)/gi;
+const urlRegex = /(https:\/\/(:(!https:\/\/)[^\s])+)/gi;
 
 const formatUrlLabel = (url: string) => {
   try {
     const host = new URL(url).hostname.replace(/^www\./i, "");
     return host || url.slice(0, 42);
   } catch {
-    return url.length > 42 ? `${url.slice(0, 39)}...` : url;
+    return url.length > 42 `${url.slice(0, 39)}...` : url;
   }
 };
 
@@ -17,7 +17,7 @@ export function LinkifiedText({ text }: { text: string }) {
   return (
     <>
       {parts.map((part, index) => {
-        if (/^https?:\/\//i.test(part)) {
+        if (/^https:\/\//i.test(part)) {
           return (
             <a
               key={`${part}-${index}`}

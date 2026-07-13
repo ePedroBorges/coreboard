@@ -75,7 +75,7 @@ const Auth = () => {
         <div className="flex flex-col items-center gap-3 text-center">
           <img src="/vista-icon.svg" alt="VISTA Tasks Control" className="h-14 w-14 rounded-lg glow-sm" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">VISTA Tasks Control</h1>
+            <h1 className="text-2xl font-bold tracking-tight">VISTA Task Control</h1>
             <p className="font-mono-accent text-xs text-muted-foreground">Controle total em suas atividades e ideias</p>
           </div>
         </div>
@@ -125,14 +125,14 @@ const Auth = () => {
             <div className="mt-4 text-center text-sm">
               {mode === "login" ? (
                 <p className="text-muted-foreground">
-                  Nao tem conta?{" "}
+                  Nao tem conta{" "}
                   <button type="button" onClick={() => setMode("signup")} className="text-primary hover:underline">
                     Criar conta
                   </button>
                 </p>
               ) : (
                 <p className="text-muted-foreground">
-                  Ja tem conta?{" "}
+                  Ja tem conta{" "}
                   <button type="button" onClick={() => setMode("login")} className="text-primary hover:underline">
                     Entrar
                   </button>

@@ -37,10 +37,10 @@ interface PageEditorProps {
   onUpdate: (updates: Partial<Page>) => void;
   focusMode: boolean;
   onExitFocus: () => void;
-  onCreateTaskFromPage?: (page: Page) => void;
-  onDelete?: () => void;
-  notebooks?: Notebook[];
-  onNotebookChange?: (notebookId: string) => void;
+  onCreateTaskFromPage: (page: Page) => void;
+  onDelete: () => void;
+  notebooks: Notebook[];
+  onNotebookChange: (notebookId: string) => void;
 }
 
 export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
@@ -139,7 +139,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
 
       if (method === "email") {
         const anchor = document.createElement("a");
-        anchor.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a anotação: " + title)}`;
+        anchor.href = `mailto:subject=${encodeURIComponent(title)}&body=${encodeURIComponent("Segue a anotação: " + title)}`;
         anchor.click();
         toast.info("Abra seu cliente de e-mail e anexe o PDF baixado.");
       } else {
@@ -226,7 +226,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
                 size="icon"
                 className="h-10 w-10 text-destructive hover:text-destructive sm:h-7 sm:w-7"
                 onClick={() => {
-                  if (window.confirm("Excluir esta anotação permanentemente?")) onDelete();
+                  if (window.confirm("Excluir esta anotação permanentemente")) onDelete();
                 }}
                 title="Excluir anotação"
               >

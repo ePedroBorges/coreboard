@@ -6,11 +6,11 @@ import { cn } from "@/lib/utils";
 
 interface GamificationPanelProps {
   stats: GamificationStats;
-  compact?: boolean;
+  compact: boolean;
 }
 
 export function GamificationPanel({ stats, compact = false }: GamificationPanelProps) {
-  const visibleRewards = compact ? GAMIFICATION_REWARDS.slice(0, 3) : GAMIFICATION_REWARDS;
+  const visibleRewards = compact GAMIFICATION_REWARDS.slice(0, 3) : GAMIFICATION_REWARDS;
 
   return (
     <section className="overflow-hidden rounded-lg border border-primary/20 bg-card/80 shadow-sm ring-1 ring-white/5">
@@ -41,7 +41,7 @@ export function GamificationPanel({ stats, compact = false }: GamificationPanelP
         </div>
       </div>
 
-      <div className={cn("grid gap-3 p-4", compact ? "lg:grid-cols-[0.75fr_1.25fr]" : "lg:grid-cols-[0.85fr_1.15fr]")}>
+      <div className={cn("grid gap-3 p-4", compact "lg:grid-cols-[0.75fr_1.25fr]" : "lg:grid-cols-[0.85fr_1.15fr]")}>
         <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
           <Metric icon={CheckCircle2} label="Tarefas" value={stats.completedTasks} />
           <Metric icon={NotebookPen} label="Notas" value={stats.notesCreated} />
@@ -56,21 +56,21 @@ export function GamificationPanel({ stats, compact = false }: GamificationPanelP
                 key={reward.level}
                 className={cn(
                   "flex gap-3 rounded-md border p-3",
-                  unlocked ? "border-primary/30 bg-primary/10" : "border-border/60 bg-background/35"
+                  unlocked "border-primary/30 bg-primary/10" : "border-border/60 bg-background/35"
                 )}
               >
                 <span
                   className={cn(
                     "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
-                    unlocked ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    unlocked "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {unlocked ? <Gift className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                  {unlocked <Gift className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
                 </span>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-foreground">{reward.title}</p>
-                    <Badge variant={unlocked ? "secondary" : "outline"} className="rounded-full">
+                    <Badge variant={unlocked "secondary" : "outline"} className="rounded-full">
                       Nivel {reward.level}
                     </Badge>
                   </div>

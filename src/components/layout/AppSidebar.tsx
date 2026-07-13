@@ -32,8 +32,8 @@ interface AppSidebarProps {
   selectedPageId: string | null;
   onToggleSidebarPinned: () => void;
   onMouseLeave: () => void;
-  onSelectToday?: () => void;
-  onSelectNotes?: () => void;
+  onSelectToday: () => void;
+  onSelectNotes: () => void;
   onOpenNotebook: (id: string) => void;
   onOpenPage: (page: Page) => void;
   onSelectTasks: () => void;
@@ -144,7 +144,7 @@ export function AppSidebar({
                                 Caderno
                               </Badge>
                               <span className="truncate text-[10px] text-muted-foreground">
-                                {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anotação" : "anotações"}
+                                {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anota??o" : "anota??es"}
                               </span>
                             </span>
                           </span>
@@ -270,7 +270,8 @@ function MobileBottomNavButton({
       className={cn(
         "flex h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded text-[10px] font-medium transition-colors",
         active
-          ? "bg-primary/15 text-primary ring-1 ring-primary/40"
+          ?
+          "bg-primary/15 text-primary ring-1 ring-primary/40"
           : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
     >
@@ -290,7 +291,7 @@ function NavItem({
   active: boolean;
   icon: React.ElementType;
   label: string;
-  onClick?: () => void;
+  onClick: () => void;
   collapsed: boolean;
 }) {
   return (

@@ -11,8 +11,8 @@ export function generateNoteId() {
 }
 
 export function getNoteTags(pageOrBlocks: Page | Block[] | undefined): string[] {
-  const blocks = Array.isArray(pageOrBlocks) ? pageOrBlocks : pageOrBlocks?.content;
-  const tags = blocks?.find((block) => block.meta?.[NOTE_META_KEY])?.meta?.tags;
+  const blocks = Array.isArray(pageOrBlocks) ? pageOrBlocks : pageOrBlocks?.content || [];
+  const tags = blocks.find((block) => block.meta?.[NOTE_META_KEY])?.meta?.tags;
   return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0) : [];
 }
 
@@ -41,10 +41,10 @@ export function blocksToText(blocks: Block[] = []) {
 }
 
 export function getNoteTitle(page: Page) {
-  const title = page.title?.trim();
-  if (title && title !== "Nova entrada" && title !== "Nova anotação" && title !== "Untitled Page") return title;
+  const title = page.title.trim();
+  if (title && title !== "Nova anota??o" && title !== "Nova anotação" && title !== "Untitled Page") return title;
   const firstLine = blocksToText(page.content).split("\n").find((line) => line.trim());
-  return firstLine?.trim().slice(0, 80) || "Nova anotação";
+  return firstLine?.trim().slice(0, 80) || "Nova anota??o";
 }
 
 export function getNotePreview(page: Page, maxLength = 120) {
@@ -54,14 +54,14 @@ export function getNotePreview(page: Page, maxLength = 120) {
 }
 
 export function pageHasChecklist(page: Page) {
-  return page.content?.some((block) => block.type === "checklist") ?? false;
+  return page.content?.some((block) => block.type === "checklist") || false;
 }
 
 export function pageHasLink(page: Page) {
-  return /https?:\/\/\S+/i.test(blocksToText(page.content));
+  return /https:\/\/\S+/i.test(blocksToText(page.content));
 }
 
-export function makeNoteBlocks(content: string, checklistItems: { text: string; checked?: boolean }[], tags: string[]): Block[] {
+export function makeNoteBlocks(content: string, checklistItems: { text: string; checked: boolean }[], tags: string[]): Block[] {
   const textBlocks = content
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())
@@ -85,7 +85,7 @@ export function makeNoteBlocks(content: string, checklistItems: { text: string; 
   return setNoteTags([...textBlocks, ...checklistBlocks], tags);
 }
 
-export function makeLineByLineNoteBlocks(content: string, checklistItems: { text: string; checked?: boolean }[], tags: string[]): Block[] {
+export function makeLineByLineNoteBlocks(content: string, checklistItems: { text: string; checked: boolean }[], tags: string[]): Block[] {
   const textBlocks = content
     .split(/\n+/)
     .map((line) => line.trim())
@@ -109,7 +109,7 @@ export function makeLineByLineNoteBlocks(content: string, checklistItems: { text
   return setNoteTags([...textBlocks, ...checklistBlocks], tags);
 }
 
-export function makeFreeformNoteBlocks(content: string, checklistItems: { text: string; checked?: boolean }[], tags: string[]): Block[] {
+export function makeFreeformNoteBlocks(content: string, checklistItems: { text: string; checked: boolean }[], tags: string[]): Block[] {
   const textBlocks = content.trim()
     ? [{
         id: generateNoteId(),

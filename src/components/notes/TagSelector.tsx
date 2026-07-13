@@ -9,7 +9,7 @@ import { useState } from "react";
 interface TagSelectorProps {
   value: string[];
   onChange: (tags: string[]) => void;
-  compact?: boolean;
+  compact: boolean;
 }
 
 export function TagSelector({ value, onChange, compact }: TagSelectorProps) {
@@ -42,7 +42,7 @@ export function TagSelector({ value, onChange, compact }: TagSelectorProps) {
             className={cn(
               "rounded-full border px-2.5 py-1 text-xs transition-colors",
               selected.has(tag)
-                ? "border-primary/50 bg-primary/15 text-primary"
+                "border-primary/50 bg-primary/15 text-primary"
                 : "border-border bg-background/45 text-muted-foreground hover:text-foreground"
             )}
           >

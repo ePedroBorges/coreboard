@@ -15,7 +15,8 @@ const CheckoutReturn = () => {
         <h1 className="text-2xl font-bold">Pagamento concluído!</h1>
         <p className="text-sm text-muted-foreground">
           {sessionId
-            ? "Sua assinatura está sendo ativada. Você já pode voltar e usar todos os recursos Pro."
+            ?
+            "Sua assinatura está sendo ativada. Você já pode voltar e usar todos os recursos Pro."
             : "Obrigado! Retorne ao app para continuar."}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">

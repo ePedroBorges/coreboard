@@ -23,7 +23,7 @@ const mapPageUpdate = (updates: Partial<Page>): PageUpdate => {
   };
 };
 
-export function usePages(notebookId?: string) {
+export function usePages(notebookId: string) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -42,7 +42,7 @@ export function usePages(notebookId?: string) {
   });
 
   const createPage = useMutation({
-    mutationFn: async (input: string | { title?: string; content?: Block[]; notebookId?: string } = "Nova anotação") => {
+    mutationFn: async (input: string | { title: string; content: Block[]; notebookId: string } = "Nova anotação") => {
       const title = typeof input === "string" ? input : input.title || "Nova anotação";
       const content = typeof input === "string" ? [] : input.content || [];
       const targetNotebookId = typeof input === "string" ? notebookId! : input.notebookId || notebookId!;
@@ -145,7 +145,7 @@ export function useFavoritePages() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["favorite-pages", user?.id],
+    queryKey: ["favorite-pages", user.id],
     enabled: !!user,
     queryFn: async (): Promise<Page[]> => {
       const { data, error } = await supabase
@@ -163,7 +163,7 @@ export function useAllPages() {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["all-pages", user?.id],
+    queryKey: ["all-pages", user.id],
     enabled: !!user,
     queryFn: async (): Promise<Page[]> => {
       const { data, error } = await supabase

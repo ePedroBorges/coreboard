@@ -78,7 +78,7 @@ const savePinnedIds = (userId: string | undefined, type: "notebooks" | "tasks", 
   window.localStorage.setItem(pinnedIdsStorageKey(userId, type), JSON.stringify(ids));
 };
 
-const sameNavigationState = (a?: AppNavigationState, b?: AppNavigationState) => (
+const sameNavigationState = (a: AppNavigationState, b: AppNavigationState) => (
   !!a && !!b &&
   a.activeView === b.activeView &&
   a.selectedNotebookId === b.selectedNotebookId &&
@@ -139,7 +139,7 @@ const Index = () => {
   const defaultNotebookId = generalNotebook?.id;
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId) || allPages.data?.find((p) => p.id === selectedPageId);
   const sidebarOpen = sidebarPinned;
-  const searchPlaceholder = isMobile ? "Buscar..." : "Buscar tarefas, anotações, cadernos, links ou tags...";
+  const searchPlaceholder = isMobile ? "Buscar..." : "Buscar tarefas, anota??es, cadernos, links ou tags...";
   const notebookTitleById = useMemo(() => {
     const map = new Map<string, string>();
     (notebooks.data || []).forEach((notebook) => map.set(notebook.id, notebook.title));
@@ -183,13 +183,13 @@ const Index = () => {
     notebookCount: notebooks.data?.length || 0,
     completedChecklist,
   }), [allPages.data, completedChecklist, notebooks.data?.length, normalizedTasks]);
-  const notifications = useNotifications(user?.id, normalizedTasks);
+  const notifications = useNotifications(user.id, normalizedTasks);
 
   useEffect(() => {
     setNavigationStack([]);
-    setPinnedNotebookIds(loadPinnedIds(user?.id, "notebooks"));
-    setPinnedTaskIds(loadPinnedIds(user?.id, "tasks"));
-  }, [user?.id]);
+    setPinnedNotebookIds(loadPinnedIds(user.id, "notebooks"));
+    setPinnedTaskIds(loadPinnedIds(user.id, "tasks"));
+  }, [user.id]);
 
   // Sync URL -> activeView on browser back/forward or refresh
   useEffect(() => {
@@ -210,10 +210,10 @@ const Index = () => {
   }, [activeView, selectedPageId]);
 
   useEffect(() => {
-    if (user?.id && !userSettings.settings.hasSeenOnboarding && shouldShowInitialOnboarding(user.id)) {
+    if (user.id && !userSettings.settings.hasSeenOnboarding && shouldShowInitialOnboarding(user.id)) {
       setOnboardingOpen(true);
     }
-  }, [user?.id, userSettings.settings.hasSeenOnboarding]);
+  }, [user.id, userSettings.settings.hasSeenOnboarding]);
 
   const currentNavigationState = useMemo<AppNavigationState>(() => ({
     activeView,
@@ -331,13 +331,13 @@ const Index = () => {
 
   const handleFinishOnboarding = useCallback(() => {
     userSettings.setHasSeenOnboarding(true);
-    clearInitialOnboardingMarker(user?.id);
+    clearInitialOnboardingMarker(user.id);
     setOnboardingOpen(false);
     setActiveView("today");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
     setSearchQuery("");
-  }, [user?.id, userSettings]);
+  }, [user.id, userSettings]);
 
   const handleOpenNotebook = useCallback((id: string) => {
     pushNavigationState();
@@ -352,7 +352,7 @@ const Index = () => {
     return notesFilter !== "all" && notesFilter !== "favorites" ? notesFilter : undefined;
   }, [notesFilter]);
 
-  const openQuickCapture = useCallback((notebookId?: string) => {
+  const openQuickCapture = useCallback((notebookId: string) => {
     setQuickCaptureNotebookId(notebookId || getNotebookIdForNotesFilter() || selectedNotebookId || defaultNotebookId);
     setQuickCaptureOpen(true);
   }, [defaultNotebookId, getNotebookIdForNotesFilter, selectedNotebookId]);
@@ -374,7 +374,7 @@ const Index = () => {
   const ensureNotebookId = useCallback(async () => {
     if (selectedNotebookId) return selectedNotebookId;
     if (defaultNotebookId) return defaultNotebookId;
-    if (notebooks.data?.[0]?.id) return notebooks.data[0].id;
+    if (notebooks.data?.[0].id) return notebooks.data[0].id;
     const notebook = await notebooks.createNotebook.mutateAsync(DEFAULT_NOTEBOOK_NAME);
     return notebook.id;
   }, [defaultNotebookId, notebooks.createNotebook, notebooks.data, selectedNotebookId]);
@@ -388,12 +388,12 @@ const Index = () => {
   }: {
     title: string;
     content: Page["content"];
-    notebookId?: string;
+    notebookId: string;
     pinned: boolean;
     createTask: boolean;
   }) => {
     const targetNotebookId = notebookId || await ensureNotebookId();
-    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
+    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim()).slice(0, 80) || "Nova anotação";
     const page = await pages.createPage.mutateAsync({ title: fallbackTitle, content, notebookId: targetNotebookId });
     if (pinned) pages.updatePage.mutate({ id: page.id, is_favorite: true });
     setActiveView("diary");
@@ -447,7 +447,7 @@ const Index = () => {
       const content = mode === "checklist"
         ? makeNoteBlocks("", checklistItems, [])
         : makeNoteBlocks(cleanText, [], []);
-      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
+      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova anota??o";
 
       await pages.createPage.mutateAsync({ title, content, notebookId });
       toast.success(mode === "checklist" ? "Checklist salvo." : "Nota salva.");
@@ -472,8 +472,8 @@ const Index = () => {
     setSearchQuery(task.title);
   }, [pushNavigationState]);
 
-  const handleDeleteNotebook = useCallback((id: string, targetNotebookId?: string) => {
-    const fallbackNotebookId = targetNotebookId || defaultNotebookId || notebooks.data?.find((notebook) => notebook.id !== id)?.id;
+  const handleDeleteNotebook = useCallback((id: string, targetNotebookId: string) => {
+    const fallbackNotebookId = targetNotebookId || defaultNotebookId || notebooks.data?.find((notebook) => notebook.id !== id).id;
     notebooks.deleteNotebook.mutate({ id, targetNotebookId }, {
       onSuccess: () => {
         if (selectedNotebookId === id) {
@@ -497,9 +497,7 @@ const Index = () => {
         }, {
           onSuccess: (updatedCount) => {
             toast.success(
-              updatedCount > 0
-                ? "Anotação movida. Tarefas vinculadas também foram atualizadas."
-                : `Anotação movida para ${targetTitle}.`
+              updatedCount > 0 ? "Anotação movida. Tarefas vinculadas também foram atualizadas." : `Anotação movida para ${targetTitle}.`
             );
           },
         });
@@ -698,9 +696,7 @@ const Index = () => {
                   }, {
                     onSuccess: (updatedCount) => {
                       toast.success(
-                        updatedCount > 0
-                          ? "Anotação movida. Tarefas vinculadas também foram atualizadas."
-                          : `Anotação movida para ${targetTitle}.`
+                        updatedCount > 0 ? "Anotação movida. Tarefas vinculadas também foram atualizadas." : `Anotação movida para ${targetTitle}.`
                       );
                     },
                   });
@@ -775,7 +771,7 @@ const Index = () => {
       <OnboardingDialog open={onboardingOpen} onFinish={handleFinishOnboarding} />
       <CreateTaskFromNoteDialog
         page={taskSourcePage}
-        notebookTitle={taskSourcePage ? notebookTitleForPage(taskSourcePage) : DEFAULT_NOTEBOOK_NAME}
+          notebookTitle={taskSourcePage ? notebookTitleForPage(taskSourcePage) : DEFAULT_NOTEBOOK_NAME}
         creating={tasks.createTask.isPending}
         onOpenChange={(open) => {
           if (!open) setTaskSourcePage(null);
@@ -872,18 +868,18 @@ function CreateTaskFromNoteDialog({
             />
           </div>
           <div className="rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
-            Origem: {page ? getNoteTitle(page) : "Anotação"} · Caderno: {notebookTitle}
+              Origem: {page ? getNoteTitle(page) : "Anotação"} · Caderno: {notebookTitle}
           </div>
           <button
             type="button"
             onClick={() => setKeepLink((current) => !current)}
             className={cn(
               "flex min-h-10 w-full items-center justify-between rounded-md border px-3 text-sm transition-colors",
-              keepLink ? "border-primary/35 bg-primary/10 text-primary" : "border-border/60 bg-background/35 text-muted-foreground"
+                keepLink ? "border-primary/35 bg-primary/10 text-primary" : "border-border/60 bg-background/35 text-muted-foreground"
             )}
           >
             <span>Manter vínculo com a anotação</span>
-            <span>{keepLink ? "Sim" : "Não"}</span>
+              <span>{keepLink ? "Sim" : "Não"}</span>
           </button>
         </div>
         <DialogFooter>
@@ -928,14 +924,14 @@ function NotesLibrary({
   tasks: WeeklyTask[];
   notebooks: Notebook[];
   activeFilter: NotesFilter;
-  defaultNotebookId?: string;
+  defaultNotebookId: string;
   loading: boolean;
   notebookTitleById: Map<string, string>;
   onFilterChange: (filter: NotesFilter) => void;
-  onCreateNote: (notebookId?: string) => void;
+  onCreateNote: (notebookId: string) => void;
   onCreateNotebook: (title: string) => Promise<Notebook>;
   onRenameNotebook: (id: string, title: string) => void;
-  onDeleteNotebook: (id: string, targetNotebookId?: string) => void;
+  onDeleteNotebook: (id: string, targetNotebookId: string) => void;
   pinnedNotebookIds: string[];
   onTogglePinnedNotebook: (notebookId: string) => void;
   onOpenNote: (page: Page) => void;
@@ -995,11 +991,7 @@ function NotesLibrary({
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
   const activeNotebookId = activeFilter !== "all" && activeFilter !== "favorites" ? activeFilter : defaultNotebookId;
-  const activeTitle = activeFilter === "all"
-    ? "Todas as anotações"
-    : activeFilter === "favorites"
-      ? "Anotações fixadas"
-      : selectedNotebook?.title || DEFAULT_NOTEBOOK_NAME;
+  const activeTitle = activeFilter === "all" ? "Todas as anotações" : activeFilter === "favorites" ? "Anotações fixadas" : selectedNotebook.title || DEFAULT_NOTEBOOK_NAME;
   const isNotebookSelected = activeFilter !== "all" && activeFilter !== "favorites";
 
   const handleCreateNotebook = async () => {
@@ -1050,9 +1042,7 @@ function NotesLibrary({
     }
     setDeleteNotebookId(notebook.id);
     setDeleteTargetId(
-      generalNotebook?.id && generalNotebook.id !== notebook.id
-        ? generalNotebook.id
-        : notebooks.find((current) => current.id !== notebook.id)?.id || ""
+      generalNotebook.id && generalNotebook.id !== notebook.id ? generalNotebook.id : notebooks.find((current) => current.id !== notebook.id).id || ""
     );
   };
 
@@ -1189,8 +1179,8 @@ function NotesLibrary({
               <h2 className="text-base font-semibold">{activeTitle}</h2>
               <p className="text-sm text-muted-foreground">
                 {isNotebookSelected
-                  ? `${sortedNotes.length} ${sortedNotes.length === 1 ? "anotação" : "anotações"} · ${filteredTasks.length} ${filteredTasks.length === 1 ? "tarefa" : "tarefas"}`
-                  : `${sortedNotes.length} ${sortedNotes.length === 1 ? "anotação" : "anotações"}`}
+                  ? `${sortedNotes.length} ${sortedNotes.length === 1 ? "anota??o" : "anota??es"} ? ${filteredTasks.length} ${filteredTasks.length === 1 ? "tarefa" : "tarefas"}`
+                  : `${sortedNotes.length} ${sortedNotes.length === 1 ? "anota??o" : "anota??es"}`}
               </p>
             </div>
             <Button variant="outline" className="h-10 w-full gap-2 sm:h-9 sm:w-auto" onClick={() => onCreateNote(activeNotebookId)}>
@@ -1216,12 +1206,10 @@ function NotesLibrary({
             <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
               <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
               <p className="text-sm font-medium text-foreground">
-                {isNotebookSelected ? "Este caderno está vazio." : "Nenhuma anotação ainda."}
+                {isNotebookSelected ? "Este caderno est? vazio." : "Nenhuma anota??o ainda."}
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                {isNotebookSelected
-                  ? "Crie uma anotação para começar a organizar este tema."
-                  : "Escreva uma ideia, salve um link ou crie um checklist."}
+                {isNotebookSelected ? "Crie uma anota??o para come?ar a organizar este tema." : "Escreva uma ideia, salve um link ou crie um checklist."}
               </p>
               <Button className="mt-4 h-10 gap-2" onClick={() => onCreateNote(activeNotebookId)}>
                 <Plus className="h-4 w-4" />
@@ -1314,11 +1302,11 @@ function NotesLibrary({
     }}>
       <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Excluir caderno?</DialogTitle>
+          <DialogTitle>Excluir caderno</DialogTitle>
           <DialogDescription>
             {deletePageCount > 0
-              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anotação" : "anotações"}. Para evitar perda de dados, escolha para onde elas serão movidas.`
-              : "Este caderno não possui anotações. Você pode excluí-lo com segurança."}
+              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anota??o" : "anota??es"}. Para evitar perda de dados, escolha para onde elas ser?o movidas.`
+              : "Este caderno n?o possui anota??es. Voc? pode exclu?-lo com seguran?a."}
           </DialogDescription>
         </DialogHeader>
         {deletePageCount > 0 && (
@@ -1349,7 +1337,7 @@ function NotesLibrary({
               setDeleteTargetId("");
             }}
           >
-            {deletePageCount > 0 ? "Mover e excluir" : "Excluir caderno vazio"}
+              {deletePageCount > 0 ? "Mover e excluir" : "Excluir caderno vazio"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1375,11 +1363,11 @@ function NotebookFilterButton({
   label: string;
   count: number;
   onClick: () => void;
-  pinned?: boolean;
-  onTogglePinned?: () => void;
-  locked?: boolean;
-  onRename?: () => void;
-  onDelete?: () => void;
+  pinned: boolean;
+  onTogglePinned: () => void;
+  locked: boolean;
+  onRename: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className={cn(
@@ -1432,19 +1420,20 @@ function MobileNotebookFilterButton({
   icon: React.ElementType;
   label: string;
   count: number;
-  pinned?: boolean;
+  pinned: boolean;
   onClick: () => void;
-  onTogglePinned?: () => void;
-  locked?: boolean;
-  onRename?: () => void;
-  onDelete?: () => void;
+  onTogglePinned: () => void;
+  locked: boolean;
+  onRename: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div
       className={cn(
         "flex min-h-12 w-full min-w-0 items-center gap-1 rounded-md border transition-colors",
         active
-          ? "border-primary/45 bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20"
+          ?
+          "border-primary/45 bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20"
           : "border-border/60 bg-background/35 text-muted-foreground hover:border-primary/30 hover:bg-background/60 hover:text-foreground"
       )}
     >
@@ -1460,7 +1449,7 @@ function MobileNotebookFilterButton({
         <span
           className={cn(
             "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
-            active ? "bg-primary/20 text-primary" : "bg-card/80 text-muted-foreground"
+              active ? "bg-primary/20 text-primary" : "bg-card/80 text-muted-foreground"
           )}
         >
           {count}
@@ -1530,7 +1519,7 @@ function NotebookTaskCard({
   onToggleStatus,
 }: {
   task: WeeklyTask;
-  sourceNoteTitle?: string;
+  sourceNoteTitle: string;
   onToggleStatus: () => void;
 }) {
   return (
@@ -1550,7 +1539,7 @@ function NotebookTaskCard({
           )}
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Badge variant="outline" className="rounded">
-              {task.task_date ? format(parseISO(task.task_date), "dd/MM/yyyy") : "Sem data"}
+                {task.task_date ? format(parseISO(task.task_date), "dd/MM/yyyy") : "Sem data"}
             </Badge>
             <Badge variant="outline" className="rounded">
               {notebookTaskPriorityLabel[task.priority]}
@@ -1561,7 +1550,7 @@ function NotebookTaskCard({
           </div>
           {task.source_note_id && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Criada a partir de anotação{sourceNoteTitle ? `: ${sourceNoteTitle}` : "."}
+              Criada a partir de anota??o{sourceNoteTitle ? `: ${sourceNoteTitle}` : "."}
             </p>
           )}
         </div>
@@ -1780,7 +1769,7 @@ function GlobalSearchResults({
                   >
                     <div className="text-sm font-semibold">{notebook.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anotação" : "anotações"}
+                      {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anota??o" : "anota??es"}
                     </div>
                   </button>
                 ))}

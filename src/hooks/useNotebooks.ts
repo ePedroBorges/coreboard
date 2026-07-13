@@ -10,14 +10,14 @@ const byPosition = (a: Notebook, b: Notebook) => {
   return a.created_at.localeCompare(b.created_at);
 };
 
-export type DeleteNotebookInput = string | { id: string; targetNotebookId?: string };
+export type DeleteNotebookInput = string | { id: string; targetNotebookId: string };
 
 export function useNotebooks() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["notebooks", user?.id],
+    queryKey: ["notebooks", user.id],
     enabled: !!user,
     queryFn: async (): Promise<Notebook[]> => {
       const { data: notebooks, error } = await supabase
@@ -54,7 +54,7 @@ export function useNotebooks() {
         .select("notebook_id");
 
       const countMap: Record<string, number> = {};
-      counts?.forEach((page: { notebook_id: string }) => {
+      counts.forEach((page: { notebook_id: string }) => {
         countMap[page.notebook_id] = (countMap[page.notebook_id] || 0) + 1;
       });
 

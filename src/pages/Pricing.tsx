@@ -35,7 +35,7 @@ const PRO_FEATURES = [
   "Suporte prioritário",
 ];
 
-const PLANS: { id: PriceId; label: string; price: string; period: string; badge?: string }[] = [
+const PLANS: { id: PriceId; label: string; price: string; period: string; badge: string }[] = [
   { id: "pro_monthly", label: "Pro Mensal", price: "R$ 9,90", period: "/mês" },
   { id: "pro_yearly", label: "Pro Anual", price: "R$ 89,90", period: "/ano", badge: "Economize 25%" },
   { id: "pro_lifetime", label: "Pro Vitalício", price: "R$ 79,90", period: "único", badge: "Melhor oferta" },
@@ -58,7 +58,7 @@ const Pricing = () => {
       const { data, error } = await supabase.functions.invoke("create-portal-session", {
         body: { returnUrl: window.location.origin + "/planos", environment: getStripeEnvironment() },
       });
-      if (error || !data?.url) throw new Error(error?.message || "Falha ao abrir portal");
+      if (error || !data.url) throw new Error(error.message || "Falha ao abrir portal");
       window.open(data.url, "_blank");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao abrir portal");
@@ -75,7 +75,7 @@ const Pricing = () => {
           <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-1">
             <ArrowLeft className="h-4 w-4" /> Voltar
           </Button>
-          {isPro && subscription?.price_id !== "pro_lifetime" && (
+          {isPro && subscription.price_id !== "pro_lifetime" && (
             <Button variant="outline" size="sm" onClick={openPortal} disabled={portalLoading}>
               {portalLoading && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
               Gerenciar assinatura
@@ -146,7 +146,7 @@ const Pricing = () => {
                     ))}
                   </ul>
                   <Button className="w-full" disabled={disabled} onClick={() => setCheckoutPriceId(plan.id)}>
-                    {isPro ? "Você já é Pro" : "Assinar"}
+                    {isPro ? "Voc? j? ? Pro" : "Assinar"}
                   </Button>
                 </CardContent>
               </Card>
@@ -155,7 +155,7 @@ const Pricing = () => {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Precisa de ajuda? <Link to="/" className="text-primary hover:underline">Voltar ao app</Link>
+          Precisa de ajuda<Link to="/" className="text-primary hover:underline">Voltar ao app</Link>
         </p>
       </div>
 
@@ -169,7 +169,7 @@ const Pricing = () => {
               priceId={checkoutPriceId}
               customerEmail={user.email || undefined}
               userId={user.id}
-              returnUrl={`${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}
+              returnUrl={`${window.location.origin}/checkout/returnsession_id={CHECKOUT_SESSION_ID}`}
             />
           )}
         </DialogContent>
