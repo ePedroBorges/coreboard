@@ -29,7 +29,8 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  const Router = Capacitor.isNativePlatform() ? HashRouter : BrowserRouter;
+  const runsFromLocalPackage = window.location.protocol === "file:";
+  const Router = Capacitor.isNativePlatform() || runsFromLocalPackage ? HashRouter : BrowserRouter;
 
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {

@@ -1,14 +1,25 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "vista-task-control",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "VISTA Task Control by AnchorLab Studio",
+  "author": {
+    "name": "AnchorLab Studio",
+    "url": "https://anchorlabstudio.com.br/"
+  },
+  "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:desktop": "vite build --base=./",
     "build:android": "vite build && cap sync android",
     "android:sync": "cap sync android",
     "android:apk": "cd android && gradlew.bat --no-daemon --console=plain assembleDebug",
+    "desktop:run": "npm run build:desktop && electron .",
+    "package:android": "node scripts/package-android.mjs",
+    "package:windows": "node scripts/package-windows.mjs",
+    "package:all": "node scripts/package-all.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -87,6 +98,8 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "autoprefixer": "^10.4.21",
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -99,5 +112,40 @@
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
     "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "studio.anchorlab.vistataskcontrol",
+    "productName": "VISTA Task Control",
+    "asar": true,
+    "compression": "normal",
+    "directories": {
+      "output": "artifacts/windows",
+      "buildResources": "public"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/favicon.ico"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "favicon.ico",
+      "artifactName": "VISTA-Task-Control-Setup-${version}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VISTA Task Control"
+    }
   }
 }

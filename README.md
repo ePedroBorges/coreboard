@@ -1,4 +1,21 @@
-# Welcome to your Lovable project
+# VISTA Task Control
+
+Aplicacao de tarefas, anotacoes e execucao diaria da AnchorLab Studio. A mesma base React/Vite gera a versao web do Lovable, o APK Android com Capacitor e o instalador Windows com Electron.
+
+## Gerar aplicativos
+
+```sh
+# Android + Windows em um unico comando
+npm run package:all
+
+# Somente APK Android
+npm run package:android
+
+# Somente instalador Windows
+npm run package:windows
+```
+
+Os arquivos finais ficam em `artifacts/android` e `artifacts/windows`.
 
 ## Project info
 
