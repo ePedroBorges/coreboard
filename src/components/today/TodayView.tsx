@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   addDays,
   eachDayOfInterval,
@@ -10,6 +11,7 @@ import {
   startOfMonth,
 } from "date-fns";
 import {
+  ArrowRight,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -22,6 +24,7 @@ import {
   Pin,
   Plus,
   Search,
+  Sparkles,
   Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,6 +42,7 @@ import {
 } from "@/lib/noteUtils";
 import { Page } from "@/types/notes";
 import { Priority, WeeklyTask } from "@/hooks/useWeeklyTasks";
+import { useSubscription } from "@/hooks/useSubscription";
 
 type CaptureMode = "note" | "checklist" | "task";
 
@@ -89,6 +93,7 @@ export function TodayView({
 }: TodayViewProps) {
   const [captureText, setCaptureText] = useState("");
   const [captureMode, setCaptureMode] = useState<CaptureMode>("note");
+  const { isPro, loading: subscriptionLoading } = useSubscription();
 
   const todayKey = format(new Date(), "yyyy-MM-dd");
 
@@ -160,6 +165,8 @@ export function TodayView({
         onOpenAdvancedCapture={onOpenAdvancedCapture}
       />
 
+      {!subscriptionLoading && !isPro && <ProPromotion />}
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
         <TodayPriorities
           tasks={todayTasks}
@@ -182,6 +189,35 @@ export function TodayView({
       </div>
       <GamificationPanel stats={gamification} compact />
     </div>
+  );
+}
+
+function ProPromotion() {
+  return (
+    <section className="flex flex-col gap-3 border-y border-primary/20 bg-primary/5 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <Sparkles className="size-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Leve sua rotina mais longe com o VISTA Pro</p>
+          <p className="mt-0.5 text-sm leading-5 text-muted-foreground">
+            Temas premium, lembretes, anexos e PDF. Assine ou garanta acesso vitalício.
+          </p>
+        </div>
+      </div>
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="h-10 w-full shrink-0 gap-2 border-primary/30 bg-background/50 text-primary hover:bg-primary/10 sm:w-auto"
+      >
+        <Link to="/planos">
+          Ver planos
+          <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
+      </Button>
+    </section>
   );
 }
 
