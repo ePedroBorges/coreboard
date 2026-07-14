@@ -352,9 +352,6 @@ export function SettingsView({
                     Gerenciar assinatura
                   </Button>
                 )}
-                <Button variant="outline" className="h-10 gap-2" onClick={() => navigate("/planos")}>
-                  Ver todos os planos
-                </Button>
               </div>
             </div>
           </SettingsCard>

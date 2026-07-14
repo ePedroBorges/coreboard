@@ -1,4 +1,5 @@
 import { loadStripe, Stripe } from "@stripe/stripe-js";
+import { Capacitor } from "@capacitor/core";
 
 type StripeEnv = "sandbox" | "live";
 
@@ -43,4 +44,12 @@ export function assertExpectedPaymentsEnvironment(): void {
 export function getPaymentsReturnBaseUrl(): string {
   if (typeof window === "undefined") return PUBLIC_APP_URL;
   return ["http:", "https:"].includes(window.location.protocol) ? window.location.origin : PUBLIC_APP_URL;
+}
+
+export function getPaymentsReturnUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  if (typeof window !== "undefined" && Capacitor.isNativePlatform()) {
+    return `${window.location.origin}/#${normalizedPath}`;
+  }
+  return `${getPaymentsReturnBaseUrl()}${normalizedPath}`;
 }

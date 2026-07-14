@@ -1,4 +1,4 @@
-import { createContext, createElement, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, createElement, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
@@ -33,18 +33,17 @@ function useSubscriptionState() {
   const [hasEntitlement, setHasEntitlement] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
     if (!user) {
       setSubscription(null);
       setHasEntitlement(false);
       setLoading(false);
       return;
     }
-    const env = isPaymentsConfigured() ? getStripeEnvironment() : "sandbox";
-    let cancelled = false;
 
-    const fetchSub = async () => {
-      const [{ data }, { data: activeEntitlement }] = await Promise.all([
+    const env = isPaymentsConfigured() ? getStripeEnvironment() : "sandbox";
+    try {
+      const [subscriptionResult, entitlementResult] = await Promise.all([
         supabase
           .from("subscriptions")
           .select("*")
@@ -55,35 +54,42 @@ function useSubscriptionState() {
           .maybeSingle(),
         supabase.rpc("has_active_subscription", { user_uuid: user.id, check_env: env }),
       ]);
-      if (!cancelled) {
-        setSubscription((data as SubscriptionRow | null) ?? null);
-        setHasEntitlement(!!activeEntitlement);
-        setLoading(false);
-      }
-    };
-    fetchSub();
+
+      if (subscriptionResult.error) throw subscriptionResult.error;
+      if (entitlementResult.error) throw entitlementResult.error;
+      setSubscription((subscriptionResult.data as SubscriptionRow | null) ?? null);
+      setHasEntitlement(!!entitlementResult.data);
+    } catch (error) {
+      console.error("Failed to refresh subscription:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void refresh();
+    if (!user) return;
 
     const channel = supabase
       .channel(`subscriptions-${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${user.id}` },
-        () => fetchSub(),
+        () => void refresh(),
       )
       .subscribe();
 
     return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [refresh, user]);
 
   const isActive = computeIsActive(subscription) || hasEntitlement;
   const isPro = hasEntitlement || (isActive && PRO_PRICE_IDS.has(subscription?.price_id || ""));
   const isLifetime = isPro && (!subscription || subscription.price_id === "pro_lifetime");
   const plan: "free" | "pro" = isPro ? "pro" : "free";
 
-  return { subscription, loading, isActive, isPro, isLifetime, plan };
+  return { subscription, loading, isActive, isPro, isLifetime, plan, refresh };
 }
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {

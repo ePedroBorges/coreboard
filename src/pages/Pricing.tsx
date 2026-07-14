@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
-import { getPaymentsReturnBaseUrl, getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
+import { getPaymentsReturnUrl, getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -52,7 +52,7 @@ const Pricing = () => {
     setPortalLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-portal-session", {
-        body: { returnUrl: getPaymentsReturnBaseUrl() + "/planos", environment: getStripeEnvironment() },
+        body: { returnUrl: getPaymentsReturnUrl("/planos"), environment: getStripeEnvironment() },
       });
       if (error || !data?.url) throw new Error(error?.message || "Falha ao abrir portal");
       window.open(data.url, "_blank", "noopener,noreferrer");
@@ -137,7 +137,7 @@ const Pricing = () => {
           {checkoutPriceId && (
             <StripeEmbeddedCheckout
               priceId={checkoutPriceId}
-              returnUrl={`${getPaymentsReturnBaseUrl()}/checkout/return?session_id={CHECKOUT_SESSION_ID}`}
+              returnUrl={getPaymentsReturnUrl("/checkout/return?session_id={CHECKOUT_SESSION_ID}")}
             />
           )}
         </DialogContent>
