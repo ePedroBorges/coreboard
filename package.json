@@ -12,8 +12,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:desktop": "vite build --base=./ --mode development",
-    "build:android": "vite build --mode development && cap sync android",
+    "build:desktop": "vite build --base=./ --mode production",
+    "build:android": "vite build --mode production && cap sync android",
     "android:sync": "cap sync android",
     "android:apk": "cd android && gradlew.bat --no-daemon --console=plain assembleDebug",
     "desktop:run": "npm run build:desktop && electron .",
@@ -21,6 +21,7 @@
     "package:windows": "node scripts/package-windows.mjs",
     "package:all": "node scripts/package-all.mjs",
     "build:dev": "vite build --mode development",
+    "build:mobile": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",

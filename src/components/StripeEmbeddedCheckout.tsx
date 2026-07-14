@@ -22,6 +22,13 @@ export function StripeEmbeddedCheckout({ priceId, quantity, returnUrl }: Props) 
     setErrorMessage(null);
 
     const createSession = async () => {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (!active) return;
+      if (sessionError || !sessionData.session) {
+        setErrorMessage("Sua sessao expirou. Entre novamente para continuar com a assinatura.");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId, quantity, returnUrl, environment: getStripeEnvironment() },
       });
@@ -35,6 +42,9 @@ export function StripeEmbeddedCheckout({ priceId, quantity, returnUrl }: Props) 
           if (payload?.error) message = payload.error;
         } catch {
           // Keep the SDK error when the response body is not JSON.
+        }
+        if (/unauthorized|jwt|refresh token/i.test(message)) {
+          message = "Sua sessao expirou. Entre novamente para continuar com a assinatura.";
         }
         setErrorMessage(message);
         return;

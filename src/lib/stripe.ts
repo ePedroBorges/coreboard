@@ -17,7 +17,7 @@ let stripePromise: Promise<Stripe | null> | null = null;
 
 export function getStripe(): Promise<Stripe | null> {
   if (!stripePromise) {
-    paymentsEnvironment();
+    assertExpectedPaymentsEnvironment();
     stripePromise = loadStripe(clientToken as string);
   }
   return stripePromise;
@@ -28,7 +28,16 @@ export function getStripeEnvironment(): StripeEnv {
 }
 
 export function isPaymentsConfigured(): boolean {
-  return clientToken?.startsWith("pk_test_") || clientToken?.startsWith("pk_live_") || false;
+  const configured = clientToken?.startsWith("pk_test_") || clientToken?.startsWith("pk_live_") || false;
+  if (configured) assertExpectedPaymentsEnvironment();
+  return configured;
+}
+
+export function assertExpectedPaymentsEnvironment(): void {
+  const environment = paymentsEnvironment();
+  if (import.meta.env.PROD && environment !== "live") {
+    throw new Error("Build de producao configurado com uma chave Stripe de teste.");
+  }
 }
 
 export function getPaymentsReturnBaseUrl(): string {

@@ -16,7 +16,7 @@ function run(label, args) {
   }
 }
 
-run("Build web", ["run", "build:dev"]);
+run("Build web live", ["run", "build:mobile"]);
 run("Sincronizacao Capacitor", ["run", "android:sync"]);
 run("Build Gradle", ["run", "android:apk"]);
 
