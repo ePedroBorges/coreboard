@@ -19,6 +19,7 @@ import { Notebook, Page } from "@/types/notes";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { getNoteTitle } from "@/lib/noteUtils";
 import { cn } from "@/lib/utils";
+import { ProfileMenu } from "@/components/layout/ProfileMenu";
 
 type AppView = "today" | "tasks" | "calendar" | "notes" | "diary" | "settings";
 
@@ -37,6 +38,7 @@ interface AppSidebarProps {
   onOpenNotebook: (id: string) => void;
   onOpenPage: (page: Page) => void;
   onSelectTasks: () => void;
+  onOpenSettings: () => void;
 }
 
 export function AppSidebar({
@@ -54,6 +56,7 @@ export function AppSidebar({
   onOpenNotebook,
   onOpenPage,
   onSelectTasks,
+  onOpenSettings,
 }: AppSidebarProps) {
   const { isMobile, state, setOpenMobile } = useSidebar();
   const collapsed = !isMobile && state === "collapsed";
@@ -72,6 +75,7 @@ export function AppSidebar({
         onSelectToday={() => runAndClose(onSelectToday)}
         onSelectNotes={() => runAndClose(onSelectNotes)}
         onSelectTasks={() => runAndClose(onSelectTasks)}
+        onOpenSettings={onOpenSettings}
       />
 
       <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
@@ -230,11 +234,13 @@ function MobileBottomNavigation({
   onSelectToday,
   onSelectNotes,
   onSelectTasks,
+  onOpenSettings,
 }: {
   activeView: AppView;
   onSelectToday?: () => void;
   onSelectNotes?: () => void;
   onSelectTasks: () => void;
+  onOpenSettings: () => void;
 }) {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-sidebar-border bg-sidebar/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 text-sidebar-foreground shadow-[0_-12px_30px_-24px_rgba(0,0,0,0.8)] backdrop-blur lg:hidden">
@@ -243,7 +249,7 @@ function MobileBottomNavigation({
           <MobileBottomNavButton active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} />
           <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={onSelectNotes} />
           <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={onSelectTasks} />
-          <div className="h-11" aria-hidden="true" />
+          <ProfileMenu mobileNav onOpenSettings={onOpenSettings} />
         </div>
       </div>
     </nav>

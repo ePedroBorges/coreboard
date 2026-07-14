@@ -167,6 +167,7 @@ const Dashboard = () => {
           selectedPageId={null}
           onOpenNotebook={() => navigate("/")}
           onOpenPage={() => navigate("/")}
+          onOpenSettings={() => navigate("/configuracoes")}
         />
         <div className="flex-1 flex flex-col min-w-0">
           <AppHeader
