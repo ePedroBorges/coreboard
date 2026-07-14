@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { generatePagePdf } from "@/lib/pdfExport";
 import { blocksToText, getNoteTags, setNoteTags } from "@/lib/noteUtils";
 import { Json } from "@/integrations/supabase/types";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface PageEditorProps {
   page: Page;
@@ -44,6 +45,7 @@ interface PageEditorProps {
 }
 
 export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
+  const { isPro } = useSubscription();
   const [title, setTitle] = useState(page.title);
   const [blocks, setBlocks] = useState<Block[]>(page.content || []);
   const [dirty, setDirty] = useState(false);
@@ -117,6 +119,10 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   const tags = getNoteTags(blocks);
 
   const handleDownloadPdf = async () => {
+    if (!isPro) {
+      toast.error("Exportação em PDF é um recurso Pro. Acesse Planos para desbloquear.");
+      return;
+    }
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
       doc.save(`${title || "anotacao"}.pdf`);
@@ -127,6 +133,10 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   };
 
   const handleSharePdf = async (method: "email" | "social") => {
+    if (!isPro) {
+      toast.error("Compartilhamento em PDF é um recurso Pro. Acesse Planos para desbloquear.");
+      return;
+    }
     try {
       const doc = generatePagePdf(title, blocks, page.created_at, page.updated_at);
       const blob = doc.output("blob");
@@ -321,7 +331,7 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
 
       <div className="px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-16">
         <div className="min-w-0 rounded-lg border border-border/50 bg-card/35 p-2.5 sm:p-4">
-          <BlockEditor blocks={blocks} onChange={handleBlocksChange} />
+          <BlockEditor blocks={blocks} onChange={handleBlocksChange} canUseAttachments={isPro} />
         </div>
       </div>
     </div>

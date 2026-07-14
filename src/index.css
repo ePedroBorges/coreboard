@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -40,34 +40,34 @@
   }
 
   .dark {
-    --background: 220 18% 7%;
-    --foreground: 220 14% 90%;
-    --card: 220 18% 10%;
-    --card-foreground: 220 14% 90%;
-    --popover: 220 18% 10%;
-    --popover-foreground: 220 14% 90%;
-    --primary: 210 100% 56%;
-    --primary-foreground: 220 18% 7%;
-    --secondary: 220 16% 16%;
-    --secondary-foreground: 220 14% 90%;
-    --muted: 220 16% 14%;
-    --muted-foreground: 220 10% 54%;
-    --accent: 165 80% 45%;
-    --accent-foreground: 220 18% 7%;
+    --background: 218 64% 5%;
+    --foreground: 216 33% 96%;
+    --card: 217 45% 9%;
+    --card-foreground: 216 33% 96%;
+    --popover: 217 45% 8%;
+    --popover-foreground: 216 33% 96%;
+    --primary: 199 100% 50%;
+    --primary-foreground: 218 64% 5%;
+    --secondary: 216 31% 15%;
+    --secondary-foreground: 216 33% 96%;
+    --muted: 216 30% 13%;
+    --muted-foreground: 216 14% 65%;
+    --accent: 270 78% 64%;
+    --accent-foreground: 216 33% 96%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 16% 18%;
-    --input: 220 16% 18%;
-    --ring: 210 100% 56%;
-    --sidebar-background: 220 18% 9%;
-    --sidebar-foreground: 220 14% 80%;
-    --sidebar-primary: 210 100% 56%;
+    --border: 216 29% 19%;
+    --input: 216 29% 19%;
+    --ring: 199 100% 50%;
+    --sidebar-background: 219 55% 7%;
+    --sidebar-foreground: 216 22% 82%;
+    --sidebar-primary: 199 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 16% 14%;
-    --sidebar-accent-foreground: 220 14% 90%;
-    --sidebar-border: 220 16% 16%;
-    --sidebar-ring: 210 100% 56%;
-    --glow: 210 100% 56%;
+    --sidebar-accent: 216 31% 14%;
+    --sidebar-accent-foreground: 216 33% 96%;
+    --sidebar-border: 216 29% 17%;
+    --sidebar-ring: 199 100% 50%;
+    --glow: 199 100% 50%;
     --success: 165 80% 45%;
     --warning: 38 92% 50%;
   }

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,15 +6,35 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
 import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { ThemeProvider } from "@/hooks/useTheme";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import Pricing from "./pages/Pricing";
-import CheckoutReturn from "./pages/CheckoutReturn";
-import NotFound from "./pages/NotFound";
+import { ThemeProvider, PRO_THEME_VARIANTS, useTheme } from "@/hooks/useTheme";
+import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const RouteLoader = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <Loader2 className="h-7 w-7 animate-spin text-primary" aria-label="Carregando" />
+  </div>
+);
+
+function ProThemeGuard() {
+  const { isPro, loading } = useSubscription();
+  const { variant, setVariant } = useTheme();
+
+  useEffect(() => {
+    if (!loading && !isPro && PRO_THEME_VARIANTS.includes(variant)) setVariant("default");
+  }, [isPro, loading, setVariant, variant]);
+
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,25 +66,30 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <TooltipProvider>
+          <SubscriptionProvider>
+            <ProThemeGuard />
+            <TooltipProvider>
             <Toaster />
             <Sonner />
             <Router>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/hoje" element={<Index />} />
-                <Route path="/anotacoes" element={<Index />} />
-                <Route path="/tarefas" element={<Index />} />
-                <Route path="/configuracoes" element={<Index />} />
-                <Route path="/planos" element={<Pricing />} />
-                <Route path="/checkout/return" element={<CheckoutReturn />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<RouteLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/hoje" element={<Index />} />
+                  <Route path="/anotacoes" element={<Index />} />
+                  <Route path="/tarefas" element={<Index />} />
+                  <Route path="/configuracoes" element={<Index />} />
+                  <Route path="/planos" element={<Pricing />} />
+                  <Route path="/checkout/return" element={<CheckoutReturn />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </Router>
-          </TooltipProvider>
+            </TooltipProvider>
+          </SubscriptionProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

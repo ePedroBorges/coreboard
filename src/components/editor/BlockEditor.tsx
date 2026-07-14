@@ -33,6 +33,7 @@ import { LinkifiedText } from "@/components/notes/LinkifiedText";
 interface BlockEditorProps {
   blocks: Block[];
   onChange: (blocks: Block[]) => void;
+  canUseAttachments?: boolean;
 }
 
 const generateId = () => Math.random().toString(36).slice(2, 10);
@@ -154,7 +155,7 @@ function AutoResizeTextarea({
   );
 }
 
-export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
+export function BlockEditor({ blocks, onChange, canUseAttachments = false }: BlockEditorProps) {
   const { user } = useAuth();
   const [slashMenuIndex, setSlashMenuIndex] = useState<number | null>(null);
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
@@ -162,6 +163,10 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
   const blockRefs = useRef<(HTMLElement | null)[]>([]);
 
   const addBlock = (type: BlockType = "freeform", afterIndex?: number) => {
+    if (type === "attachment" && !canUseAttachments) {
+      toast.error("Anexos são um recurso Pro. Acesse Planos para desbloquear.");
+      return;
+    }
     const newBlock: Block = { id: generateId(), type, content: "" };
     if (type === "checklist") newBlock.checked = false;
 
@@ -211,6 +216,11 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
   };
 
   const handleSlashSelect = (type: BlockType, index: number) => {
+    if (type === "attachment" && !canUseAttachments) {
+      toast.error("Anexos são um recurso Pro. Acesse Planos para desbloquear.");
+      setSlashMenuIndex(null);
+      return;
+    }
     const updates: Partial<Block> = { type, content: "" };
     if (type === "checklist") updates.checked = false;
     updateBlock(index, updates);
@@ -220,6 +230,10 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
 
   const handleFileUpload = async (index: number, file: File) => {
     if (!user) return;
+    if (!canUseAttachments) {
+      toast.error("Anexos são um recurso Pro. Acesse Planos para desbloquear.");
+      return;
+    }
     if (file.size > 20 * 1024 * 1024) {
       toast.error("Arquivo muito grande (max 20MB)");
       return;

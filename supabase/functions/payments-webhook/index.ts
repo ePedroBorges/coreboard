@@ -75,6 +75,7 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   // For one-time payments (lifetime), we synthesize a "subscription" row so gating works uniformly.
   if (session.mode !== "payment") return;
+  if (!["paid", "no_payment_required"].includes(session.payment_status)) return;
   const userId = session.metadata?.userId;
   if (!userId) return;
   const lineItems = await (async () => {
@@ -131,6 +132,7 @@ Deno.serve(async (req) => {
         await handleSubscriptionDeleted(event.data.object, env);
         break;
       case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded":
         await handleCheckoutCompleted(event.data.object, env);
         break;
       default:

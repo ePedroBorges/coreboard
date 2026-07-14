@@ -15,11 +15,11 @@ export const THEME_VARIANT_META: Record<
   ThemeVariant,
   { label: string; description: string; swatch: string; pro: boolean }
 > = {
-  default: { label: "Azul (padrão)", description: "Tema clássico VISTA", swatch: "#3b82f6", pro: false },
-  midnight: { label: "Midnight", description: "Roxo cyberpunk profundo", swatch: "#8b5cf6", pro: true },
-  sunset: { label: "Sunset", description: "Laranja quente vibrante", swatch: "#f97316", pro: true },
-  forest: { label: "Forest", description: "Verde esmeralda calmante", swatch: "#10b981", pro: true },
-  mono: { label: "Mono", description: "Preto e branco minimalista", swatch: "#71717a", pro: true },
+  default: { label: "AnchorLab", description: "Ciano, marinho e violeta", swatch: "#00aaff", pro: false },
+  midnight: { label: "Studio Violet", description: "Violeta profundo e tecnológico", swatch: "#8b5cf6", pro: true },
+  sunset: { label: "Pulse Coral", description: "Coral energético e equilibrado", swatch: "#f97360", pro: true },
+  forest: { label: "Signal Mint", description: "Verde nítido e concentrado", swatch: "#10b981", pro: true },
+  mono: { label: "Graphite", description: "Contraste neutro e minimalista", swatch: "#a1a1aa", pro: true },
 };
 
 interface ThemeContextType {

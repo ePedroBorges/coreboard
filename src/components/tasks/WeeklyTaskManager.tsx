@@ -707,7 +707,6 @@ const TaskCard = memo(function TaskCard({
   const [descriptionDraft, setDescriptionDraft] = useState(task.description || "");
 
   const [reason, setReason] = useState("");
-  const [reasonDescription, setReasonDescription] = useState("");
   const [responsible, setResponsible] = useState("");
   const [rPriority, setRPriority] = useState<Priority>("medium");
   const [rTarget, setRTarget] = useState<string>("");
@@ -735,13 +734,11 @@ const TaskCard = memo(function TaskCard({
     if (!reason.trim()) return;
     onAddReason({
       reason: reason.trim(),
-      description: reasonDescription.trim(),
       responsible: responsible.trim(),
       priority: rPriority,
       progress_target: rTarget.trim() ? Math.max(1, parseInt(rTarget, 10)) : null,
     });
     setReason("");
-    setReasonDescription("");
     setResponsible("");
     setRPriority("medium");
     setRTarget("");
@@ -756,7 +753,7 @@ const TaskCard = memo(function TaskCard({
   };
 
   return (
-    <article className="group overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm transition-colors hover:border-primary/25 hover:bg-card">
+    <article className="group overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm transition-colors [content-visibility:auto] [contain-intrinsic-size:240px] hover:border-primary/35 hover:bg-card">
       <div className={cn("h-1 w-full", statusColor)} />
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-start sm:p-4">
         <button
@@ -939,17 +936,11 @@ const TaskCard = memo(function TaskCard({
               ))}
             </div>
 
-            <div className="mt-3 grid gap-2 rounded-md border border-border/50 bg-card/70 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(180px,0.8fr)_140px_120px_120px_auto]">
+            <div className="mt-3 grid gap-2 rounded-md border border-border/50 bg-card/70 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_140px_120px_120px_auto]">
               <Textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="Motivo da pendência"
-                className="min-h-10 resize-none"
-              />
-              <Textarea
-                value={reasonDescription}
-                onChange={(event) => setReasonDescription(event.target.value)}
-                placeholder="Mini descrição da pendência"
                 className="min-h-10 resize-none"
               />
               <Input value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="Responsável" className="h-10" />
@@ -993,24 +984,17 @@ function ReasonRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(reason.reason);
-  const [descriptionDraft, setDescriptionDraft] = useState(reason.description || "");
 
   const isDone = !!reason.completed_at;
 
   useEffect(() => {
     setDraft(reason.reason);
-    setDescriptionDraft(reason.description || "");
-  }, [reason.description, reason.reason]);
+  }, [reason.reason]);
 
   const save = () => {
     const text = draft.trim();
     if (text && text !== reason.reason) onUpdate({ reason: text });
     setEditing(false);
-  };
-
-  const saveDescription = () => {
-    const description = descriptionDraft.trim();
-    if (description !== (reason.description || "")) onUpdate({ description });
   };
 
   const handleReasonProgressCommit = (value: number) => {
@@ -1057,14 +1041,6 @@ function ReasonRow({
             <span>Criada {format(parseISO(reason.created_at), "dd/MM/yyyy")}</span>
             {reason.completed_at && <span>Concluída {format(parseISO(reason.completed_at), "dd/MM/yyyy")}</span>}
           </div>
-          <Textarea
-            value={descriptionDraft}
-            onChange={(event) => setDescriptionDraft(event.target.value)}
-            onBlur={saveDescription}
-            placeholder="Mini descrição da pendência"
-            className="mt-2 min-h-16 resize-none bg-background/45 text-xs"
-            disabled={isDone}
-          />
         </div>
 
         <Select value={reason.priority} onValueChange={(value) => onUpdate({ priority: value as Priority })} disabled={isDone}>

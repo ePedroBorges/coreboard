@@ -9,7 +9,6 @@ import {
   CreditCard,
   Download,
   FileJson,
-  LayoutTemplate,
   LifeBuoy,
   Loader2,
   LogOut,
@@ -52,7 +51,7 @@ import { UserSettings } from "@/hooks/useUserSettings";
 import { GamificationPanel } from "@/components/gamification/GamificationPanel";
 import { Notebook, Page } from "@/types/notes";
 import { supabase } from "@/integrations/supabase/client";
-import { getStripeEnvironment } from "@/lib/stripe";
+import { getPaymentsReturnBaseUrl, getStripeEnvironment } from "@/lib/stripe";
 import { cn } from "@/lib/utils";
 import { GamificationStats } from "@/lib/gamification";
 import {
@@ -215,7 +214,7 @@ export function SettingsView({
     setPortalLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-portal-session", {
-        body: { returnUrl: window.location.origin + "/settings", environment: getStripeEnvironment() },
+        body: { returnUrl: getPaymentsReturnBaseUrl() + "/configuracoes", environment: getStripeEnvironment() },
       });
       if (error || !data?.url) throw new Error(error?.message || "Falha ao abrir portal");
       window.open(data.url, "_blank");
@@ -245,6 +244,11 @@ export function SettingsView({
   };
 
   const handleNotificationChange = async (enabled: boolean) => {
+    if (!isPro) {
+      toast.error("Lembretes são um recurso Pro.");
+      navigate("/planos");
+      return;
+    }
     setNotificationBusy(true);
     try {
       await notifications.setNotificationsEnabled(enabled);
@@ -276,13 +280,13 @@ export function SettingsView({
         </p>
       </section>
 
-      <Tabs defaultValue="perfil" className="w-full">
-        <TabsList className="mb-4 grid w-full grid-cols-2 gap-1 sm:grid-cols-5">
-          <TabsTrigger value="perfil" className="gap-1.5"><UserRound className="h-3.5 w-3.5" />Perfil</TabsTrigger>
-          <TabsTrigger value="plano" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" />Plano</TabsTrigger>
-          <TabsTrigger value="aparencia" className="gap-1.5"><Palette className="h-3.5 w-3.5" />Aparência</TabsTrigger>
-          <TabsTrigger value="dados" className="gap-1.5"><FileJson className="h-3.5 w-3.5" />Dados</TabsTrigger>
-          <TabsTrigger value="ajuda" className="gap-1.5"><LifeBuoy className="h-3.5 w-3.5" />Ajuda</TabsTrigger>
+      <Tabs defaultValue="perfil" className="min-w-0 w-full">
+        <TabsList className="mb-4 grid h-auto w-full grid-cols-2 gap-1 p-1 sm:grid-cols-5">
+          <TabsTrigger value="perfil" className="min-h-11 gap-1.5"><UserRound className="h-3.5 w-3.5" />Perfil</TabsTrigger>
+          <TabsTrigger value="plano" className="min-h-11 gap-1.5"><CreditCard className="h-3.5 w-3.5" />Plano</TabsTrigger>
+          <TabsTrigger value="aparencia" className="min-h-11 gap-1.5"><Palette className="h-3.5 w-3.5" />Aparência</TabsTrigger>
+          <TabsTrigger value="dados" className="min-h-11 gap-1.5"><FileJson className="h-3.5 w-3.5" />Dados</TabsTrigger>
+          <TabsTrigger value="ajuda" className="col-span-2 min-h-11 gap-1.5 sm:col-span-1"><LifeBuoy className="h-3.5 w-3.5" />Ajuda</TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-4">
@@ -357,11 +361,10 @@ export function SettingsView({
 
           <SettingsCard title="Recursos Pro" icon={Sparkles}>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <ProFeatureRow icon={Palette} title="Temas premium" description="4 paletas exclusivas: Midnight, Sunset, Forest e Mono. Personalize a identidade visual do app." active={isPro} />
-              <ProFeatureRow icon={Sparkles} title="IA anotação → tarefa" description="Extraia tarefas automaticamente de qualquer anotação com um clique." active={isPro} />
-              <ProFeatureRow icon={Bell} title="Lembretes e recorrência" description="Notificações e tarefas que se repetem diária, semanal ou mensalmente." active={isPro} />
-              <ProFeatureRow icon={Paperclip} title="Anexos ilimitados" description="Faça upload de imagens e arquivos sem limite dentro das anotações." active={isPro} />
-              <ProFeatureRow icon={LayoutTemplate} title="Templates" description="Biblioteca de modelos prontos: reunião, projeto, diário, roadmap." active={isPro} />
+              <ProFeatureRow icon={Palette} title="Temas premium" description="Quatro paletas exclusivas para personalizar seu espaço de trabalho." active={isPro} />
+              <ProFeatureRow icon={Bell} title="Lembretes locais" description="Receba alertas no Android para tarefas pendentes com data definida." active={isPro} />
+              <ProFeatureRow icon={Paperclip} title="Anexos" description="Adicione imagens e arquivos PDF às suas anotações." active={isPro} />
+              <ProFeatureRow icon={Download} title="Exportação em PDF" description="Baixe ou compartilhe anotações em um formato pronto para uso." active={isPro} />
             </div>
           </SettingsCard>
         </TabsContent>
@@ -434,7 +437,7 @@ export function SettingsView({
               </div>
               <Switch
                 checked={notifications.enabled}
-                disabled={!notifications.supported || notificationBusy}
+                disabled={!isPro || !notifications.supported || notificationBusy}
                 onCheckedChange={handleNotificationChange}
                 aria-label="Ativar notificações"
               />
@@ -443,6 +446,11 @@ export function SettingsView({
               <p className="text-xs text-muted-foreground">
                 Notificações não estão disponíveis neste ambiente.
               </p>
+            )}
+            {!isPro && (
+              <Button variant="outline" className="h-10 w-full gap-2" onClick={() => navigate("/planos")}>
+                <Lock className="h-4 w-4" /> Desbloquear lembretes com Pro
+              </Button>
             )}
           </SettingsCard>
         </TabsContent>
@@ -481,7 +489,7 @@ export function SettingsView({
             <div className="grid gap-2 text-sm text-muted-foreground">
               <InfoRow label="Nome" value="VISTA Tasks Control" />
               <InfoRow label="Versão" value="1.0" />
-              <InfoRow label="Desenvolvido por" value="AnchorLab" />
+              <InfoRow label="Desenvolvido por" value="AnchorLab Studio" />
             </div>
           </SettingsCard>
 
@@ -632,9 +640,9 @@ function SettingsCard({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-3">
+    <div className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate text-right font-medium text-foreground">{value}</span>
+      <span className="min-w-0 break-all text-left font-medium text-foreground sm:text-right">{value}</span>
     </div>
   );
 }

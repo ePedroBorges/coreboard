@@ -1,4 +1,4 @@
-# VISTA Task Control
+# VISTA Tasks Control
 
 Aplicacao de tarefas, anotacoes e execucao diaria da AnchorLab Studio. A mesma base React/Vite gera a versao web do Lovable, o APK Android com Capacitor e o instalador Windows com Electron.
 

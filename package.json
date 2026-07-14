@@ -2,7 +2,7 @@
   "name": "vista-task-control",
   "private": true,
   "version": "1.0.0",
-  "description": "VISTA Task Control by AnchorLab Studio",
+  "description": "VISTA Tasks Control by AnchorLab Studio",
   "author": {
     "name": "AnchorLab Studio",
     "url": "https://anchorlabstudio.com.br/"
@@ -12,8 +12,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:desktop": "vite build --base=./",
-    "build:android": "vite build && cap sync android",
+    "build:desktop": "vite build --base=./ --mode development",
+    "build:android": "vite build --mode development && cap sync android",
     "android:sync": "cap sync android",
     "android:apk": "cd android && gradlew.bat --no-daemon --console=plain assembleDebug",
     "desktop:run": "npm run build:desktop && electron .",
@@ -115,7 +115,7 @@
   },
   "build": {
     "appId": "studio.anchorlab.vistataskcontrol",
-    "productName": "VISTA Task Control",
+    "productName": "VISTA Tasks Control",
     "asar": true,
     "compression": "normal",
     "directories": {
@@ -137,7 +137,7 @@
         }
       ],
       "icon": "favicon.ico",
-      "artifactName": "VISTA-Task-Control-Setup-${version}.${ext}",
+      "artifactName": "VISTA-Tasks-Control-Setup-${version}.${ext}",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -145,7 +145,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "VISTA Task Control"
+      "shortcutName": "VISTA Tasks Control"
     }
   }
 }

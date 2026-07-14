@@ -1,5 +1,20 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { type StripeEnv, createStripeClient } from "../_shared/stripe.ts";
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
+const ALLOWED_PRICE_IDS = new Set(["pro_monthly", "pro_yearly", "pro_lifetime"]);
+
+function validatedReturnUrl(value: unknown): string {
+  if (typeof value !== "string") throw new Error("Invalid returnUrl");
+  const url = new URL(value);
+  if (!['http:', 'https:'].includes(url.protocol)) throw new Error("Invalid returnUrl");
+  return url.toString();
+}
 
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,
@@ -39,20 +54,25 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { priceId, quantity, customerEmail, userId, returnUrl, environment } = await req.json();
-    if (!priceId || !/^[a-zA-Z0-9_-]+$/.test(priceId)) throw new Error("Invalid priceId");
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) throw new Error("Unauthorized");
+
+    const { priceId, quantity, returnUrl, environment } = await req.json();
+    if (!ALLOWED_PRICE_IDS.has(priceId)) throw new Error("Invalid priceId");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
     const env: StripeEnv = environment;
+    const safeReturnUrl = validatedReturnUrl(returnUrl);
+    const safeQuantity = Number.isInteger(quantity) && quantity > 0 && quantity <= 10 ? quantity : 1;
+    const userId = user.id;
 
     const stripe = createStripeClient(env);
     const prices = await stripe.prices.list({ lookup_keys: [priceId] });
-    if (!prices.data.length) throw new Error("Price not found");
+    if (!prices.data.length || !prices.data[0].active) throw new Error("Price not found or inactive");
     const stripePrice = prices.data[0];
     const isRecurring = stripePrice.type === "recurring";
 
-    const customerId = (customerEmail || userId)
-      ? await resolveOrCreateCustomer(stripe, { email: customerEmail, userId })
-      : undefined;
+    const customerId = await resolveOrCreateCustomer(stripe, { email: user.email, userId });
 
     let productDescription: string | undefined;
     if (!isRecurring) {
@@ -64,17 +84,16 @@ Deno.serve(async (req) => {
     }
 
     const session = await stripe.checkout.sessions.create({
-      line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
+      line_items: [{ price: stripePrice.id, quantity: safeQuantity }],
       mode: isRecurring ? "subscription" : "payment",
-      ui_mode: "embedded_page",
-      return_url: returnUrl,
+      ui_mode: "embedded",
+      return_url: safeReturnUrl,
       automatic_tax: { enabled: true },
-      ...(customerId && { customer: customerId }),
+      customer: customerId,
+      client_reference_id: userId,
       ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
-      ...(userId && {
-        metadata: { userId },
-        ...(isRecurring && { subscription_data: { metadata: { userId } } }),
-      }),
+      metadata: { userId, priceId },
+      ...(isRecurring && { subscription_data: { metadata: { userId, priceId } } }),
     });
 
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
@@ -82,8 +101,9 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("create-checkout error:", e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 400,
+    const message = (e as Error).message;
+    return new Response(JSON.stringify({ error: message }), {
+      status: message === "Unauthorized" ? 401 : 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

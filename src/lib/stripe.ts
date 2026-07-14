@@ -3,6 +3,7 @@ import { loadStripe, Stripe } from "@stripe/stripe-js";
 type StripeEnv = "sandbox" | "live";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
+const PUBLIC_APP_URL = "https://smart-notes-brain.lovable.app";
 
 function paymentsEnvironment(): StripeEnv {
   if (clientToken?.startsWith("pk_test_")) return "sandbox";
@@ -28,4 +29,9 @@ export function getStripeEnvironment(): StripeEnv {
 
 export function isPaymentsConfigured(): boolean {
   return clientToken?.startsWith("pk_test_") || clientToken?.startsWith("pk_live_") || false;
+}
+
+export function getPaymentsReturnBaseUrl(): string {
+  if (typeof window === "undefined") return PUBLIC_APP_URL;
+  return ["http:", "https:"].includes(window.location.protocol) ? window.location.origin : PUBLIC_APP_URL;
 }
