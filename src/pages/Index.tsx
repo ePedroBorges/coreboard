@@ -78,7 +78,7 @@ const savePinnedIds = (userId: string | undefined, type: "notebooks" | "tasks", 
   window.localStorage.setItem(pinnedIdsStorageKey(userId, type), JSON.stringify(ids));
 };
 
-const sameNavigationState = (a: AppNavigationState, b: AppNavigationState) => (
+const sameNavigationState = (a?: AppNavigationState, b?: AppNavigationState) => (
   !!a && !!b &&
   a.activeView === b.activeView &&
   a.selectedNotebookId === b.selectedNotebookId &&
@@ -183,13 +183,13 @@ const Index = () => {
     notebookCount: notebooks.data?.length || 0,
     completedChecklist,
   }), [allPages.data, completedChecklist, notebooks.data?.length, normalizedTasks]);
-  const notifications = useNotifications(user.id, normalizedTasks);
+  const notifications = useNotifications(user?.id, normalizedTasks);
 
   useEffect(() => {
     setNavigationStack([]);
-    setPinnedNotebookIds(loadPinnedIds(user.id, "notebooks"));
-    setPinnedTaskIds(loadPinnedIds(user.id, "tasks"));
-  }, [user.id]);
+    setPinnedNotebookIds(loadPinnedIds(user?.id, "notebooks"));
+    setPinnedTaskIds(loadPinnedIds(user?.id, "tasks"));
+  }, [user?.id]);
 
   // Sync URL -> activeView on browser back/forward or refresh
   useEffect(() => {
@@ -210,10 +210,10 @@ const Index = () => {
   }, [activeView, selectedPageId]);
 
   useEffect(() => {
-    if (user.id && !userSettings.settings.hasSeenOnboarding && shouldShowInitialOnboarding(user.id)) {
+    if (user?.id && !userSettings.settings.hasSeenOnboarding && shouldShowInitialOnboarding(user.id)) {
       setOnboardingOpen(true);
     }
-  }, [user.id, userSettings.settings.hasSeenOnboarding]);
+  }, [user?.id, userSettings.settings.hasSeenOnboarding]);
 
   const currentNavigationState = useMemo<AppNavigationState>(() => ({
     activeView,
@@ -331,13 +331,13 @@ const Index = () => {
 
   const handleFinishOnboarding = useCallback(() => {
     userSettings.setHasSeenOnboarding(true);
-    clearInitialOnboardingMarker(user.id);
+    clearInitialOnboardingMarker(user?.id);
     setOnboardingOpen(false);
     setActiveView("today");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
     setSearchQuery("");
-  }, [user.id, userSettings]);
+  }, [user?.id, userSettings]);
 
   const handleOpenNotebook = useCallback((id: string) => {
     pushNavigationState();
@@ -352,7 +352,7 @@ const Index = () => {
     return notesFilter !== "all" && notesFilter !== "favorites" ? notesFilter : undefined;
   }, [notesFilter]);
 
-  const openQuickCapture = useCallback((notebookId: string) => {
+  const openQuickCapture = useCallback((notebookId?: string) => {
     setQuickCaptureNotebookId(notebookId || getNotebookIdForNotesFilter() || selectedNotebookId || defaultNotebookId);
     setQuickCaptureOpen(true);
   }, [defaultNotebookId, getNotebookIdForNotesFilter, selectedNotebookId]);
@@ -388,12 +388,12 @@ const Index = () => {
   }: {
     title: string;
     content: Page["content"];
-    notebookId: string;
+    notebookId?: string;
     pinned: boolean;
     createTask: boolean;
   }) => {
     const targetNotebookId = notebookId || await ensureNotebookId();
-    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim()).slice(0, 80) || "Nova anotação";
+    const fallbackTitle = title || blocksToText(content).split("\n").find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
     const page = await pages.createPage.mutateAsync({ title: fallbackTitle, content, notebookId: targetNotebookId });
     if (pinned) pages.updatePage.mutate({ id: page.id, is_favorite: true });
     setActiveView("diary");
@@ -472,7 +472,7 @@ const Index = () => {
     setSearchQuery(task.title);
   }, [pushNavigationState]);
 
-  const handleDeleteNotebook = useCallback((id: string, targetNotebookId: string) => {
+  const handleDeleteNotebook = useCallback((id: string, targetNotebookId?: string) => {
     const fallbackNotebookId = targetNotebookId || defaultNotebookId || notebooks.data?.find((notebook) => notebook.id !== id).id;
     notebooks.deleteNotebook.mutate({ id, targetNotebookId }, {
       onSuccess: () => {
@@ -924,14 +924,14 @@ function NotesLibrary({
   tasks: WeeklyTask[];
   notebooks: Notebook[];
   activeFilter: NotesFilter;
-  defaultNotebookId: string;
+  defaultNotebookId?: string;
   loading: boolean;
   notebookTitleById: Map<string, string>;
   onFilterChange: (filter: NotesFilter) => void;
-  onCreateNote: (notebookId: string) => void;
+  onCreateNote: (notebookId?: string) => void;
   onCreateNotebook: (title: string) => Promise<Notebook>;
   onRenameNotebook: (id: string, title: string) => void;
-  onDeleteNotebook: (id: string, targetNotebookId: string) => void;
+  onDeleteNotebook: (id: string, targetNotebookId?: string) => void;
   pinnedNotebookIds: string[];
   onTogglePinnedNotebook: (notebookId: string) => void;
   onOpenNote: (page: Page) => void;
@@ -991,7 +991,7 @@ function NotesLibrary({
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
   const activeNotebookId = activeFilter !== "all" && activeFilter !== "favorites" ? activeFilter : defaultNotebookId;
-  const activeTitle = activeFilter === "all" ? "Todas as anotações" : activeFilter === "favorites" ? "Anotações fixadas" : selectedNotebook.title || DEFAULT_NOTEBOOK_NAME;
+  const activeTitle = activeFilter === "all" ? "Todas as anotações" : activeFilter === "favorites" ? "Anotações fixadas" : selectedNotebook?.title || DEFAULT_NOTEBOOK_NAME;
   const isNotebookSelected = activeFilter !== "all" && activeFilter !== "favorites";
 
   const handleCreateNotebook = async () => {
@@ -1042,7 +1042,9 @@ function NotesLibrary({
     }
     setDeleteNotebookId(notebook.id);
     setDeleteTargetId(
-      generalNotebook.id && generalNotebook.id !== notebook.id ? generalNotebook.id : notebooks.find((current) => current.id !== notebook.id).id || ""
+      generalNotebook?.id && generalNotebook.id !== notebook.id
+        ? generalNotebook.id
+        : notebooks.find((current) => current.id !== notebook.id)?.id || ""
     );
   };
 
@@ -1302,7 +1304,7 @@ function NotesLibrary({
     }}>
       <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Excluir caderno</DialogTitle>
+          <DialogTitle>Excluir caderno?</DialogTitle>
           <DialogDescription>
             {deletePageCount > 0
               ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anota??o" : "anota??es"}. Para evitar perda de dados, escolha para onde elas ser?o movidas.`
@@ -1363,11 +1365,11 @@ function NotebookFilterButton({
   label: string;
   count: number;
   onClick: () => void;
-  pinned: boolean;
-  onTogglePinned: () => void;
-  locked: boolean;
-  onRename: () => void;
-  onDelete: () => void;
+  pinned?: boolean;
+  onTogglePinned?: () => void;
+  locked?: boolean;
+  onRename?: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <div className={cn(
@@ -1420,20 +1422,19 @@ function MobileNotebookFilterButton({
   icon: React.ElementType;
   label: string;
   count: number;
-  pinned: boolean;
+  pinned?: boolean;
   onClick: () => void;
-  onTogglePinned: () => void;
-  locked: boolean;
-  onRename: () => void;
-  onDelete: () => void;
+  onTogglePinned?: () => void;
+  locked?: boolean;
+  onRename?: () => void;
+  onDelete?: () => void;
 }) {
   return (
     <div
       className={cn(
         "flex min-h-12 w-full min-w-0 items-center gap-1 rounded-md border transition-colors",
         active
-          ?
-          "border-primary/45 bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20"
+          ? "border-primary/45 bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20"
           : "border-border/60 bg-background/35 text-muted-foreground hover:border-primary/30 hover:bg-background/60 hover:text-foreground"
       )}
     >
@@ -1519,7 +1520,7 @@ function NotebookTaskCard({
   onToggleStatus,
 }: {
   task: WeeklyTask;
-  sourceNoteTitle: string;
+  sourceNoteTitle?: string;
   onToggleStatus: () => void;
 }) {
   return (

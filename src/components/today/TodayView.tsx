@@ -566,8 +566,8 @@ function EmptyPanel({
   icon: React.ElementType;
   title: string;
   text: string;
-  cta: string;
-  onAction: () => void;
+  cta?: string;
+  onAction?: () => void;
 }) {
   return (
     <div className="rounded-md border border-dashed border-border bg-background/35 p-6 text-center">

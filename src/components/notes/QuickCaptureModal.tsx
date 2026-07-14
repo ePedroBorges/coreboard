@@ -22,11 +22,11 @@ interface QuickCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   notebooks: Notebook[];
-  defaultNotebookId: string;
-  onSave: (input: { title: string; content: Block[]; notebookId: string; pinned: boolean; createTask: boolean }) => Promise<void>;
+  defaultNotebookId?: string;
+  onSave: (input: { title: string; content: Block[]; notebookId?: string; pinned: boolean; createTask: boolean }) => Promise<void>;
 }
 
-type ChecklistDraft = { id: string; text: string; checked: boolean };
+type ChecklistDraft = { id: string; text: string; checked?: boolean };
 type CreationMode = "line-by-line" | "freeform";
 
 const createDraftItem = (): ChecklistDraft => ({
@@ -45,7 +45,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
   const [savingMode, setSavingMode] = useState<"note" | "task" | null>(null);
 
   useEffect(() => {
-    if (open) setSelectedNotebookId(defaultNotebookId || notebooks[0].id || "");
+    if (open) setSelectedNotebookId(defaultNotebookId || notebooks[0]?.id || "");
   }, [defaultNotebookId, notebooks, open]);
 
   const canSave = useMemo(
@@ -58,7 +58,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
     setContent("");
     setCreationMode("line-by-line");
     setTags([]);
-    setSelectedNotebookId(defaultNotebookId || notebooks[0].id || "");
+    setSelectedNotebookId(defaultNotebookId || notebooks[0]?.id || "");
     setPinned(false);
     setChecklistItems([]);
     setSavingMode(null);
@@ -82,7 +82,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
   };
 
   const updateChecklistItem = (id: string, text: string) => {
-    setChecklistItems((items) => items.map((item) => item.id === id { ...item, text } : item));
+    setChecklistItems((items) => items.map((item) => item.id === id ? { ...item, text } : item));
   };
 
   return (
@@ -98,7 +98,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
         <div className="space-y-4">
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título opcional" />
           <div className="grid gap-2">
-            <Label>Como deseja criar a anotação</Label>
+            <Label>Como deseja criar a anotação?</Label>
             <div className="grid gap-2 sm:grid-cols-2">
               <CreationModeButton
                 active={creationMode === "line-by-line"}
@@ -150,7 +150,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
               </Button>
             </div>
             <div className="space-y-2">
-              {checklistItems.length === 0 (
+              {checklistItems.length === 0 ? (
                 <p className="text-xs text-muted-foreground">Adicione itens quando a ideia já vier com próximos passos.</p>
               ) : checklistItems.map((item) => (
                 <div key={item.id} className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
             className="flex min-h-10 items-center gap-2 rounded-md border border-border/60 bg-background/35 px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <Pin className="h-4 w-4" />
-            {pinned "Anotação fixada" : "Fixar anotação"}
+            {pinned ? "Anotação fixada" : "Fixar anotação"}
           </button>
         </div>
 
@@ -221,7 +221,7 @@ function CreationModeButton({
       className={[
         "flex min-h-20 gap-3 rounded-md border p-3 text-left transition-colors",
         active
-          "border-primary/50 bg-primary/10 text-foreground ring-1 ring-primary/25"
+          ? "border-primary/50 bg-primary/10 text-foreground ring-1 ring-primary/25"
           : "border-border/60 bg-background/35 text-muted-foreground hover:border-primary/30 hover:text-foreground",
       ].join(" ")}
     >

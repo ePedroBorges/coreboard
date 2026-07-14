@@ -49,7 +49,7 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ElementType }[]
   { type: "attachment", label: "Imagem ou arquivo", icon: Paperclip },
 ];
 
-const imageUrlRegex = /https:\/\/(:(!https:\/\/)[^\s])+\.(:png|jpeg|gif|webp|svg)(:\[^\s]*)/gi;
+const imageUrlRegex = /https?:\/\/(?:(?!https?:\/\/)[^\s])+\.(?:png|jpe?g|gif|webp|svg)(?:\?[^\s]*)?/gi;
 
 function getImageUrls(text: string) {
   return Array.from(new Set(text.match(imageUrlRegex) || []));
@@ -72,9 +72,9 @@ function EditableContent({
   onKeyDown: (event: KeyboardEvent) => void;
   onFocus: () => void;
   onBlur: () => void;
-  className: string;
-  placeholder: string;
-  refCallback: (el: HTMLElement | null) => void;
+  className?: string;
+  placeholder?: string;
+  refCallback?: (el: HTMLElement | null) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -90,7 +90,7 @@ function EditableContent({
     <div
       ref={(el) => {
         ref.current = el;
-        refCallback.(el);
+        refCallback?.(el);
       }}
       contentEditable
       suppressContentEditableWarning
@@ -116,8 +116,8 @@ function AutoResizeTextarea({
   onChange: (text: string) => void;
   onFocus: () => void;
   onBlur: () => void;
-  placeholder: string;
-  refCallback: (el: HTMLTextAreaElement | null) => void;
+  placeholder?: string;
+  refCallback?: (el: HTMLTextAreaElement | null) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -136,7 +136,7 @@ function AutoResizeTextarea({
     <textarea
       ref={(el) => {
         ref.current = el;
-        refCallback.(el);
+        refCallback?.(el);
       }}
       value={value}
       onChange={(event) => {
@@ -161,18 +161,18 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const blockRefs = useRef<(HTMLElement | null)[]>([]);
 
-  const addBlock = (type: BlockType = "freeform", afterIndex: number) => {
+  const addBlock = (type: BlockType = "freeform", afterIndex?: number) => {
     const newBlock: Block = { id: generateId(), type, content: "" };
     if (type === "checklist") newBlock.checked = false;
 
     const newBlocks = [...blocks];
-    const insertAt = afterIndex !== undefined afterIndex + ? 1 : newBlocks.length;
+    const insertAt = afterIndex !== undefined ? afterIndex + 1 : newBlocks.length;
     newBlocks.splice(insertAt, 0, newBlock);
     onChange(newBlocks);
     setEditingBlockId(newBlock.id);
 
     setTimeout(() => {
-      blockRefs.current[insertAt].focus();
+      blockRefs.current[insertAt]?.focus();
     }, 50);
   };
 
@@ -188,7 +188,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     onChange(nextBlocks);
     setTimeout(() => {
       const focusIndex = Math.max(0, index - 1);
-      blockRefs.current[focusIndex].focus();
+      blockRefs.current[focusIndex]?.focus();
     }, 50);
   };
 
@@ -215,7 +215,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     if (type === "checklist") updates.checked = false;
     updateBlock(index, updates);
     setSlashMenuIndex(null);
-    setTimeout(() => blockRefs.current[index].focus(), 50);
+    setTimeout(() => blockRefs.current[index]?.focus(), 50);
   };
 
   const handleFileUpload = async (index: number, file: File) => {
@@ -295,20 +295,20 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
             </div>
 
             <div className="min-w-0 flex-1">
-              {block.type === "attachment" (
+              {block.type === "attachment" ? (
                 <AttachmentBlock
                   block={block}
                   uploading={uploadingIdx === index}
                   onUpload={(file) => handleFileUpload(index, file)}
                 />
-              ) : block.type === "checklist" (
+              ) : block.type === "checklist" ? (
                 <div className="flex items-start gap-2 py-1 sm:py-0.5">
                   <Checkbox
                     checked={block.checked}
                     onCheckedChange={(checked) => updateBlock(index, { checked: !!checked })}
                     className="mt-1 h-5 w-5 sm:h-4 sm:w-4"
                   />
-                  {isEditing (
+      {isEditing ? (
                     <EditableContent
                       blockId={block.id}
                       initialContent={block.content}
@@ -331,8 +331,8 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                     />
                   )}
                 </div>
-              ) : block.type === "freeform" (
-                isEditing (
+              ) : block.type === "freeform" ? (
+                isEditing ? (
                   <AutoResizeTextarea
                     refCallback={(el) => { blockRefs.current[index] = el; }}
                     value={block.content}
@@ -348,12 +348,12 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                     onEdit={() => setEditingBlockId(block.id)}
                   />
                 )
-              ) : block.type === "bullet-list" || block.type === "numbered-list" (
+              ) : block.type === "bullet-list" || block.type === "numbered-list" ? (
                 <div className="flex items-start gap-2 py-1 sm:py-0.5">
                   <span className="mt-1 shrink-0 text-muted-foreground">
                     {block.type === "bullet-list" ? "-" : `${index + 1}.`}
                   </span>
-                  {isEditing (
+      {isEditing ? (
                     <EditableContent
                       blockId={block.id}
                       initialContent={block.content}
@@ -373,7 +373,7 @@ export function BlockEditor({ blocks, onChange }: BlockEditorProps) {
                     />
                   )}
                 </div>
-              ) : isEditing (
+              ) : isEditing ? (
                 <EditableContent
                   blockId={block.id}
                   initialContent={block.content}
@@ -451,7 +451,7 @@ function BlockTypeMenu({
   trigger,
 }: {
   onSelect: (type: BlockType) => void;
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
 }) {
   return (
     <DropdownMenu>
@@ -490,7 +490,7 @@ function RichTextBlock({
   onEdit,
 }: {
   text: string;
-  className: string;
+  className?: string;
   onEdit: () => void;
 }) {
   const imageUrls = getImageUrls(text);
@@ -537,7 +537,7 @@ function AttachmentBlock({
         .from("page-attachments")
         .createSignedUrl(block.filePath, 60 * 60)
         .then(({ data }) => {
-          if (active && data.signedUrl) setSignedUrl(data.signedUrl);
+          if (active && data?.signedUrl) setSignedUrl(data.signedUrl);
         });
     } else {
       setSignedUrl(null);
@@ -562,12 +562,12 @@ function AttachmentBlock({
         />
         <button
           type="button"
-          onClick={() => fileInputRef.current.click()}
+          onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          {uploading <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-          {uploading "Enviando..." : "Selecionar PDF ou imagem"}
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+              {uploading ? "Enviando..." : "Selecionar PDF ou imagem"}
         </button>
       </div>
     );
@@ -575,7 +575,7 @@ function AttachmentBlock({
 
   return (
     <div className="my-2 rounded-md border border-border bg-card/30 p-3">
-      {isImage && signedUrl (
+      {isImage && signedUrl ? (
         <a href={signedUrl} target="_blank" rel="noopener noreferrer">
           <img
             src={signedUrl}
@@ -587,7 +587,7 @@ function AttachmentBlock({
       ) : (
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            {isImage <ImageIcon className="h-5 w-5 shrink-0 text-primary" /> : <FileText className="h-5 w-5 shrink-0 text-primary" />}
+              {isImage ? <ImageIcon className="h-5 w-5 shrink-0 text-primary" /> : <FileText className="h-5 w-5 shrink-0 text-primary" />}
             <div className="min-w-0">
               <div className="truncate text-sm font-medium">{block.fileName}</div>
               <div className="text-[11px] text-muted-foreground">{block.fileType}</div>

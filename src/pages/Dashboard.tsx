@@ -38,7 +38,7 @@ const Dashboard = () => {
 
   // Fetch all pages for stats
   const allPages = useQuery({
-    queryKey: ["all-pages", user.id],
+    queryKey: ["all-pages", user?.id],
     enabled: !!user,
     queryFn: async (): Promise<Page[]> => {
       const { data, error } = await supabase
@@ -56,7 +56,7 @@ const Dashboard = () => {
 
   // Fetch all tags
   const allTags = useQuery({
-    queryKey: ["all-tags", user.id],
+    queryKey: ["all-tags", user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase.from("tags").select("*").eq("user_id", user.id);

@@ -6,7 +6,7 @@ export interface Notebook {
   position: number;
   created_at: string;
   updated_at: string;
-  page_count: number;
+  page_count?: number;
 }
 
 export interface Page {
@@ -55,12 +55,12 @@ export interface Block {
   id: string;
   type: BlockType;
   content: string;
-  checked: boolean;
-  imageUrl: string;
+  checked?: boolean;
+  imageUrl?: string;
   // Attachment fields (PDFs / images)
-  fileUrl: string;     // signed URL or storage path
-  filePath: string;    // storage path inside bucket
-  fileName: string;
-  fileType: string;    // mime
-  meta: Record<string, unknown>;
+  fileUrl?: string;     // signed URL or storage path
+  filePath?: string;    // storage path inside bucket
+  fileName?: string;
+  fileType?: string;    // mime
+  meta?: Record<string, unknown>;
 }

@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   priceId: string;
-  quantity: number;
-  customerEmail: string;
-  userId: string;
-  returnUrl: string;
+  quantity?: number;
+  customerEmail?: string;
+  userId?: string;
+  returnUrl?: string;
 }
 
 export function StripeEmbeddedCheckout({ priceId, quantity, customerEmail, userId, returnUrl }: Props) {
@@ -15,8 +15,8 @@ export function StripeEmbeddedCheckout({ priceId, quantity, customerEmail, userI
     const { data, error } = await supabase.functions.invoke("create-checkout", {
       body: { priceId, quantity, customerEmail, userId, returnUrl, environment: getStripeEnvironment() },
     });
-    if (error || !data.clientSecret) {
-      throw new Error(error.message || "Falha ao iniciar checkout");
+    if (error || !data?.clientSecret) {
+      throw new Error(error?.message || "Falha ao iniciar checkout");
     }
     return data.clientSecret;
   };

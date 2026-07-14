@@ -16,24 +16,24 @@ export type Database = {
     Tables: {
       email_send_log: {
         Row: {
-          created_at: string
-          error_message: string | null
-          id: string
-          message_id: string | null
-          metadata: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
           recipient_email: string
           status: string
           template_name: string
         }
         Insert: {
-          created_at: string
-          error_message: string | null
-          id: string
-          message_id: string | null
-          metadata: Json | null
-          recipient_email: string
-          status: string
-          template_name: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
         }
         Update: {
           created_at: string
@@ -49,22 +49,22 @@ export type Database = {
       }
       email_send_state: {
         Row: {
-          auth_email_ttl_minutes: number
-          batch_size: number
-          id: number
-          retry_after_until: string | null
-          send_delay_ms: number
-          transactional_email_ttl_minutes: number
-          updated_at: string
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
         }
         Insert: {
-          auth_email_ttl_minutes: number
-          batch_size: number
-          id: number
-          retry_after_until: string | null
-          send_delay_ms: number
-          transactional_email_ttl_minutes: number
-          updated_at: string
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
         }
         Update: {
           auth_email_ttl_minutes: number
@@ -79,21 +79,21 @@ export type Database = {
       }
       email_unsubscribe_tokens: {
         Row: {
-          created_at: string
+          created_at?: string
           email: string
-          id: string
+          id?: string
           token: string
-          used_at: string | null
+          used_at?: string | null
         }
         Insert: {
-          created_at: string
-          email: string
-          id: string
-          token: string
-          used_at: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          used_at?: string | null
         }
         Update: {
-          created_at: string
+          created_at?: string
           email: string
           id: string
           token: string
@@ -104,26 +104,26 @@ export type Database = {
       notebooks: {
         Row: {
           created_at: string
-          description: string | null
-          id: string
-          position: number
-          title: string
-          updated_at: string
+          description?: string | null
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string
           user_id: string
         }
         Insert: {
-          created_at: string
-          description: string | null
-          id: string
-          position: number
-          title: string
-          updated_at: string
-          user_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Update: {
           created_at: string
           description: string | null
-          id: string
+          id?: string
           position: number
           title: string
           updated_at: string
@@ -133,9 +133,9 @@ export type Database = {
       }
       page_tags: {
         Row: {
-          id: string
-          page_id: string
-          tag_id: string
+          id?: string
+          page_id?: string
+          tag_id?: string
         }
         Insert: {
           id: string
@@ -166,23 +166,23 @@ export type Database = {
       }
       page_versions: {
         Row: {
-          content: Json
-          created_at: string
-          id: string
+          content?: Json
+          created_at?: string
+          id?: string
           page_id: string
-          title: string | null
+          title?: string | null
         }
         Insert: {
-          content: Json
-          created_at: string
-          id: string
-          page_id: string
-          title: string | null
+          content?: Json
+          created_at?: string
+          id?: string
+          page_id?: string
+          title?: string | null
         }
         Update: {
-          content: Json
-          created_at: string
-          id: string
+          content?: Json
+          created_at?: string
+          id?: string
           page_id: string
           title: string | null
         }
@@ -201,23 +201,23 @@ export type Database = {
           content: Json
           created_at: string
           id: string
-          is_favorite: boolean
+          is_favorite?: boolean
           notebook_id: string
-          position: number
-          title: string
-          updated_at: string
+          position?: number
+          title?: string
+          updated_at?: string
           user_id: string
         }
         Insert: {
-          content: Json
-          created_at: string
-          id: string
-          is_favorite: boolean
-          notebook_id: string
-          position: number
-          title: string
-          updated_at: string
-          user_id: string
+          content?: Json
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          notebook_id?: string
+          position?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
         Update: {
           content: Json
@@ -242,22 +242,22 @@ export type Database = {
       }
       profiles: {
         Row: {
-          avatar_url: string | null
-          created_at: string
-          id: string
-          theme: string
-          updated_at: string
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          theme?: string
+          updated_at?: string
           user_id: string
-          username: string | null
+          username?: string | null
         }
         Insert: {
-          avatar_url: string | null
-          created_at: string
-          id: string
-          theme: string
-          updated_at: string
-          user_id: string
-          username: string | null
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
         }
         Update: {
           avatar_url: string | null
@@ -272,34 +272,34 @@ export type Database = {
       }
       subscriptions: {
         Row: {
-          cancel_at_period_end: boolean | null
-          created_at: string | null
-          current_period_end: string | null
-          current_period_start: string | null
-          environment: string
-          id: string
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
           price_id: string
           product_id: string
-          status: string
+          status?: string
           stripe_customer_id: string
           stripe_subscription_id: string
-          updated_at: string | null
+          updated_at?: string | null
           user_id: string
         }
         Insert: {
-          cancel_at_period_end: boolean | null
-          created_at: string | null
-          current_period_end: string | null
-          current_period_start: string | null
-          environment: string
-          id: string
-          price_id: string
-          product_id: string
-          status: string
-          stripe_customer_id: string
-          stripe_subscription_id: string
-          updated_at: string | null
-          user_id: string
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id?: string
+          product_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Update: {
           cancel_at_period_end: boolean | null
@@ -320,18 +320,18 @@ export type Database = {
       }
       suppressed_emails: {
         Row: {
-          created_at: string
+          created_at?: string
           email: string
-          id: string
-          metadata: Json | null
+          id?: string
+          metadata?: Json | null
           reason: string
         }
         Insert: {
-          created_at: string
-          email: string
-          id: string
-          metadata: Json | null
-          reason: string
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
         }
         Update: {
           created_at: string
@@ -344,20 +344,20 @@ export type Database = {
       }
       tags: {
         Row: {
-          color: string
-          created_at: string
-          id: string
+          color?: string
+          created_at?: string
+          id?: string
           name: string
-          usage_count: number
+          usage_count?: number
           user_id: string
         }
         Insert: {
-          color: string
-          created_at: string
-          id: string
-          name: string
-          usage_count: number
-          user_id: string
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          usage_count?: number
+          user_id?: string
         }
         Update: {
           color: string
@@ -371,30 +371,30 @@ export type Database = {
       }
       task_pending_reasons: {
         Row: {
-          completed_at: string | null
-          created_at: string
-          description: string | null
-          id: string
-          priority: string
-          progress_current: number
-          progress_target: number | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
           reason: string
-          responsible: string | null
+          responsible?: string | null
           task_id: string
           user_id: string
         }
         Insert: {
-          completed_at: string | null
-          created_at: string
-          description: string | null
-          id: string
-          priority: string
-          progress_current: number
-          progress_target: number | null
-          reason: string
-          responsible: string | null
-          task_id: string
-          user_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
+          reason?: string
+          responsible?: string | null
+          task_id?: string
+          user_id?: string
         }
         Update: {
           completed_at: string | null
@@ -421,38 +421,38 @@ export type Database = {
       }
       weekly_tasks: {
         Row: {
-          assignee: string | null
-          completed_at: string | null
-          created_at: string
-          description: string | null
-          id: string
-          notebook_id: string | null
-          priority: string
-          progress_current: number
-          progress_target: number | null
-          status: Database["public"]["Enums"]["task_status"]
+          assignee?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notebook_id?: string | null
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
+          status?: Database["public"]["Enums"]["task_status"]
           task_date: string
           title: string
-          updated_at: string
+          updated_at?: string
           user_id: string
           week_start: string
         }
         Insert: {
-          assignee: string | null
-          completed_at: string | null
-          created_at: string
-          description: string | null
-          id: string
-          notebook_id: string | null
-          priority: string
-          progress_current: number
-          progress_target: number | null
-          status: Database["public"]["Enums"]["task_status"]
-          task_date: string
-          title: string
-          updated_at: string
-          user_id: string
-          week_start: string
+          assignee?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          notebook_id?: string | null
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
+          status?: Database["public"]["Enums"]["task_status"]
+          task_date?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
         }
         Update: {
           assignee: string | null
@@ -496,7 +496,7 @@ export type Database = {
         Returns: number
       }
       has_active_subscription: {
-        Args: { check_env: string; user_uuid: string }
+        Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
       move_to_dlq: {
@@ -537,25 +537,25 @@ export type Tables<
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    R
+    ? R
     : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
         DefaultSchema["Views"])
-    (DefaultSchema["Tables"] &
+    ? (DefaultSchema["Tables"] &
         DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
-      R
+      ? R
       : never
     : never
 
@@ -566,21 +566,21 @@ export type TablesInsert<
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
-    I
+    ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
-      I
+      ? I
       : never
     : never
 
@@ -591,21 +591,21 @@ export type TablesUpdate<
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
-    U
+    ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
-      U
+      ? U
       : never
     : never
 
@@ -616,14 +616,14 @@ export type Enums<
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
@@ -633,14 +633,14 @@ export type CompositeTypes<
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {

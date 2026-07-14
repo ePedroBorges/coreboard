@@ -12,7 +12,7 @@ export const nativeStorage = {
     if (typeof window !== "undefined" && window.localStorage) {
       return window.localStorage.getItem(key);
     }
-    return memoryStorage.get(key) null;
+    return memoryStorage.get(key) ?? null;
   },
   setItem: async (key: string, value: string) => {
     if (Capacitor.isNativePlatform()) {

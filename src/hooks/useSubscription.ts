@@ -74,8 +74,8 @@ export function useSubscription() {
   }, [user]);
 
   const isActive = computeIsActive(subscription);
-  const isPro = isActive && PRO_PRICE_IDS.has(subscription.price_id || "");
-  const isLifetime = isPro && subscription.price_id === "pro_lifetime";
+  const isPro = isActive && PRO_PRICE_IDS.has(subscription?.price_id || "");
+  const isLifetime = isPro && subscription?.price_id === "pro_lifetime";
   const plan: "free" | "pro" = isPro ? "pro" : "free";
 
   return { subscription, loading, isActive, isPro, isLifetime, plan };

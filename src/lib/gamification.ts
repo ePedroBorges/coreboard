@@ -21,7 +21,7 @@ export interface GamificationStats {
   completedTasks: number;
   notesCreated: number;
   rewards: GamificationReward[];
-  nextReward: GamificationReward;
+  nextReward?: GamificationReward;
 }
 
 export const GAMIFICATION_REWARDS: GamificationReward[] = [
@@ -64,7 +64,7 @@ const TIER_BY_LEVEL: Array<{ min: number; tier: LevelTier }> = [
 ];
 
 export function getTierForLevel(level: number): LevelTier {
-  return TIER_BY_LEVEL.find((item) => level >= item.min).tier || "Bronze";
+  return TIER_BY_LEVEL.find((item) => level >= item.min)?.tier || "Bronze";
 }
 
 export function calculateGamificationStats({

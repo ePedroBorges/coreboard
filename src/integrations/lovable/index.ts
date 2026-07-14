@@ -5,17 +5,17 @@ import { supabase } from "../supabase/client";
 const lovableAuth = createLovableAuth();
 
 type SignInOptions = {
-  redirect_uri: string;
-  extraParams: Record<string, string>;
+  redirect_uri?: string;
+  extraParams?: Record<string, string>;
 };
 
 export const lovable = {
   auth: {
-    signInWithOAuth: async (provider: "google" | "apple" | "microsoft" | "lovable", opts: SignInOptions) => {
+    signInWithOAuth: async (provider: "google" | "apple" | "microsoft" | "lovable", opts?: SignInOptions) => {
       const result = await lovableAuth.signInWithOAuth(provider, {
-        redirect_uri: opts.redirect_uri,
+        redirect_uri: opts?.redirect_uri,
         extraParams: {
-          ...opts.extraParams,
+          ...opts?.extraParams,
         },
       });
 
@@ -30,7 +30,7 @@ export const lovable = {
       try {
         await supabase.auth.setSession(result.tokens);
       } catch (e) {
-        return { error: e instanceof Error e : new Error(String(e)) };
+        return { error: e instanceof Error ? e : new Error(String(e)) };
       }
       return result;
     },

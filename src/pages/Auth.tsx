@@ -125,14 +125,14 @@ const Auth = () => {
             <div className="mt-4 text-center text-sm">
               {mode === "login" ? (
                 <p className="text-muted-foreground">
-                  Nao tem conta{" "}
+                  Nao tem conta?{" "}
                   <button type="button" onClick={() => setMode("signup")} className="text-primary hover:underline">
                     Criar conta
                   </button>
                 </p>
               ) : (
                 <p className="text-muted-foreground">
-                  Ja tem conta{" "}
+                  Ja tem conta?{" "}
                   <button type="button" onClick={() => setMode("login")} className="text-primary hover:underline">
                     Entrar
                   </button>

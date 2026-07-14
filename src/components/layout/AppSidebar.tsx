@@ -32,8 +32,8 @@ interface AppSidebarProps {
   selectedPageId: string | null;
   onToggleSidebarPinned: () => void;
   onMouseLeave: () => void;
-  onSelectToday: () => void;
-  onSelectNotes: () => void;
+  onSelectToday?: () => void;
+  onSelectNotes?: () => void;
   onOpenNotebook: (id: string) => void;
   onOpenPage: (page: Page) => void;
   onSelectTasks: () => void;
@@ -232,8 +232,8 @@ function MobileBottomNavigation({
   onSelectTasks,
 }: {
   activeView: AppView;
-  onSelectToday: () => void;
-  onSelectNotes: () => void;
+  onSelectToday?: () => void;
+  onSelectNotes?: () => void;
   onSelectTasks: () => void;
 }) {
   return (
@@ -258,7 +258,7 @@ function MobileBottomNavButton({
   active: boolean;
   icon: React.ElementType;
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   return (
     <button
@@ -291,7 +291,7 @@ function NavItem({
   active: boolean;
   icon: React.ElementType;
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
   collapsed: boolean;
 }) {
   return (
