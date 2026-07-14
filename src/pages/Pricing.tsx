@@ -6,8 +6,6 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { getPaymentsReturnUrl, getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +61,37 @@ const Pricing = () => {
     }
   };
 
+  const startCheckout = async (priceId: PriceId) => {
+    setCheckoutPriceId(priceId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          priceId,
+          environment: getStripeEnvironment(),
+          returnUrl: getPaymentsReturnUrl("/checkout/return?session_id={CHECKOUT_SESSION_ID}"),
+          cancelUrl: getPaymentsReturnUrl("/planos?checkout=canceled"),
+        },
+      });
+
+      if (error || !data?.url) {
+        let message = data?.error || error?.message || "Nao foi possivel iniciar o pagamento.";
+        const context = (error as { context?: Response } | null)?.context;
+        try {
+          const payload = await context?.clone().json();
+          if (payload?.error) message = payload.error;
+        } catch {
+          // Keep the SDK error when the response body is not JSON.
+        }
+        throw new Error(message);
+      }
+
+      window.location.assign(data.url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao abrir pagamento");
+      setCheckoutPriceId(null);
+    }
+  };
+
   return (
     <div className="h-[100dvh] overflow-y-auto overscroll-y-contain bg-background">
       <PaymentTestModeBanner />
@@ -111,11 +140,17 @@ const Pricing = () => {
             >
               <Button
                 className="w-full gap-2"
-                disabled={!isPaymentsConfigured() || isPro}
-                onClick={() => setCheckoutPriceId(plan.id)}
+                disabled={!isPaymentsConfigured() || isPro || checkoutPriceId !== null}
+                onClick={() => void startCheckout(plan.id)}
               >
-                {isPro ? <ShieldCheck className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-                {isPro ? "Pro ativo" : "Assinar com Stripe"}
+                {checkoutPriceId === plan.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isPro ? (
+                  <ShieldCheck className="h-4 w-4" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
+                {isPro ? "Pro ativo" : checkoutPriceId === plan.id ? "Abrindo pagamento..." : "Assinar com Stripe"}
               </Button>
             </PlanCard>
           ))}
@@ -126,22 +161,6 @@ const Pricing = () => {
         </p>
       </div>
 
-      <Dialog open={!!checkoutPriceId} onOpenChange={(open) => !open && setCheckoutPriceId(null)}>
-        <DialogContent className="max-h-[calc(100dvh-0.5rem)] w-[calc(100vw-0.5rem)] overflow-y-auto overscroll-contain p-3 sm:max-h-[calc(100dvh-2rem)] sm:max-w-2xl sm:p-5">
-          <DialogHeader>
-            <DialogTitle>Finalizar assinatura</DialogTitle>
-            <DialogDescription>
-              Pagamento processado com segurança pelo Stripe. Nenhum dado de cartão fica armazenado no VISTA.
-            </DialogDescription>
-          </DialogHeader>
-          {checkoutPriceId && (
-            <StripeEmbeddedCheckout
-              priceId={checkoutPriceId}
-              returnUrl={getPaymentsReturnUrl("/checkout/return?session_id={CHECKOUT_SESSION_ID}")}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

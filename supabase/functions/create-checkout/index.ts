@@ -58,11 +58,12 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { priceId, quantity, returnUrl, environment } = await req.json();
+    const { priceId, quantity, returnUrl, cancelUrl, environment } = await req.json();
     if (!ALLOWED_PRICE_IDS.has(priceId)) throw new Error("Invalid priceId");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
     const env: StripeEnv = environment;
     const safeReturnUrl = validatedReturnUrl(returnUrl);
+    const safeCancelUrl = validatedReturnUrl(cancelUrl);
     const safeQuantity = Number.isInteger(quantity) && quantity > 0 && quantity <= 10 ? quantity : 1;
     const userId = user.id;
 
@@ -86,8 +87,8 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: safeQuantity }],
       mode: isRecurring ? "subscription" : "payment",
-      ui_mode: "embedded",
-      return_url: safeReturnUrl,
+      success_url: safeReturnUrl,
+      cancel_url: safeCancelUrl,
       automatic_tax: { enabled: true },
       customer: customerId,
       client_reference_id: userId,
@@ -96,7 +97,9 @@ Deno.serve(async (req) => {
       ...(isRecurring && { subscription_data: { metadata: { userId, priceId } } }),
     });
 
-    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+    if (!session.url) throw new Error("Checkout URL was not created");
+
+    return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
