@@ -30,8 +30,8 @@ const PRO_FEATURES = [
 
 const PLANS: { id: PaymentPlanId; label: string; price: string; period: string; badge?: string }[] = [
   { id: "pro_monthly", label: "Pro Mensal", price: "R$ 9,90", period: "/mês" },
-  { id: "pro_yearly", label: "Pro Anual", price: "R$ 89,90", period: "/ano", badge: "Mais economia" },
-  { id: "pro_lifetime", label: "Pro Vitalício", price: "R$ 79,90", period: "único", badge: "Pagamento único" },
+  { id: "pro_yearly", label: "Pro Anual", price: "R$ 69,90", period: "/ano", badge: "Economize 41%" },
+  { id: "pro_lifetime", label: "Pro Vitalício", price: "R$ 89,90", period: "único", badge: "Pagamento único" },
 ];
 
 const Pricing = () => {
