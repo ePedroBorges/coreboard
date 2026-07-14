@@ -274,6 +274,10 @@ export function WeeklyTaskManager({
             </Button>
           ))}
         </div>
+        <Button className="h-11 w-full gap-2" onClick={() => setTaskDialogOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Nova tarefa
+        </Button>
       </section>
 
       <section className="hidden overflow-hidden rounded-lg border border-border/70 bg-card/80 shadow-sm ring-1 ring-white/5 md:block">
@@ -536,10 +540,6 @@ export function WeeklyTaskManager({
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-warning" /> Pendentes</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" /> Concluídas</span>
             </div>
-            <Button className="mt-3 h-11 w-full gap-2 md:hidden" onClick={() => setTaskDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Nova tarefa
-            </Button>
           </div>
         </section>
       )}
@@ -554,10 +554,6 @@ export function WeeklyTaskManager({
               {listDescription}
             </p>
           </div>
-          <Button className="h-10 gap-2 md:hidden" onClick={() => setTaskDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Nova tarefa
-          </Button>
         </div>
 
         {isLoading ? (
@@ -573,10 +569,6 @@ export function WeeklyTaskManager({
               {view === "day" ? "Tudo limpo nesta data." : "Tudo limpo por aqui."}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">{emptyMessage}</p>
-            <Button className="mt-4 h-10 gap-2 md:hidden" onClick={() => setTaskDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Nova tarefa
-            </Button>
           </div>
         ) : (
           <div className="grid gap-3">
