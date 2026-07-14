@@ -172,8 +172,7 @@ const Dashboard = () => {
           <AppHeader
             canGoBack
             onBack={() => navigate("/")}
-            onOpenSettings={() => navigate("/")}
-            onOpenCommandPalette={() => navigate("/")}
+            onOpenSettings={() => navigate("/configuracoes")}
           />
           <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-24 [-webkit-overflow-scrolling:touch] sm:p-6 lg:pb-6">
             {/* Header */}

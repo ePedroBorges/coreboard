@@ -581,7 +581,6 @@ const Index = () => {
             canGoBack={(activeView === "diary" || activeView === "settings") && navigationStack.length > 0}
             onBack={handleGoBack}
             onOpenSettings={handleSelectSettings}
-            onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           />
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
