@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
+import { createStripeClient, type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
+
+const USER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -13,19 +15,46 @@ function getSupabase() {
 }
 
 function resolvePriceId(price: any): string {
-  return price?.lookup_key || price?.metadata?.lovable_external_id || price?.id;
+  if (price?.recurring?.interval === "month") return "pro_monthly";
+  if (price?.recurring?.interval === "year") return "pro_yearly";
+  return price?.lookup_key || price?.metadata?.lovable_external_id || price?.id || "pro_lifetime";
 }
 
-async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
-  const userId = subscription.metadata?.userId;
+function resolveProductId(product: any): string {
+  return typeof product === "string" ? product : product?.id || "unknown";
+}
+
+async function assertCheckoutIdentity(session: any): Promise<string> {
+  const userId = session.client_reference_id || session.metadata?.userId;
+  if (typeof userId !== "string" || !USER_ID_PATTERN.test(userId)) {
+    throw new Error("Checkout is missing a valid VISTA user reference");
+  }
+
+  const checkoutEmail = session.customer_details?.email || session.customer_email;
+  if (typeof checkoutEmail !== "string" || !checkoutEmail.trim()) {
+    throw new Error("Checkout is missing the customer email");
+  }
+
+  const { data, error } = await getSupabase().auth.admin.getUserById(userId);
+  const accountEmail = data.user?.email;
+  if (error || !accountEmail) throw new Error("VISTA user was not found for this checkout");
+  if (accountEmail.trim().toLowerCase() !== checkoutEmail.trim().toLowerCase()) {
+    throw new Error("Checkout email does not match the VISTA account email");
+  }
+
+  return userId;
+}
+
+async function handleSubscriptionCreated(subscription: any, env: StripeEnv, checkoutUserId?: string) {
+  const userId = checkoutUserId || subscription.metadata?.userId;
   if (!userId) return;
   const item = subscription.items?.data?.[0];
   const priceId = resolvePriceId(item?.price);
-  const productId = item?.price?.product;
+  const productId = resolveProductId(item?.price?.product);
   const periodStart = item?.current_period_start ?? subscription.current_period_start;
   const periodEnd = item?.current_period_end ?? subscription.current_period_end;
 
-  await getSupabase().from("subscriptions").upsert(
+  const { error } = await getSupabase().from("subscriptions").upsert(
     {
       user_id: userId,
       stripe_subscription_id: subscription.id,
@@ -40,16 +69,17 @@ async function handleSubscriptionCreated(subscription: any, env: StripeEnv) {
     },
     { onConflict: "stripe_subscription_id" },
   );
+  if (error) throw error;
 }
 
 async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
   const item = subscription.items?.data?.[0];
   const priceId = resolvePriceId(item?.price);
-  const productId = item?.price?.product;
+  const productId = resolveProductId(item?.price?.product);
   const periodStart = item?.current_period_start ?? subscription.current_period_start;
   const periodEnd = item?.current_period_end ?? subscription.current_period_end;
 
-  await getSupabase()
+  const { error } = await getSupabase()
     .from("subscriptions")
     .update({
       status: subscription.status,
@@ -62,43 +92,51 @@ async function handleSubscriptionUpdated(subscription: any, env: StripeEnv) {
     })
     .eq("stripe_subscription_id", subscription.id)
     .eq("environment", env);
+  if (error) throw error;
 }
 
 async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
-  await getSupabase()
+  const { error } = await getSupabase()
     .from("subscriptions")
     .update({ status: "canceled", updated_at: new Date().toISOString() })
     .eq("stripe_subscription_id", subscription.id)
     .eq("environment", env);
+  if (error) throw error;
 }
 
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
-  // For one-time payments (lifetime), we synthesize a "subscription" row so gating works uniformly.
-  if (session.mode !== "payment") return;
-  if (!["paid", "no_payment_required"].includes(session.payment_status)) return;
-  const userId = session.metadata?.userId;
-  if (!userId) return;
-  const lineItems = await (async () => {
-    try {
-      const supa = getSupabase();
-      const { createStripeClient } = await import("../_shared/stripe.ts");
-      const stripe = createStripeClient(env);
-      return await stripe.checkout.sessions.listLineItems(session.id, { limit: 1, expand: ["data.price"] });
-    } catch {
-      return null;
-    }
-  })();
-  const priceObj: any = lineItems?.data?.[0]?.price;
-  const priceId = priceObj ? resolvePriceId(priceObj) : "pro_lifetime";
-  const productId = priceObj?.product;
+  const userId = await assertCheckoutIdentity(session);
+  const stripe = createStripeClient(env);
 
-  await getSupabase().from("subscriptions").upsert(
+  if (session.mode === "subscription") {
+    const subscriptionId = typeof session.subscription === "string"
+      ? session.subscription
+      : session.subscription?.id;
+    if (!subscriptionId) throw new Error("Checkout is missing its Stripe subscription");
+
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ["items.data.price"],
+    });
+    await handleSubscriptionCreated(subscription, env, userId);
+    return;
+  }
+
+  // For one-time payments (lifetime), synthesize a subscription row so gating works uniformly.
+  if (session.mode !== "payment" || !["paid", "no_payment_required"].includes(session.payment_status)) return;
+  const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+    limit: 1,
+    expand: ["data.price"],
+  });
+  const priceObj: any = lineItems?.data?.[0]?.price;
+  const productId = resolveProductId(priceObj?.product);
+
+  const { error } = await getSupabase().from("subscriptions").upsert(
     {
       user_id: userId,
       stripe_subscription_id: `lifetime_${session.id}`,
-      stripe_customer_id: session.customer,
-      product_id: productId || "pro_lifetime",
-      price_id: priceId,
+      stripe_customer_id: session.customer || `guest_${session.id}`,
+      product_id: productId,
+      price_id: "pro_lifetime",
       status: "active",
       current_period_start: new Date().toISOString(),
       current_period_end: null,
@@ -107,6 +145,7 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     },
     { onConflict: "stripe_subscription_id" },
   );
+  if (error) throw error;
 }
 
 Deno.serve(async (req) => {

@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
-import { getPaymentsReturnUrl, getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
+import { buildPaymentLinkUrl, type PaymentPlanId } from "@/lib/paymentLinks";
+import { getPaymentsReturnUrl, getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-type PriceId = "pro_monthly" | "pro_yearly" | "pro_lifetime";
 
 const FREE_FEATURES = [
   "Anotações e cadernos",
@@ -29,17 +28,17 @@ const PRO_FEATURES = [
   "Acesso aos próximos recursos Pro",
 ];
 
-const PLANS: { id: PriceId; label: string; price: string; period: string; badge?: string }[] = [
+const PLANS: { id: PaymentPlanId; label: string; price: string; period: string; badge?: string }[] = [
   { id: "pro_monthly", label: "Pro Mensal", price: "R$ 9,90", period: "/mês" },
-  { id: "pro_yearly", label: "Pro Anual", price: "R$ 89,90", period: "/ano", badge: "Economize 25%" },
-  { id: "pro_lifetime", label: "Pro Vitalício", price: "R$ 79,90", period: "único", badge: "Melhor oferta" },
+  { id: "pro_yearly", label: "Pro Anual", price: "R$ 89,90", period: "/ano", badge: "Mais economia" },
+  { id: "pro_lifetime", label: "Pro Vitalício", price: "R$ 79,90", period: "único", badge: "Pagamento único" },
 ];
 
 const Pricing = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { isPro, subscription } = useSubscription();
-  const [checkoutPriceId, setCheckoutPriceId] = useState<PriceId | null>(null);
+  const [checkoutPriceId, setCheckoutPriceId] = useState<PaymentPlanId | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -61,31 +60,10 @@ const Pricing = () => {
     }
   };
 
-  const startCheckout = async (priceId: PriceId) => {
+  const startCheckout = (priceId: PaymentPlanId) => {
     setCheckoutPriceId(priceId);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          priceId,
-          environment: getStripeEnvironment(),
-          returnUrl: getPaymentsReturnUrl("/checkout/return?session_id={CHECKOUT_SESSION_ID}"),
-          cancelUrl: getPaymentsReturnUrl("/planos?checkout=canceled"),
-        },
-      });
-
-      if (error || !data?.url) {
-        let message = data?.error || error?.message || "Nao foi possivel iniciar o pagamento.";
-        const context = (error as { context?: Response } | null)?.context;
-        try {
-          const payload = await context?.clone().json();
-          if (payload?.error) message = payload.error;
-        } catch {
-          // Keep the SDK error when the response body is not JSON.
-        }
-        throw new Error(message);
-      }
-
-      window.location.assign(data.url);
+      window.location.assign(buildPaymentLinkUrl(priceId, user.id, user.email || ""));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao abrir pagamento");
       setCheckoutPriceId(null);
@@ -123,6 +101,16 @@ const Pricing = () => {
           )}
         </div>
 
+        {!isPro && (
+          <div className="mb-4 flex items-start gap-2 border-l-2 border-primary/60 bg-primary/5 px-3 py-2 text-xs text-muted-foreground sm:text-sm">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <span>
+              O plano será vinculado à conta <strong className="font-medium text-foreground">{user.email}</strong>.
+              Use este mesmo e-mail durante toda a assinatura.
+            </span>
+          </div>
+        )}
+
         <div className="grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <PlanCard title="Free" price="R$ 0" period="/sempre" features={FREE_FEATURES}>
             <Button variant="outline" className="w-full" disabled>Plano inicial</Button>
@@ -140,8 +128,8 @@ const Pricing = () => {
             >
               <Button
                 className="w-full gap-2"
-                disabled={!isPaymentsConfigured() || isPro || checkoutPriceId !== null}
-                onClick={() => void startCheckout(plan.id)}
+                disabled={isPro || checkoutPriceId !== null}
+                onClick={() => startCheckout(plan.id)}
               >
                 {checkoutPriceId === plan.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -150,7 +138,13 @@ const Pricing = () => {
                 ) : (
                   <Zap className="h-4 w-4" />
                 )}
-                {isPro ? "Pro ativo" : checkoutPriceId === plan.id ? "Abrindo pagamento..." : "Assinar com Stripe"}
+                {isPro
+                  ? "Pro ativo"
+                  : checkoutPriceId === plan.id
+                    ? "Abrindo pagamento..."
+                    : plan.id === "pro_lifetime"
+                      ? "Comprar acesso vitalício"
+                      : "Assinar com Stripe"}
               </Button>
             </PlanCard>
           ))}
