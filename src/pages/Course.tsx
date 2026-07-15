@@ -8,8 +8,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 const lessons = [
-  { id: "capture", title: "1. Capture sem interromper seu fluxo", text: "Use Hoje para registrar uma anotação ou tarefa rapidamente. Dê um título claro e refine depois dentro do caderno." },
-  { id: "notebooks", title: "2. Organize com Cadernos", text: "Toda anotação pertence a um caderno. Use cadernos para áreas maiores e subpastas para projetos ou assuntos específicos." },
+  { id: "capture", title: "1. Capture sem interromper seu fluxo", text: "Use Hoje para registrar uma anotação ou tarefa rapidamente. Dê um título claro e refine depois dentro da pasta." },
+  { id: "notebooks", title: "2. Organize com Pastas", text: "Toda anotação pertence a uma pasta. Use pastas para áreas maiores e subpastas para projetos ou assuntos específicos." },
   { id: "notes", title: "3. Escreva e transforme ideias", text: "Escreva livremente na área principal. Abaixo, acrescente checklist e anexos. Quando houver uma próxima ação, crie uma tarefa a partir da anotação." },
   { id: "tasks", title: "4. Execute com tarefas e subtarefas", text: "Defina data e prioridade. Divida trabalhos maiores em subtarefas e conclua uma etapa por vez." },
   { id: "review", title: "5. Revise sua evolução", text: "Consulte Indicadores e Conquistas para entender sua rotina. Ajuste temas e preferências em Configurações." },

@@ -154,7 +154,6 @@ const Dashboard = () => {
       <div className="flex h-svh min-h-0 w-full overflow-hidden">
         <AppSidebar
           activeView="diary"
-          sidebarPinned
           onToggleSidebarPinned={() => {}}
           onMouseLeave={() => {}}
           onSelectToday={() => navigate("/")}
@@ -226,7 +225,7 @@ const Dashboard = () => {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              <KpiCard icon={BookOpen} label="Cadernos" value={totalNotebooks} color="text-primary" />
+              <KpiCard icon={BookOpen} label="Pastas" value={totalNotebooks} color="text-primary" />
               <KpiCard icon={FileText} label="Anotações" value={totalPages} color="text-accent" />
               <KpiCard icon={Star} label="Favoritas" value={totalFavorites} color="text-warning" />
               <KpiCard icon={Tag} label="Tags" value={totalTags} color="text-primary" />
@@ -266,7 +265,7 @@ const Dashboard = () => {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-accent" />
-                    Anotações por Caderno
+                    Anotações por Pasta
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

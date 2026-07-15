@@ -4,7 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Capacitor } from "@capacitor/core";
-import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { App as CapacitorApp } from "@capacitor/app";
+import { BrowserRouter, HashRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider, PRO_THEME_VARIANTS, useTheme } from "@/hooks/useTheme";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
@@ -34,6 +35,39 @@ function ProThemeGuard() {
   useEffect(() => {
     if (!loading && !isPro && PRO_THEME_VARIANTS.includes(variant)) setVariant("default");
   }, [isPro, loading, setVariant, variant]);
+
+  return null;
+}
+
+function NativeBackHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let disposed = false;
+    let removeListener: (() => Promise<void>) | undefined;
+
+    CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+      const internalBack = new Event("vista:native-back", { cancelable: true });
+      if (!window.dispatchEvent(internalBack)) return;
+      if (canGoBack) {
+        navigate(-1);
+      } else if (location.pathname !== "/" && location.pathname !== "/hoje") {
+        navigate("/hoje");
+      } else {
+        void CapacitorApp.minimizeApp();
+      }
+    }).then((handle) => {
+      if (disposed) void handle.remove();
+      else removeListener = handle.remove;
+    });
+
+    return () => {
+      disposed = true;
+      if (removeListener) void removeListener();
+    };
+  }, [location.pathname, navigate]);
 
   return null;
 }
@@ -74,6 +108,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <Router>
+              <NativeBackHandler />
               <Suspense fallback={<RouteLoader />}>
                 <Routes>
                   <Route path="/" element={<Index />} />

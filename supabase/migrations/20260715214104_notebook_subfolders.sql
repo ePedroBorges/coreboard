@@ -3,6 +3,13 @@ alter table public.notebooks
 
 create index if not exists notebooks_parent_id_idx on public.notebooks(parent_id);
 
+update public.notebooks
+set
+  parent_id = substring(description from 18)::uuid,
+  description = null
+where description ~ '^__vista_parent__:[0-9a-fA-F-]{36}$'
+  and parent_id is null;
+
 do $$
 begin
   if not exists (

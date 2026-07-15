@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { QuickCaptureModal } from "@/components/notes/QuickCaptureModal";
+import { FolderLibrary } from "@/components/notes/FolderLibrary";
 import { Notebook, Page } from "@/types/notes";
 import {
   blocksToText,
@@ -49,7 +50,7 @@ import { ContextHelp } from "@/components/ui/context-help";
 const defaultDiaryName = () => {
   const monthName = format(new Date(), "MMMM", { locale: ptBR });
   const capitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-  return `${capitalized} ${format(new Date(), "yyyy")} - Caderno`;
+  return `${capitalized} ${format(new Date(), "yyyy")} - Pasta`;
 };
 
 type AppView = "today" | "tasks" | "calendar" | "notes" | "diary" | "settings";
@@ -114,6 +115,7 @@ const Index = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [sidebarPinned, setSidebarPinned] = useState(true);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [quickCaptureMode, setQuickCaptureMode] = useState<"note" | "task">("note");
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [quickCaptureNotebookId, setQuickCaptureNotebookId] = useState<string | undefined>();
   const [quickCapturePending, setQuickCapturePending] = useState(false);
@@ -140,7 +142,7 @@ const Index = () => {
   const defaultNotebookId = generalNotebook?.id;
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId) || allPages.data?.find((p) => p.id === selectedPageId);
   const sidebarOpen = sidebarPinned;
-  const searchPlaceholder = isMobile ? "Buscar..." : "Buscar tarefas, anota??es, cadernos, links ou tags...";
+  const searchPlaceholder = isMobile ? "Buscar..." : "Buscar tarefas, anotações, pastas, links ou tags...";
   const notebookTitleById = useMemo(() => {
     const map = new Map<string, string>();
     (notebooks.data || []).forEach((notebook) => map.set(notebook.id, notebook.title));
@@ -245,6 +247,16 @@ const Index = () => {
     setNavigationStack((current) => current.slice(0, -1));
     applyNavigationState(previous);
   }, [applyNavigationState, navigationStack]);
+
+  useEffect(() => {
+    const handleNativeBack = (event: Event) => {
+      if (navigationStack.length === 0) return;
+      event.preventDefault();
+      handleGoBack();
+    };
+    window.addEventListener("vista:native-back", handleNativeBack);
+    return () => window.removeEventListener("vista:native-back", handleNativeBack);
+  }, [handleGoBack, navigationStack.length]);
 
   const togglePinnedNotebook = useCallback((notebookId: string) => {
     setPinnedNotebookIds((current) => {
@@ -353,8 +365,9 @@ const Index = () => {
     return notesFilter !== "all" && notesFilter !== "favorites" ? notesFilter : undefined;
   }, [notesFilter]);
 
-  const openQuickCapture = useCallback((notebookId?: string) => {
+  const openQuickCapture = useCallback((notebookId?: string, mode: "note" | "task" = "note") => {
     setQuickCaptureNotebookId(notebookId || getNotebookIdForNotesFilter() || selectedNotebookId || defaultNotebookId);
+    setQuickCaptureMode(mode);
     setQuickCaptureOpen(true);
   }, [defaultNotebookId, getNotebookIdForNotesFilter, selectedNotebookId]);
 
@@ -423,7 +436,7 @@ const Index = () => {
     mode,
     text,
   }: {
-    mode: "note" | "checklist" | "task";
+    mode: "note" | "task";
     text: string;
   }) => {
     const cleanText = text.trim();
@@ -442,16 +455,11 @@ const Index = () => {
       }
 
       const notebookId = await ensureNotebookId();
-      const checklistItems = mode === "checklist"
-        ? cleanText.split(/\n+/).map((line) => ({ text: line.trim() })).filter((item) => item.text)
-        : [];
-      const content = mode === "checklist"
-        ? makeNoteBlocks("", checklistItems, [])
-        : makeNoteBlocks(cleanText, [], []);
-      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova anota??o";
+      const content = makeNoteBlocks(cleanText, [], []);
+      const title = cleanText.split(/\n/).find((line) => line.trim())?.slice(0, 80) || "Nova anotação";
 
       await pages.createPage.mutateAsync({ title, content, notebookId });
-      toast.success(mode === "checklist" ? "Checklist salvo." : "Nota salva.");
+      toast.success("Anotação salva.");
     } finally {
       setQuickCapturePending(false);
     }
@@ -512,6 +520,7 @@ const Index = () => {
     taskDate: string;
     priority: Priority;
     project: string;
+    progressTarget: number | null;
     keepLink: boolean;
   }) => {
     const sourceNotebookTitle = notebookTitleForPage(input.page);
@@ -520,7 +529,7 @@ const Index = () => {
       title: input.title,
       assignee: input.project,
       priority: input.priority,
-      progress_target: null,
+      progress_target: input.progressTarget,
       task_date: input.taskDate,
       notebook_id: fallbackNotebookId,
       source_note_id: input.keepLink ? input.page.id : undefined,
@@ -562,7 +571,6 @@ const Index = () => {
       <div className="flex h-svh min-h-0 w-full overflow-hidden">
         <AppSidebar
           activeView={activeView}
-          sidebarPinned={sidebarPinned}
           onToggleSidebarPinned={() => setSidebarPinned((current) => !current)}
           onMouseLeave={() => undefined}
           onSelectToday={handleSelectToday}
@@ -580,7 +588,7 @@ const Index = () => {
 
         <div className="flex-1 flex flex-col min-w-0">
           <AppHeader
-            canGoBack={(activeView === "diary" || activeView === "settings") && navigationStack.length > 0}
+            canGoBack={navigationStack.length > 0}
             onBack={handleGoBack}
             onOpenSettings={handleSelectSettings}
           />
@@ -621,7 +629,7 @@ const Index = () => {
                 notesLoading={allPages.isLoading}
                 quickCapturePending={quickCapturePending}
                 onQuickCapture={handleTodayQuickCapture}
-                onOpenAdvancedCapture={() => openQuickCapture()}
+                onOpenAdvancedCapture={(mode) => openQuickCapture(undefined, mode)}
                 onOpenTasks={handleSelectTasks}
                 onOpenNotes={handleSelectNotes}
                 onOpenCalendar={handleSelectCalendar}
@@ -641,31 +649,26 @@ const Index = () => {
                 onTogglePinnedTask={togglePinnedTask}
               />
             ) : activeView === "notes" ? (
-              <NotesLibrary
+              <FolderLibrary
                 notes={allPages.data || []}
-                tasks={normalizedTasks}
-                notebooks={notebooks.data || []}
-                activeFilter={notesFilter}
-                defaultNotebookId={defaultNotebookId}
+                folders={notebooks.data || []}
+                activeFolderId={notesFilter !== "all" && notesFilter !== "favorites" ? notesFilter : undefined}
                 loading={allPages.isLoading}
-                notebookTitleById={notebookTitleById}
-                onFilterChange={setNotesFilter}
+                onOpenRoot={() => navigationStack.length > 0 ? handleGoBack() : setNotesFilter("all")}
+                onOpenFolder={handleOpenNotebook}
                 onCreateNote={(notebookId) => openQuickCapture(notebookId)}
-                onCreateNotebook={async (title, parentId) => {
+                onCreateFolder={async (title, parentId) => {
+                  pushNavigationState();
                   const notebook = await notebooks.createNotebook.mutateAsync({ title, parentId });
                   setNotesFilter(notebook.id);
                   return notebook;
                 }}
-                onRenameNotebook={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
-                onDeleteNotebook={handleDeleteNotebook}
-                pinnedNotebookIds={pinnedNotebookIds}
-                onTogglePinnedNotebook={togglePinnedNotebook}
+                onRenameFolder={(id, title) => notebooks.updateNotebook.mutate({ id, title })}
+                onDeleteFolder={handleDeleteNotebook}
+                pinnedFolderIds={pinnedNotebookIds}
+                onTogglePinnedFolder={togglePinnedNotebook}
                 onOpenNote={openPage}
                 onMoveNote={handleMovePage}
-                onToggleTaskStatus={(task) => tasks.updateTask.mutate({
-                  id: task.id,
-                  status: task.status === "completed" ? "pending" : "completed",
-                })}
                 onCreateTaskFromPage={createTaskFromPage}
               />
             ) : activeView === "settings" ? (
@@ -756,9 +759,13 @@ const Index = () => {
       <QuickCaptureModal
         open={quickCaptureOpen}
         onOpenChange={setQuickCaptureOpen}
+        mode={quickCaptureMode}
         notebooks={notebooks.data || []}
         defaultNotebookId={quickCaptureNotebookId || defaultNotebookId}
         onSave={handleQuickCaptureSave}
+        onSaveTask={async (input) => {
+          await tasks.createTask.mutateAsync(input);
+        }}
       />
       <CommandPalette
         open={commandPaletteOpen}
@@ -801,12 +808,13 @@ function CreateTaskFromNoteDialog({
   notebookTitle: string;
   creating: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (input: { page: Page; title: string; taskDate: string; priority: Priority; project: string; keepLink: boolean }) => void;
+  onConfirm: (input: { page: Page; title: string; taskDate: string; priority: Priority; project: string; progressTarget: number | null; keepLink: boolean }) => void;
 }) {
   const [title, setTitle] = useState("");
   const [taskDate, setTaskDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [priority, setPriority] = useState<Priority>("medium");
   const [project, setProject] = useState("");
+  const [progressTarget, setProgressTarget] = useState("");
   const [keepLink, setKeepLink] = useState(true);
 
   useEffect(() => {
@@ -816,6 +824,7 @@ function CreateTaskFromNoteDialog({
     setTaskDate(format(new Date(), "yyyy-MM-dd"));
     setPriority("medium");
     setProject(firstTag || notebookTitle || DEFAULT_NOTEBOOK_NAME);
+    setProgressTarget("");
     setKeepLink(true);
   }, [notebookTitle, page]);
 
@@ -864,17 +873,30 @@ function CreateTaskFromNoteDialog({
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="task-from-note-project">Projeto/meta</Label>
-            <Input
-              id="task-from-note-project"
-              value={project}
-              onChange={(event) => setProject(event.target.value)}
-              placeholder="Projeto, meta ou caderno"
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="task-from-note-project">Responsável/projeto</Label>
+              <Input
+                id="task-from-note-project"
+                value={project}
+                onChange={(event) => setProject(event.target.value)}
+                placeholder="Opcional"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="task-from-note-target">Meta</Label>
+              <Input
+                id="task-from-note-target"
+                type="number"
+                min={1}
+                value={progressTarget}
+                onChange={(event) => setProgressTarget(event.target.value)}
+                placeholder="Opcional"
+              />
+            </div>
           </div>
           <div className="rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
-              Origem: {page ? getNoteTitle(page) : "Anotação"} · Caderno: {notebookTitle}
+              Origem: {page ? getNoteTitle(page) : "Anotação"} · Pasta: {notebookTitle}
           </div>
           <button
             type="button"
@@ -894,7 +916,7 @@ function CreateTaskFromNoteDialog({
             disabled={!canCreate}
             onClick={() => {
               if (!page || !title.trim()) return;
-              onConfirm({ page, title: title.trim(), taskDate, priority, project: project.trim(), keepLink });
+              onConfirm({ page, title: title.trim(), taskDate, priority, project: project.trim(), progressTarget: progressTarget ? Math.max(1, Number(progressTarget) || 1) : null, keepLink });
             }}
           >
             {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -1004,11 +1026,11 @@ function NotesLibrary({
   const handleCreateNotebook = async () => {
     const title = newNotebookName.trim();
     if (!title) {
-      toast.error("Informe o nome do caderno.");
+      toast.error("Informe o nome da pasta.");
       return;
     }
     if (notebooks.some((notebook) => notebook.title.trim().toLowerCase() === title.toLowerCase())) {
-      toast.error("Já existe um caderno com esse nome.");
+      toast.error("Já existe uma pasta com esse nome.");
       return;
     }
     setCreatingNotebook(true);
@@ -1031,11 +1053,11 @@ function NotesLibrary({
   const handleRenameNotebook = () => {
     const title = renameNotebookName.trim();
     if (!renameNotebookId || !title) {
-      toast.error("Informe o nome do caderno.");
+      toast.error("Informe o nome da pasta.");
       return;
     }
     if (notebooks.some((notebook) => notebook.id !== renameNotebookId && notebook.title.trim().toLowerCase() === title.toLowerCase())) {
-      toast.error("Já existe um caderno com esse nome.");
+      toast.error("Já existe uma pasta com esse nome.");
       return;
     }
     onRenameNotebook(renameNotebookId, title);
@@ -1045,7 +1067,7 @@ function NotesLibrary({
 
   const handleStartDeleteNotebook = (notebook: Notebook) => {
     if (notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()) {
-      toast.error("O caderno Geral não pode ser excluído.");
+      toast.error("A pasta Geral não pode ser excluído.");
       return;
     }
     setDeleteNotebookId(notebook.id);
@@ -1061,9 +1083,9 @@ function NotesLibrary({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <div className="flex items-center gap-1"><h1 className="text-2xl font-semibold tracking-tight">Cadernos</h1><ContextHelp text="Use cadernos para áreas da sua vida ou trabalho. Dentro deles, crie subpastas para projetos e assuntos específicos." /></div>
+          <div className="flex items-center gap-1"><h1 className="text-2xl font-semibold tracking-tight">Pastas</h1><ContextHelp text="Use pastas para áreas da sua vida ou trabalho. Dentro deles, crie subpastas para projetos e assuntos específicos." /></div>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Guarde textos, links, checklists e ideias em cadernos organizados.
+            Guarde textos, links, checklists e ideias em pastas organizadas.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-row">
@@ -1073,7 +1095,7 @@ function NotesLibrary({
           </Button>
           <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => { setSubfolderParentId(null); setShowNotebookCreator(true); }} disabled={creatingNotebook}>
             <BookOpen className="h-4 w-4" />
-            Novo caderno
+            Nova pasta
           </Button>
           {isNotebookSelected && (
             <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => { setSubfolderParentId(selectedNotebook?.parent_id ? selectedNotebook.parent_id : selectedNotebook?.id || null); setShowNotebookCreator(true); }}>
@@ -1092,7 +1114,7 @@ function NotesLibrary({
               if (event.key === "Enter") handleCreateNotebook();
               if (event.key === "Escape") setShowNotebookCreator(false);
             }}
-            placeholder={subfolderParentId ? "Nome da subpasta" : "Nome do caderno"}
+            placeholder={subfolderParentId ? "Nome da subpasta" : "Nome da pasta"}
             className="h-10"
             autoFocus
           />
@@ -1110,7 +1132,7 @@ function NotesLibrary({
 
       <div className="space-y-3 rounded-lg border border-border/60 bg-card/60 p-3 lg:hidden">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cadernos</div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Pastas</div>
           <span className="shrink-0 rounded-full border border-border/50 bg-background/45 px-2 py-0.5 text-[10px] text-muted-foreground">
             {notebooks.length} criados
           </span>
@@ -1178,10 +1200,10 @@ function NotesLibrary({
                 onKeyDown={(event) => {
                   if (event.key === "Enter") handleCreateNotebook();
                 }}
-                placeholder="Nome do caderno"
+                placeholder="Nome da pasta"
                 className="h-9"
               />
-              <Button size="icon" className="h-9 w-9 shrink-0" onClick={handleCreateNotebook} disabled={creatingNotebook} title="Novo caderno">
+              <Button size="icon" className="h-9 w-9 shrink-0" onClick={handleCreateNotebook} disabled={creatingNotebook} title="Nova pasta">
                 {creatingNotebook ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               </Button>
             </div>
@@ -1204,7 +1226,7 @@ function NotesLibrary({
             <section className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <NotebookPen className="h-4 w-4 text-primary" />
-                Anotações deste caderno
+                Anotações desta pasta
               </div>
             </section>
           )}
@@ -1217,7 +1239,7 @@ function NotesLibrary({
             <div className="rounded-lg border border-dashed border-border bg-card/50 p-8 text-center">
               <NotebookPen className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
               <p className="text-sm font-medium text-foreground">
-                {isNotebookSelected ? "Este caderno est? vazio." : "Nenhuma anota??o ainda."}
+                {isNotebookSelected ? "Esta pasta est? vazio." : "Nenhuma anota??o ainda."}
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {isNotebookSelected ? "Crie uma anota??o para come?ar a organizar este tema." : "Escreva uma ideia, salve um link ou crie um checklist."}
@@ -1243,12 +1265,12 @@ function NotesLibrary({
             <section className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <ListChecks className="h-4 w-4 text-primary" />
-                Tarefas deste caderno
+                Tarefas desta pasta
               </div>
               {filteredTasks.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border bg-card/50 p-6 text-center">
                   <ListChecks className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Nenhuma tarefa vinculada a este caderno.</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma tarefa vinculada a esta pasta.</p>
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -1278,11 +1300,11 @@ function NotesLibrary({
     }}>
       <DialogContent className="w-[calc(100vw-1.5rem)] rounded-lg sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Renomear caderno</DialogTitle>
+          <DialogTitle>Renomear pasta</DialogTitle>
           <DialogDescription>Escolha um nome claro para manter suas anotações organizadas.</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="rename-notebook">Nome do caderno</Label>
+          <Label htmlFor="rename-notebook">Nome da pasta</Label>
           <Input
             id="rename-notebook"
             value={renameNotebookName}
@@ -1290,7 +1312,7 @@ function NotesLibrary({
             onKeyDown={(event) => {
               if (event.key === "Enter") handleRenameNotebook();
             }}
-            placeholder="Nome do caderno"
+            placeholder="Nome da pasta"
             autoFocus
           />
         </div>
@@ -1309,11 +1331,11 @@ function NotesLibrary({
     }}>
       <DialogContent className="max-h-[calc(100svh-7rem)] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg pb-[calc(1rem+env(safe-area-inset-bottom))] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Excluir caderno?</DialogTitle>
+          <DialogTitle>Excluir pasta?</DialogTitle>
           <DialogDescription>
             {deletePageCount > 0
-              ? `Este caderno possui ${deletePageCount} ${deletePageCount === 1 ? "anota??o" : "anota??es"}. Para evitar perda de dados, escolha para onde elas ser?o movidas.`
-              : "Este caderno n?o possui anota??es. Voc? pode exclu?-lo com seguran?a."}
+              ? `Esta pasta possui ${deletePageCount} ${deletePageCount === 1 ? "anota??o" : "anota??es"}. Para evitar perda de dados, escolha para onde elas ser?o movidas.`
+              : "Esta pasta n?o possui anota??es. Voc? pode exclu?-lo com seguran?a."}
           </DialogDescription>
         </DialogHeader>
         {deletePageCount > 0 && (
@@ -1321,7 +1343,7 @@ function NotesLibrary({
             <Label htmlFor="delete-target">Mover anotações para</Label>
             <Select value={deleteTargetId} onValueChange={setDeleteTargetId}>
               <SelectTrigger id="delete-target" className="h-10">
-                <SelectValue placeholder="Escolha um caderno" />
+                <SelectValue placeholder="Escolha uma pasta" />
               </SelectTrigger>
               <SelectContent>
                 {deleteTargets.map((notebook) => (
@@ -1344,7 +1366,7 @@ function NotesLibrary({
               setDeleteTargetId("");
             }}
           >
-              {deletePageCount > 0 ? "Mover e excluir" : "Excluir caderno vazio"}
+              {deletePageCount > 0 ? "Mover e excluir" : "Excluir pasta vazia"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1392,17 +1414,17 @@ function NotebookFilterButton({
           size="icon"
           className="h-8 w-8 shrink-0"
           onClick={onTogglePinned}
-          title={pinned ? "Desafixar caderno" : "Fixar caderno"}
+          title={pinned ? "Desafixar pasta" : "Fixar pasta"}
         >
           <Pin className={cn("h-3.5 w-3.5", pinned && "fill-warning text-warning")} />
         </Button>
       )}
       {!locked && (
         <div className="flex shrink-0 items-center pr-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRename} title="Renomear caderno">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRename} title="Renomear pasta">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir caderno">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir pasta">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -1473,7 +1495,7 @@ function MobileNotebookFilterButton({
               event.stopPropagation();
               onTogglePinned();
             }}
-            title={pinned ? "Desafixar caderno" : "Fixar caderno"}
+            title={pinned ? "Desafixar pasta" : "Fixar pasta"}
           >
             <Pin className={cn("h-3.5 w-3.5", pinned && "fill-warning text-warning")} />
           </Button>
@@ -1488,7 +1510,7 @@ function MobileNotebookFilterButton({
                   event.stopPropagation();
                   onRename?.();
                 }}
-                title="Renomear caderno"
+                title="Renomear pasta"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
@@ -1501,7 +1523,7 @@ function MobileNotebookFilterButton({
                   event.stopPropagation();
                   onDelete?.();
                 }}
-                title="Excluir caderno"
+                title="Excluir pasta"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
@@ -1752,7 +1774,7 @@ function GlobalSearchResults({
           <Search className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
           <p className="text-sm font-medium text-foreground">Nada encontrado.</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tente buscar por tarefa, anotação, caderno, link ou tag.
+            Tente buscar por tarefa, anotação, pasta, link ou tag.
           </p>
         </div>
       ) : (
@@ -1760,10 +1782,10 @@ function GlobalSearchResults({
           <section className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <BookOpen className="h-4 w-4 text-primary" />
-              Cadernos
+              Pastas
             </div>
             {notebooks.length === 0 ? (
-              <p className="rounded-md border border-border/50 bg-card/40 p-4 text-sm text-muted-foreground">Nenhum caderno encontrado.</p>
+              <p className="rounded-md border border-border/50 bg-card/40 p-4 text-sm text-muted-foreground">Nenhuma pasta encontrado.</p>
             ) : (
               <div className="grid gap-2 md:grid-cols-2">
                 {notebooks.map((notebook) => (
@@ -1836,7 +1858,7 @@ function GlobalSearchResults({
                       <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>{task.assignee || "Sem responsável"}</span>
                         <span>{task.priority}</span>
-                        <span>Caderno: {task.source_notebook_title || DEFAULT_NOTEBOOK_NAME}</span>
+                        <span>Pasta: {task.source_notebook_title || DEFAULT_NOTEBOOK_NAME}</span>
                         {task.source_note_title && <span>Origem: {task.source_note_title}</span>}
                       </div>
                     </div>

@@ -1,8 +1,8 @@
 import { Block, Page } from "@/types/notes";
 
 export const DEFAULT_NOTE_TAGS = ["Pessoal", "Trabalho", "Estudos", "Ideias", "Importante"];
-export const DEFAULT_NOTEBOOK_NAMES = ["Meu caderno"];
-export const DEFAULT_NOTEBOOK_NAME = "Meu caderno";
+export const DEFAULT_NOTEBOOK_NAMES = ["Minha pasta"];
+export const DEFAULT_NOTEBOOK_NAME = "Minha pasta";
 
 const NOTE_META_KEY = "vistaNoteMeta";
 
@@ -42,9 +42,9 @@ export function blocksToText(blocks: Block[] = []) {
 
 export function getNoteTitle(page: Page) {
   const title = page.title?.trim();
-  if (title && title !== "Nova anota??o" && title !== "Nova anotação" && title !== "Untitled Page") return title;
+  if (title && title !== "Nova anotação" && title !== "Untitled Page") return title;
   const firstLine = blocksToText(page.content).split("\n").find((line) => line.trim());
-  return firstLine?.trim().slice(0, 80) || "Nova anota??o";
+  return firstLine?.trim().slice(0, 80) || "Nova anotação";
 }
 
 export function getNotePreview(page: Page, maxLength = 120) {

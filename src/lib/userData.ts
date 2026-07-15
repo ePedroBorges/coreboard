@@ -214,7 +214,7 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
   let nextPosition = existingNotebooks?.length || 0;
 
   for (const notebook of validBackup.data.notebooks) {
-    const title = notebook.title || "Caderno importado";
+    const title = notebook.title || "Pasta importada";
     const existingId = mode === "merge" ? existingByTitle.get(title.trim().toLowerCase()) : undefined;
     if (existingId) {
       notebookIdMap.set(notebook.id, existingId);
@@ -382,7 +382,7 @@ export async function createStarterContent(userId: string, notebookId: string) {
   if ((notesResult.count || 0) === 0) {
     const content: Block[] = [
       makeBlock("freeform", "Este é o seu espaço para escrever livremente. Use o checklist abaixo quando uma ideia virar ação."),
-      makeBlock("checklist", "Explore os Cadernos", { checked: false }),
+      makeBlock("checklist", "Explore as Pastas", { checked: false }),
     ];
     const { error } = await supabase.from("pages").insert({
       title: "Bem-vindo ao VISTA",

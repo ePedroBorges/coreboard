@@ -11,6 +11,16 @@ const byPosition = (a: Notebook, b: Notebook) => {
   return a.created_at.localeCompare(b.created_at);
 };
 
+const PARENT_MARKER = "__vista_parent__:";
+
+const getFallbackParentId = (description?: string | null) =>
+  description?.startsWith(PARENT_MARKER) ? description.slice(PARENT_MARKER.length) || null : null;
+
+const normalizeFolders = (folders: Notebook[]) => folders.map((folder) => ({
+  ...folder,
+  parent_id: folder.parent_id || getFallbackParentId(folder.description),
+}));
+
 export type DeleteNotebookInput = string | { id: string; targetNotebookId?: string };
 
 export function useNotebooks() {
@@ -28,12 +38,13 @@ export function useNotebooks() {
 
       if (error) throw error;
 
-      const wasEmpty = (notebooks || []).length === 0;
-      const existingTitles = new Set((notebooks || []).map((notebook) => notebook.title.trim().toLowerCase()));
+      const normalizedNotebooks = normalizeFolders((notebooks || []) as Notebook[]);
+      const wasEmpty = normalizedNotebooks.length === 0;
+      const existingTitles = new Set(normalizedNotebooks.map((notebook) => notebook.title.trim().toLowerCase()));
       const defaultsToEnsure = (notebooks || []).length === 0 ? DEFAULT_NOTEBOOK_NAMES : [];
       const missingDefaults = defaultsToEnsure.filter((name) => !existingTitles.has(name.toLowerCase()));
 
-      let allNotebooks = notebooks || [];
+      let allNotebooks = normalizedNotebooks;
       if (missingDefaults.length > 0) {
         const maxPosition = allNotebooks.reduce((max, notebook) => Math.max(max, notebook.position), -1);
         const { data: createdDefaults, error: createError } = await supabase
@@ -48,7 +59,7 @@ export function useNotebooks() {
           .select("*");
 
         if (createError) throw createError;
-        allNotebooks = [...allNotebooks, ...(createdDefaults || [])];
+        allNotebooks = [...allNotebooks, ...normalizeFolders((createdDefaults || []) as Notebook[])];
         if (wasEmpty && createdDefaults?.[0]) {
           await createStarterContent(user!.id, createdDefaults[0].id);
         }
@@ -75,7 +86,7 @@ export function useNotebooks() {
       const title = typeof input === "string" ? input : input.title;
       const parentId = typeof input === "string" ? null : input.parentId || null;
       const cleanTitle = title.trim();
-      if (!cleanTitle) throw new Error("Informe o nome do caderno.");
+      if (!cleanTitle) throw new Error("Informe o nome da pasta.");
       const duplicate = query.data?.find((notebook) => notebook.title.trim().toLowerCase() === cleanTitle.toLowerCase());
       if (duplicate) return duplicate;
       const maxPos = query.data?.length || 0;
@@ -85,22 +96,31 @@ export function useNotebooks() {
         position: maxPos,
         ...(parentId ? { parent_id: parentId } : {}),
       };
-      const { data, error } = await supabase
+      let result = await supabase
         .from("notebooks")
         .insert(insertPayload)
         .select()
         .single();
-      if (error) {
-        if (parentId && /parent_id|schema cache/i.test(error.message)) {
-          throw new Error("Subpastas estarão disponíveis após a atualização do banco.");
-        }
-        throw error;
+
+      if (result.error && parentId && /parent_id|schema cache/i.test(result.error.message)) {
+        result = await supabase
+          .from("notebooks")
+          .insert({
+            title: cleanTitle,
+            user_id: user!.id,
+            position: maxPos,
+            description: `${PARENT_MARKER}${parentId}`,
+          })
+          .select()
+          .single();
       }
-      return data;
+
+      if (result.error) throw result.error;
+      return normalizeFolders([result.data as Notebook])[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
-      toast.success("Caderno criado.");
+      toast.success("Pasta criada.");
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -109,11 +129,11 @@ export function useNotebooks() {
     mutationFn: async ({ id, ...updates }: Partial<Notebook> & { id: string }) => {
       const cleanTitle = typeof updates.title === "string" ? updates.title.trim() : undefined;
       if (cleanTitle !== undefined) {
-        if (!cleanTitle) throw new Error("Informe o nome do caderno.");
+        if (!cleanTitle) throw new Error("Informe o nome da pasta.");
         const duplicate = query.data?.find(
           (notebook) => notebook.id !== id && notebook.title.trim().toLowerCase() === cleanTitle.toLowerCase()
         );
-        if (duplicate) throw new Error("Já existe um caderno com esse nome.");
+        if (duplicate) throw new Error("Já existe uma pasta com esse nome.");
       }
       const { error } = await supabase.from("notebooks").update({
         ...updates,
@@ -123,7 +143,7 @@ export function useNotebooks() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
-      toast.success("Caderno renomeado.");
+      toast.success("Pasta renomeada.");
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -133,9 +153,14 @@ export function useNotebooks() {
       const id = typeof input === "string" ? input : input.id;
       const targetNotebookId = typeof input === "string" ? undefined : input.targetNotebookId;
       const notebook = query.data?.find((current) => current.id === id);
-      if (!notebook) throw new Error("Caderno não encontrado.");
+      if (!notebook) throw new Error("Pasta não encontrada.");
       if (notebook.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase()) {
-        throw new Error("O caderno Geral não pode ser excluído.");
+        throw new Error("A pasta principal não pode ser excluída.");
+      }
+
+      const childFolders = query.data?.filter((current) => current.parent_id === id) || [];
+      if (childFolders.length > 0) {
+        throw new Error("Mova ou exclua as subpastas antes de excluir esta pasta.");
       }
 
       const { count, error: countError } = await supabase
@@ -147,11 +172,11 @@ export function useNotebooks() {
       const pageCount = count || 0;
       if (pageCount > 0) {
         if (!targetNotebookId) {
-          throw new Error("Escolha um caderno de destino para mover as anotações antes de excluir.");
+          throw new Error("Escolha uma pasta de destino para mover as anotações antes de excluir.");
         }
-        if (targetNotebookId === id) throw new Error("Escolha um caderno de destino diferente.");
+        if (targetNotebookId === id) throw new Error("Escolha uma pasta de destino diferente.");
         const targetNotebook = query.data?.find((current) => current.id === targetNotebookId);
-        if (!targetNotebook) throw new Error("Caderno de destino não encontrado.");
+        if (!targetNotebook) throw new Error("Pasta de destino não encontrada.");
 
         const { error: moveError } = await supabase
           .from("pages")
@@ -168,7 +193,7 @@ export function useNotebooks() {
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });
       queryClient.invalidateQueries({ queryKey: ["all-pages"] });
-      toast.success("Caderno excluido.");
+      toast.success("Pasta excluída.");
     },
     onError: (error: Error) => toast.error(error.message),
   });

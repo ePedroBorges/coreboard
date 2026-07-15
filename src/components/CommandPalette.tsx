@@ -54,7 +54,7 @@ export function CommandPalette({
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Buscar notas, tarefas, cadernos ou acoes..." />
+      <CommandInput placeholder="Buscar notas, tarefas, pastas ou acoes..." />
       <CommandList className="max-h-[min(70svh,460px)]">
         <CommandEmpty>Nada encontrado.</CommandEmpty>
 
@@ -77,11 +77,11 @@ export function CommandPalette({
 
         <CommandSeparator />
 
-        <CommandGroup heading="Cadernos">
+        <CommandGroup heading="Pastas">
           {notebooks.slice(0, 10).map((notebook) => (
             <CommandItem
               key={notebook.id}
-              value={`caderno ${notebook.title} ${notebook.page_count || 0}`}
+              value={`pasta ${notebook.title} ${notebook.page_count || 0}`}
               onSelect={() => runAndClose(() => onOpenNotebook(notebook.id), close)}
             >
               <BookOpen className="mr-2 h-4 w-4" />

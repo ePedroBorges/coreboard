@@ -12,8 +12,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { BookOpen, ClipboardList, FileText, Home, ListChecks, NotebookPen, PanelLeftClose, Sparkles, Star } from "lucide-react";
+import { BookOpen, ClipboardList, FileText, Home, ListChecks, NotebookPen, Sparkles, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Notebook, Page } from "@/types/notes";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
@@ -29,7 +28,6 @@ interface AppSidebarProps {
   pinnedTasks: WeeklyTask[];
   favoritePages: Page[];
   activeView: AppView;
-  sidebarPinned: boolean;
   selectedPageId: string | null;
   onToggleSidebarPinned: () => void;
   onMouseLeave: () => void;
@@ -47,7 +45,6 @@ export function AppSidebar({
   pinnedTasks,
   favoritePages,
   activeView,
-  sidebarPinned,
   selectedPageId,
   onToggleSidebarPinned,
   onMouseLeave,
@@ -78,43 +75,35 @@ export function AppSidebar({
         onOpenSettings={onOpenSettings}
       />
 
-      <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
-        <SidebarHeader className="p-4">
+      <Sidebar collapsible="icon" className="border-r border-sidebar-border/80 shadow-xl md:shadow-none" onMouseLeave={onMouseLeave}>
+        <SidebarHeader className={cn("border-b border-sidebar-border/70", collapsed ? "p-2" : "p-3")}>
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-primary/10 sm:h-8 sm:w-8">
+            <button
+              type="button"
+              onClick={() => (isMobile ? setOpenMobile(false) : onToggleSidebarPinned())}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              title={collapsed ? "Expandir menu" : "Recolher menu"}
+              aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            >
               <ClipboardList className="h-5 w-5 text-primary sm:h-4 sm:w-4" />
-            </div>
+            </button>
             {!collapsed && (
-              <>
-                <span className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight sm:text-sm">
-                  VISTA Tasks Control
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => {
-                    if (isMobile) setOpenMobile(false);
-                    else onToggleSidebarPinned();
-                  }}
-                  title={isMobile ? "Fechar menu" : sidebarPinned ? "Ocultar textos" : "Mostrar textos"}
-                >
-                  <PanelLeftClose className="h-4 w-4" />
-                </Button>
-              </>
+              <span className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight sm:text-sm">
+                VISTA Tasks Control
+              </span>
             )}
           </div>
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel className="font-mono-accent text-[10px] uppercase tracking-wider text-muted-foreground">
-              {!collapsed && "Navegação"}
-            </SidebarGroupLabel>
+          <SidebarGroup className={collapsed ? "px-2 py-3" : undefined}>
+            {!collapsed && <SidebarGroupLabel className="font-mono-accent text-[10px] uppercase tracking-wider text-muted-foreground">
+              Navegação
+            </SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
                 <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={() => runAndClose(onSelectToday)} collapsed={collapsed} />
-                <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Cadernos" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
+                <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Pastas" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
                 <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={() => runAndClose(onSelectTasks)} collapsed={collapsed} />
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild className="min-h-[44px] text-sm sm:min-h-0 sm:text-xs">
@@ -128,7 +117,7 @@ export function AppSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
 
-          {hasPinnedItems && (
+          {hasPinnedItems && !collapsed && (
             <SidebarGroup>
               <SidebarGroupLabel className="font-mono-accent text-[10px] uppercase tracking-wider text-muted-foreground">
                 <Star className="mr-1 h-3 w-3" />
@@ -145,10 +134,10 @@ export function AppSidebar({
                             <span className="block truncate">{notebook.title}</span>
                             <span className="mt-1 flex min-w-0 items-center gap-1">
                               <Badge variant="outline" className="h-5 rounded px-1.5 text-[10px]">
-                                Caderno
+                                Pasta
                               </Badge>
                               <span className="truncate text-[10px] text-muted-foreground">
-                                {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anota??o" : "anota??es"}
+                                {notebook.page_count || 0} {(notebook.page_count || 0) === 1 ? "anotação" : "anotações"}
                               </span>
                             </span>
                           </span>
@@ -202,7 +191,7 @@ export function AppSidebar({
                                 Anotação
                               </Badge>
                               <span className="truncate text-[10px] text-muted-foreground">
-                                {notebookTitleById.get(page.notebook_id) || "Caderno"}
+                                {notebookTitleById.get(page.notebook_id) || "Pasta"}
                               </span>
                             </span>
                           </span>
@@ -247,7 +236,7 @@ function MobileBottomNavigation({
       <div className="mx-auto max-w-md">
         <div className="grid min-w-0 grid-cols-4 gap-1 rounded-md border border-sidebar-border bg-background/25 p-1">
           <MobileBottomNavButton active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} />
-          <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Cadernos" onClick={onSelectNotes} />
+          <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Pastas" onClick={onSelectNotes} />
           <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={onSelectTasks} />
           <ProfileMenu mobileNav onOpenSettings={onOpenSettings} />
         </div>
@@ -307,7 +296,7 @@ function NavItem({
         onClick={onClick}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "min-h-[44px] text-sm sm:min-h-0 sm:text-xs relative",
+          "relative min-h-[44px] justify-center text-sm group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!p-0 sm:text-xs",
           active && "bg-primary/15 text-primary font-semibold hover:bg-primary/20 hover:text-primary before:absolute before:left-0 before:top-1 before:bottom-1 before:w-0.5 before:rounded-r before:bg-primary"
         )}
       >

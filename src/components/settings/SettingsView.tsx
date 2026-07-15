@@ -67,7 +67,7 @@ const appSummary = "Estou usando o VISTA Tasks Control, um app para transformar 
 
 const checklistItems = [
   { id: "first-note", label: "Criei minha primeira anotação" },
-  { id: "organized-note", label: "Organizei uma anotação em um caderno" },
+  { id: "organized-note", label: "Organizei uma anotação em uma pasta" },
   { id: "note-to-task", label: "Criei uma tarefa a partir de uma anotação" },
   { id: "calendar-task", label: "Planejei uma tarefa no Calendário" },
   { id: "exported-backup", label: "Exportei meu backup" },
@@ -161,7 +161,7 @@ export function SettingsView({
     await invalidateUserData();
     setPendingBackup(null);
     onGoToday();
-    toast.success(`Backup importado: ${result.notebooks} cadernos, ${result.notes} anotações e ${result.tasks} tarefas.`);
+    toast.success(`Backup importado: ${result.notebooks} pastas, ${result.notes} anotações e ${result.tasks} tarefas.`);
   });
 
   const handleReset = () => runAction("reset", async () => {
@@ -190,7 +190,7 @@ export function SettingsView({
     setSampleConfirmOpen(false);
     const result = await loadSampleData(user.id);
     await invalidateUserData();
-    toast.success(`Dados de exemplo carregados: ${result.notebooks} cadernos, ${result.notes} anotações e ${result.tasks} tarefas.`);
+    toast.success(`Dados de exemplo carregados: ${result.notebooks} pastas, ${result.notes} anotações e ${result.tasks} tarefas.`);
   });
 
   const copySummary = async () => {
@@ -510,7 +510,7 @@ export function SettingsView({
           </DialogHeader>
           {pendingBackup && (
             <div className="grid gap-2 rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
-              <InfoRow label="Cadernos" value={String(pendingBackup.data?.notebooks.length)} />
+              <InfoRow label="Pastas" value={String(pendingBackup.data?.notebooks.length)} />
               <InfoRow label="Anotações" value={String(pendingBackup.data?.notes.length)} />
               <InfoRow label="Tarefas" value={String(pendingBackup.data?.tasks.length)} />
               <InfoRow label="Exportado em" value={new Date(pendingBackup.exportedAt).toLocaleString("pt-BR")} />
@@ -582,7 +582,7 @@ export function SettingsView({
           <DialogHeader>
             <DialogTitle>Resetar meus dados?</DialogTitle>
             <DialogDescription>
-              Esta ação apagará todos os seus cadernos, anotações e tarefas neste app. Dados de outros usuários não serão afetados.
+              Esta ação apagará todos os seus pastas, anotações e tarefas neste app. Dados de outros usuários não serão afetados.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">

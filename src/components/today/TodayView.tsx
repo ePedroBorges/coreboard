@@ -42,7 +42,7 @@ import { Page } from "@/types/notes";
 import { Priority, WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { useSubscription } from "@/hooks/useSubscription";
 
-type CaptureMode = "note" | "checklist" | "task";
+type CaptureMode = "note" | "task";
 
 interface TodayViewProps {
   tasks: WeeklyTask[];
@@ -51,7 +51,7 @@ interface TodayViewProps {
   notesLoading: boolean;
   quickCapturePending: boolean;
   onQuickCapture: (input: { mode: CaptureMode; text: string }) => Promise<void>;
-  onOpenAdvancedCapture: () => void;
+  onOpenAdvancedCapture: (mode: CaptureMode) => void;
   onOpenTasks: () => void;
   onOpenNotes: () => void;
   onOpenCalendar: () => void;
@@ -233,11 +233,10 @@ function QuickCaptureBar({
   onChange: (value: string) => void;
   onModeChange: (mode: CaptureMode) => void;
   onSave: () => void;
-  onOpenAdvancedCapture: () => void;
+  onOpenAdvancedCapture: (mode: CaptureMode) => void;
 }) {
   const options: Array<{ value: CaptureMode; label: string; icon: React.ElementType }> = [
     { value: "note", label: "Anotação", icon: NotebookPen },
-    { value: "checklist", label: "Checklist", icon: ListChecks },
     { value: "task", label: "Tarefa", icon: CheckCircle2 },
   ];
 
@@ -251,10 +250,10 @@ function QuickCaptureBar({
             onKeyDown={(event) => {
               if ((event.ctrlKey || event.metaKey) && event.key === "Enter") onSave();
             }}
-            placeholder="Escreva uma anotação, tarefa ou link..."
+            placeholder={mode === "task" ? "O que precisa ser feito?" : "Escreva uma anotação ou cole um link..."}
             className="min-h-20 resize-none bg-background/55 text-base leading-6 sm:min-h-24 sm:text-sm"
           />
-          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {options.map((option) => {
               const Icon = option.icon;
               return (
@@ -279,8 +278,8 @@ function QuickCaptureBar({
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Salvar
           </Button>
-          <Button type="button" variant="outline" className="h-11" onClick={onOpenAdvancedCapture}>
-            Captura avançada
+          <Button type="button" variant="outline" className="h-11" onClick={() => onOpenAdvancedCapture(mode)}>
+            {mode === "task" ? "Configurar tarefa" : "Opções da anotação"}
           </Button>
         </div>
       </div>
@@ -405,7 +404,7 @@ function RecentNotes({
         </div>
         {notes.length > 0 && (
           <Button variant="outline" size="sm" className="h-10 w-full sm:h-9 sm:w-auto" onClick={onOpenNotes}>
-            Ver cadernos
+            Ver pastas
           </Button>
         )}
       </div>

@@ -28,7 +28,7 @@ export default function Achievements() {
   if (!loading && !user) return <Navigate to="/auth" replace />;
 
   return (
-    <main className="min-h-svh bg-background px-3 pb-10 pt-[calc(1rem+env(safe-area-inset-top))] sm:px-6">
+    <main className="h-svh overflow-y-auto overscroll-contain bg-background px-3 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] [-webkit-overflow-scrolling:touch] sm:px-6">
       <div className="mx-auto max-w-5xl space-y-5">
         <header className="flex items-center gap-3 border-b border-border/60 pb-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} title="Voltar"><ArrowLeft className="h-4 w-4" /></Button>
@@ -42,7 +42,7 @@ export default function Achievements() {
 
         <section className="grid gap-3 md:grid-cols-3">
           <ProgressCard icon={CheckCircle2} title="Executar" text="Conclua tarefas e subtarefas para ganhar mais XP." />
-          <ProgressCard icon={NotebookPen} title="Registrar" text="Crie anotações úteis e mantenha seus cadernos organizados." />
+          <ProgressCard icon={NotebookPen} title="Registrar" text="Crie anotações úteis e mantenha suas pastas organizadas." />
           <ProgressCard icon={Trophy} title="Consolidar" text="Complete marcos do perfil e mantenha uma rotina consistente." />
         </section>
 
@@ -53,7 +53,7 @@ export default function Achievements() {
           <div className="mt-3 grid gap-2 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
             <p>+60 XP por tarefa concluída</p><p>+25 XP por subtarefa concluída</p>
             <p>+15 XP por anotação criada</p><p>+10 XP por anotação fixada</p>
-            <p>+20 XP por caderno criado</p><p>+40 XP por marco do perfil</p>
+            <p>+20 XP por pasta criada</p><p>+40 XP por marco do perfil</p>
           </div>
         </details>
       </div>

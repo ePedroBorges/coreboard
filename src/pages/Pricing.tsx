@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const FREE_FEATURES = [
-  "Anotações e cadernos",
+  "Anotações e pastas",
   "Tarefas e planejamento",
   "Links e checklists",
   "Busca global",

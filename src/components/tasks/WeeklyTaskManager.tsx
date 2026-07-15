@@ -341,7 +341,7 @@ export function WeeklyTaskManager({
                 <h2 className="text-sm font-semibold text-foreground">Nova tarefa</h2>
                 <p className="text-xs text-muted-foreground">Capture uma ação clara para hoje ou para outro dia.</p>
               </div>
-              <span className="text-xs text-muted-foreground">Caderno e projeto/meta são opcionais.</span>
+              <span className="text-xs text-muted-foreground">Pasta e projeto/meta são opcionais.</span>
             </div>
             <div className="grid gap-2 sm:grid-cols-6">
               <Input
@@ -365,10 +365,10 @@ export function WeeklyTaskManager({
               />
               <Select value={newNotebookId} onValueChange={setNewNotebookId}>
                 <SelectTrigger className="h-11 bg-card/80 sm:col-span-2">
-                  <SelectValue placeholder="Caderno" />
+                  <SelectValue placeholder="Pasta" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sem caderno</SelectItem>
+                  <SelectItem value="none">Sem pasta</SelectItem>
                   {notebooks.map((notebook) => (
                     <SelectItem key={notebook.id} value={notebook.id}>
                       {notebook.title}
@@ -628,10 +628,10 @@ export function WeeklyTaskManager({
             </Select>
             <Select value={newNotebookId} onValueChange={setNewNotebookId}>
               <SelectTrigger className="h-11 bg-background/70">
-                <SelectValue placeholder="Caderno" />
+                <SelectValue placeholder="Pasta" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sem caderno</SelectItem>
+                <SelectItem value="none">Sem pasta</SelectItem>
                 {notebooks.map((notebook) => (
                   <SelectItem key={notebook.id} value={notebook.id}>
                     {notebook.title}
@@ -788,7 +788,7 @@ const TaskCard = memo(function TaskCard({
             )}
             {task.source_notebook_title && (
               <Badge variant="outline" className="rounded text-[10px]">
-                Caderno: {task.source_notebook_title}
+                Pasta: {task.source_notebook_title}
               </Badge>
             )}
           </div>

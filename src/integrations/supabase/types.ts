@@ -433,6 +433,9 @@ export type Database = {
           priority?: string
           progress_current?: number
           progress_target?: number | null
+          source_note_id?: string | null
+          source_note_title?: string | null
+          source_notebook_title?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           task_date: string
           title: string
@@ -450,6 +453,9 @@ export type Database = {
           priority?: string
           progress_current?: number
           progress_target?: number | null
+          source_note_id?: string | null
+          source_note_title?: string | null
+          source_notebook_title?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           task_date?: string
           title?: string
@@ -467,6 +473,9 @@ export type Database = {
           priority: string
           progress_current: number
           progress_target: number | null
+          source_note_id?: string | null
+          source_note_title?: string | null
+          source_notebook_title?: string | null
           status: Database["public"]["Enums"]["task_status"]
           task_date: string
           title: string

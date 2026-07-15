@@ -96,6 +96,15 @@ const isMissingOptionalTaskColumnError = (error: unknown) => {
   return (message.includes("notebook_id") || message.includes("description")) && message.includes("schema cache");
 };
 
+const isMissingTaskOriginColumnError = (error: unknown) => {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "object" && error && "message" in error
+      ? String((error as { message: unknown }).message)
+      : String(error);
+  return /source_note_id|source_note_title|source_notebook_title/.test(message) && /schema cache|column/i.test(message);
+};
+
 const loadTaskOrigins = (userId?: string): Record<string, StoredTaskOrigin> => {
   if (!userId || typeof window === "undefined") return {};
   try {
@@ -165,24 +174,30 @@ export function useWeeklyTasks() {
 
       const origins = loadTaskOrigins(user?.id);
 
-      return ((tasks || []) as WeeklyTaskRow[]).map((task) => ({
-        ...task,
-        status: task.status === "completed" ? "completed" : "pending",
-        assignee: task.assignee || null,
-        priority: (task.priority || "medium") as Priority,
-        progress_current: task.progress_current ?? 0,
-        progress_target: task.progress_target ?? null,
-        completed_at: task.completed_at || null,
-        pending_reasons: reasons.filter((reason) => reason.task_id === task.id),
-        ...origins[task.id],
-      }));
+      return ((tasks || []) as WeeklyTaskRow[]).map((task) => {
+        const storedOrigin = origins[task.id] || {};
+        return {
+          ...task,
+          status: task.status === "completed" ? "completed" : "pending",
+          assignee: task.assignee || null,
+          priority: (task.priority || "medium") as Priority,
+          progress_current: task.progress_current ?? 0,
+          progress_target: task.progress_target ?? null,
+          completed_at: task.completed_at || null,
+          pending_reasons: reasons.filter((reason) => reason.task_id === task.id),
+          notebook_id: task.notebook_id || storedOrigin.notebook_id || null,
+          source_note_id: task.source_note_id || storedOrigin.source_note_id,
+          source_note_title: task.source_note_title || storedOrigin.source_note_title,
+          source_notebook_title: task.source_notebook_title || storedOrigin.source_notebook_title,
+        };
+      });
     },
   });
 
   const invalidateTasks = () => queryClient.invalidateQueries({ queryKey: ["tasks"] });
 
   const createTask = useMutation({
-    mutationFn: async ({ title, description, assignee, priority, progress_target, task_date, notebook_id }: CreateTaskInput) => {
+    mutationFn: async ({ title, description, assignee, priority, progress_target, task_date, notebook_id, source_note_id, source_note_title, source_notebook_title }: CreateTaskInput) => {
       const day = task_date || todayKey();
       const basePayload = {
         title,
@@ -197,11 +212,13 @@ export function useWeeklyTasks() {
         status: "pending" as DbTaskStatus,
       } satisfies Omit<WeeklyTaskInsert, "notebook_id">;
 
-      const payload = notebook_id
-        ? ({ ...basePayload, notebook_id } satisfies WeeklyTaskInsert)
-        : (basePayload as WeeklyTaskInsert);
-      const { description: _description, ...fallbackBasePayload } = basePayload;
-      void _description;
+      let payload: WeeklyTaskInsert = {
+        ...basePayload,
+        ...(notebook_id ? { notebook_id } : {}),
+        ...(source_note_id ? { source_note_id } : {}),
+        ...(source_note_title ? { source_note_title } : {}),
+        ...(source_notebook_title ? { source_notebook_title } : {}),
+      };
 
       let result = await supabase
         .from("weekly_tasks")
@@ -209,7 +226,23 @@ export function useWeeklyTasks() {
         .select()
         .single();
 
+      if (result.error && isMissingTaskOriginColumnError(result.error)) {
+        const { source_note_id: _sourceNoteId, source_note_title: _sourceNoteTitle, source_notebook_title: _sourceNotebookTitle, ...withoutOrigin } = payload;
+        void _sourceNoteId;
+        void _sourceNoteTitle;
+        void _sourceNotebookTitle;
+        payload = withoutOrigin;
+        result = await supabase
+          .from("weekly_tasks")
+          .insert(payload)
+          .select()
+          .single();
+      }
+
       if (result.error && (notebook_id || description) && isMissingOptionalTaskColumnError(result.error)) {
+        const { notebook_id: _notebookId, description: _description, ...fallbackBasePayload } = payload;
+        void _notebookId;
+        void _description;
         result = await supabase
           .from("weekly_tasks")
           .insert(fallbackBasePayload as WeeklyTaskInsert)
@@ -237,21 +270,14 @@ export function useWeeklyTasks() {
 
   const updateTask = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<WeeklyTask> & { id: string }) => {
-      const {
-        pending_reasons,
-        source_note_id,
-        source_note_title,
-        source_notebook_title,
-        notebook_id,
-        ...taskUpdates
-      } = updates;
+      const { pending_reasons, source_note_id, source_note_title, source_notebook_title, notebook_id, ...taskUpdates } = updates;
       void pending_reasons;
-      void source_note_id;
-      void source_note_title;
-      void source_notebook_title;
       const payload: WeeklyTaskUpdate = {
         ...taskUpdates,
         ...(notebook_id !== undefined ? { notebook_id } : {}),
+        ...(source_note_id !== undefined ? { source_note_id } : {}),
+        ...(source_note_title !== undefined ? { source_note_title } : {}),
+        ...(source_notebook_title !== undefined ? { source_notebook_title } : {}),
       };
 
       if (updates.status === "completed") {
@@ -262,21 +288,34 @@ export function useWeeklyTasks() {
         payload.completed_at = null;
       }
 
+      if (updates.task_date) {
+        payload.week_start = format(startOfWeek(parseISO(updates.task_date), { weekStartsOn: 1 }), "yyyy-MM-dd");
+      }
+
       
 
       let result = await supabase.from("weekly_tasks").update(payload).eq("id", id);
+      if (result.error && isMissingTaskOriginColumnError(result.error)) {
+        const { source_note_id: _sourceNoteId, source_note_title: _sourceNoteTitle, source_notebook_title: _sourceNotebookTitle, ...withoutOrigin } = payload;
+        void _sourceNoteId;
+        void _sourceNoteTitle;
+        void _sourceNotebookTitle;
+        result = await supabase.from("weekly_tasks").update(withoutOrigin).eq("id", id);
+      }
       if (result.error && isMissingOptionalTaskColumnError(result.error)) {
         const { notebook_id: _notebookId, description: _description, ...fallbackPayload } = payload;
         void _notebookId;
         void _description;
         result = await supabase.from("weekly_tasks").update(fallbackPayload).eq("id", id);
       }
-      if (notebook_id !== undefined) {
+      if (notebook_id !== undefined || source_note_id !== undefined || source_note_title !== undefined || source_notebook_title !== undefined) {
         const previous = loadTaskOrigins(user?.id)[id] || {};
         saveTaskOrigin(user?.id, id, {
           ...previous,
-          notebook_id,
-          source_notebook_title,
+          ...(notebook_id !== undefined ? { notebook_id } : {}),
+          ...(source_note_id !== undefined ? { source_note_id } : {}),
+          ...(source_note_title !== undefined ? { source_note_title } : {}),
+          ...(source_notebook_title !== undefined ? { source_notebook_title } : {}),
         });
       }
       if (result.error) throw result.error;
@@ -305,11 +344,17 @@ export function useWeeklyTasks() {
         source_notebook_title
       );
 
-      const { error } = await supabase
+      let result = await supabase
         .from("weekly_tasks")
-        .update({ notebook_id } satisfies WeeklyTaskUpdate)
+        .update({ notebook_id, source_notebook_title } satisfies WeeklyTaskUpdate)
         .in("id", matchingTasks.map((task) => task.id));
-      if (error && !isMissingNotebookColumnError(error)) throw error;
+      if (result.error && isMissingTaskOriginColumnError(result.error)) {
+        result = await supabase
+          .from("weekly_tasks")
+          .update({ notebook_id } satisfies WeeklyTaskUpdate)
+          .in("id", matchingTasks.map((task) => task.id));
+      }
+      if (result.error && !isMissingNotebookColumnError(result.error)) throw result.error;
 
       return matchingTasks.length;
     },

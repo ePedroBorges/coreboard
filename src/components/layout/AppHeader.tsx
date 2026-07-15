@@ -20,14 +20,14 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
     >
       <div className="flex min-w-0 items-center gap-1">
         <SidebarTrigger
-          className="h-10 w-auto max-w-[14rem] shrink-0 gap-2 px-2 lg:h-8 lg:w-8 lg:px-0"
+          className="h-10 w-auto max-w-[14rem] shrink-0 gap-2 px-2 md:hidden"
           title="Abrir menu do VISTA"
           aria-label="Abrir menu do VISTA"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary/10 text-primary lg:h-auto lg:w-auto lg:bg-transparent">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
             <ClipboardList className="h-4 w-4" />
           </span>
-          <span className="truncate text-sm font-semibold text-foreground lg:hidden">VISTA Tasks Control</span>
+          <span className="truncate text-sm font-semibold text-foreground">VISTA Tasks Control</span>
         </SidebarTrigger>
 
         {canGoBack && (

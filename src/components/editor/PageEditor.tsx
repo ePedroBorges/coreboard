@@ -14,6 +14,7 @@ import {
   Minimize2,
   Pin,
   Share2,
+  Target,
   Trash2,
 } from "lucide-react";
 import { Page, Block, Notebook } from "@/types/notes";
@@ -304,10 +305,10 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         <div className="grid gap-3 sm:grid-cols-[minmax(180px,260px)_minmax(0,1fr)]">
           {notebooks.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="page-notebook" className="text-xs text-muted-foreground">Caderno</Label>
+              <Label htmlFor="page-notebook" className="text-xs text-muted-foreground">Pasta</Label>
               <Select value={page.notebook_id} onValueChange={handleNotebookChange}>
                 <SelectTrigger id="page-notebook" className="h-11 sm:h-9">
-                  <SelectValue placeholder="Selecione um caderno" />
+                  <SelectValue placeholder="Selecione uma pasta" />
                 </SelectTrigger>
                 <SelectContent>
                   {notebooks.map((notebook) => (
@@ -455,9 +456,24 @@ function LinkedTaskRow({
             <span>{task.priority === "high" ? "Alta" : task.priority === "low" ? "Baixa" : "Média"}</span>
             {task.assignee && <span>{task.assignee}</span>}
           </div>
+          {task.description && <p className="mt-2 break-words text-sm leading-5 text-muted-foreground">{task.description}</p>}
+          {task.progress_target !== null && (
+            <div className="mt-3 max-w-sm space-y-1.5">
+              <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-primary" />Meta</span>
+                <span className="font-medium text-foreground">{task.progress_current}/{task.progress_target}</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${Math.min(100, (task.progress_current / Math.max(1, task.progress_target)) * 100)}%` }} />
+              </div>
+            </div>
+          )}
         </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onEdit} title="Editar tarefa"><Pencil className="h-4 w-4" /></Button>
-        <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir tarefa"><Trash2 className="h-4 w-4" /></Button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2 border-t border-border/50 pt-3 sm:ml-12">
+        <Button variant="outline" size="sm" className="h-9 gap-2" onClick={onEdit}><Pencil className="h-4 w-4" />Editar</Button>
+        <Button variant="ghost" size="sm" className="h-9 gap-2 text-destructive hover:text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4" />Excluir</Button>
       </div>
 
       <div className="ml-0 mt-3 border-t border-border/50 pt-3 sm:ml-12">
@@ -491,6 +507,9 @@ function TaskEditDialog({ task, open, onOpenChange, onSave }: { task: WeeklyTask
   const [taskDate, setTaskDate] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [assignee, setAssignee] = useState("");
+  const [status, setStatus] = useState<WeeklyTask["status"]>("pending");
+  const [progressCurrent, setProgressCurrent] = useState("0");
+  const [progressTarget, setProgressTarget] = useState("");
 
   useEffect(() => {
     if (!task) return;
@@ -499,6 +518,9 @@ function TaskEditDialog({ task, open, onOpenChange, onSave }: { task: WeeklyTask
     setTaskDate(task.task_date);
     setPriority(task.priority);
     setAssignee(task.assignee || "");
+    setStatus(task.status);
+    setProgressCurrent(String(task.progress_current || 0));
+    setProgressTarget(task.progress_target === null ? "" : String(task.progress_target));
   }, [task]);
 
   return (
@@ -513,8 +535,13 @@ function TaskEditDialog({ task, open, onOpenChange, onSave }: { task: WeeklyTask
             <div className="space-y-2"><Label>Prioridade</Label><Select value={priority} onValueChange={(value) => setPriority(value as Priority)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
           </div>
           <div className="space-y-2"><Label htmlFor="linked-task-assignee">Responsável</Label><Input id="linked-task-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Opcional" /></div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-2"><Label>Status</Label><Select value={status} onValueChange={(value) => setStatus(value as WeeklyTask["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pending">Pendente</SelectItem><SelectItem value="completed">Concluída</SelectItem></SelectContent></Select></div>
+            <div className="space-y-2"><Label htmlFor="linked-task-progress">Progresso</Label><Input id="linked-task-progress" type="number" min={0} value={progressCurrent} onChange={(event) => setProgressCurrent(event.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="linked-task-target">Meta</Label><Input id="linked-task-target" type="number" min={1} value={progressTarget} onChange={(event) => setProgressTarget(event.target.value)} placeholder="Opcional" /></div>
+          </div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button disabled={!title.trim() || !taskDate} onClick={() => onSave({ title: title.trim(), description: description.trim() || null, task_date: taskDate, priority, assignee: assignee.trim() || null })}>Salvar alterações</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button disabled={!title.trim() || !taskDate} onClick={() => onSave({ title: title.trim(), description: description.trim() || null, task_date: taskDate, priority, assignee: assignee.trim() || null, status, progress_current: Math.max(0, Number(progressCurrent) || 0), progress_target: progressTarget ? Math.max(1, Number(progressTarget) || 1) : null })}>Salvar alterações</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

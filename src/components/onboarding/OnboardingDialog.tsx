@@ -18,7 +18,7 @@ const steps = [
     icon: NotebookPen,
   },
   {
-    title: "Organize em cadernos",
+    title: "Organize em pastas",
     text: "Separe suas anotações por projetos, estudos, clientes ou áreas da vida.",
     icon: BookOpen,
   },
