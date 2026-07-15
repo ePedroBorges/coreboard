@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { Notebook } from "@/types/notes";
 import { toast } from "sonner";
 import { DEFAULT_NOTEBOOK_NAME, DEFAULT_NOTEBOOK_NAMES } from "@/lib/noteUtils";
+import { createStarterContent } from "@/lib/userData";
 
 const byPosition = (a: Notebook, b: Notebook) => {
   if (a.position !== b.position) return a.position - b.position;
@@ -27,8 +28,9 @@ export function useNotebooks() {
 
       if (error) throw error;
 
+      const wasEmpty = (notebooks || []).length === 0;
       const existingTitles = new Set((notebooks || []).map((notebook) => notebook.title.trim().toLowerCase()));
-      const defaultsToEnsure = (notebooks || []).length === 0 ? DEFAULT_NOTEBOOK_NAMES : [DEFAULT_NOTEBOOK_NAME];
+      const defaultsToEnsure = (notebooks || []).length === 0 ? DEFAULT_NOTEBOOK_NAMES : [];
       const missingDefaults = defaultsToEnsure.filter((name) => !existingTitles.has(name.toLowerCase()));
 
       let allNotebooks = notebooks || [];
@@ -47,6 +49,9 @@ export function useNotebooks() {
 
         if (createError) throw createError;
         allNotebooks = [...allNotebooks, ...(createdDefaults || [])];
+        if (wasEmpty && createdDefaults?.[0]) {
+          await createStarterContent(user!.id, createdDefaults[0].id);
+        }
       }
 
       const { data: counts } = await supabase
@@ -66,18 +71,31 @@ export function useNotebooks() {
   });
 
   const createNotebook = useMutation({
-    mutationFn: async (title: string) => {
+    mutationFn: async (input: string | { title: string; parentId?: string | null }) => {
+      const title = typeof input === "string" ? input : input.title;
+      const parentId = typeof input === "string" ? null : input.parentId || null;
       const cleanTitle = title.trim();
       if (!cleanTitle) throw new Error("Informe o nome do caderno.");
       const duplicate = query.data?.find((notebook) => notebook.title.trim().toLowerCase() === cleanTitle.toLowerCase());
       if (duplicate) return duplicate;
       const maxPos = query.data?.length || 0;
+      const insertPayload = {
+        title: cleanTitle,
+        user_id: user!.id,
+        position: maxPos,
+        ...(parentId ? { parent_id: parentId } : {}),
+      };
       const { data, error } = await supabase
         .from("notebooks")
-        .insert({ title: cleanTitle, user_id: user!.id, position: maxPos })
+        .insert(insertPayload)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        if (parentId && /parent_id|schema cache/i.test(error.message)) {
+          throw new Error("Subpastas estarão disponíveis após a atualização do banco.");
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {

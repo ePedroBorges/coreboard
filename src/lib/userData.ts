@@ -354,76 +354,63 @@ export async function importBackupForUser(userId: string, backup: VistaBackup, m
 
 export async function loadSampleData(userId: string) {
   requireUser(userId);
-
-  const notebookTitles = ["Geral", "AnchorLab", "VISTA", "MEMIQ", "Estudos", "Clientes"];
-  const { data: existing, error: existingError } = await supabase.from("notebooks").select("*").eq("user_id", userId);
-  if (existingError) throw existingError;
-
-  const byTitle = new Map((existing || []).map((notebook) => [notebook.title.trim().toLowerCase(), notebook]));
-  const notebooks = new Map<string, NotebookRow>();
-  let position = existing?.length || 0;
-
-  for (const title of notebookTitles) {
-    const current = byTitle.get(title.toLowerCase());
-    if (current) {
-      notebooks.set(title, current);
-      continue;
-    }
-    const { data, error } = await supabase
-      .from("notebooks")
-      .insert({ title, position: position++, user_id: userId })
-      .select("*")
-      .single();
-    if (error) throw error;
-    notebooks.set(title, data);
+  const { data: existingNotebooks, error } = await supabase.from("notebooks").select("*").eq("user_id", userId);
+  if (error) throw error;
+  let notebook = existingNotebooks?.find((item) => item.title === DEFAULT_NOTEBOOK_NAMES[0]) || existingNotebooks?.[0];
+  let notebookCreated = 0;
+  if (!notebook) {
+    const result = await supabase.from("notebooks").insert({ title: DEFAULT_NOTEBOOK_NAMES[0], position: 0, user_id: userId }).select("*").single();
+    if (result.error) throw result.error;
+    notebook = result.data;
+    notebookCreated = 1;
   }
+  const created = await createStarterContent(userId, notebook.id);
+  return { notebooks: notebookCreated, notes: created.noteCreated ? 1 : 0, tasks: created.taskCreated ? 1 : 0 };
+}
 
-  const noteInputs = [
-    { title: "Ideias para posts LinkedIn", notebook: "AnchorLab", text: "Post sobre transformar anotações soltas em tarefas executáveis.\nPost sobre rotina de validação de MVP." },
-    { title: "Links da landing page", notebook: "VISTA", text: "https://www.anchorlab.com.br\nhttps://linearsistemas.com.br/\nhttps://www.totvs.com/logistica/" },
-    { title: "Melhorias do VISTA Tasks Control", notebook: "VISTA", text: "Polir onboarding, backup, importacao e estados vazios para a versao atual." },
-    { title: "Checklist semanal AnchorLab", notebook: "AnchorLab", checklist: ["Revisar prioridades", "Atualizar roadmap", "Publicar aprendizado da semana"] },
-    { title: "Roadmap MEMIQ", notebook: "MEMIQ", text: "Organizar hipóteses, entrevistas e próximos experimentos." },
-    { title: "Prospects VISTA", notebook: "Clientes", text: "Mapear empresas com operação intensa de tarefas, logística e atendimento." },
-  ];
+export async function createStarterContent(userId: string, notebookId: string) {
+  requireUser(userId);
+  const [notesResult, tasksResult] = await Promise.all([
+    supabase.from("pages").select("id", { count: "exact", head: true }).eq("user_id", userId),
+    supabase.from("weekly_tasks").select("id", { count: "exact", head: true }).eq("user_id", userId),
+  ]);
+  if (notesResult.error) throw notesResult.error;
+  if (tasksResult.error) throw tasksResult.error;
 
-  for (const [index, note] of noteInputs.entries()) {
-    const content: Block[] = note.checklist
-      ? note.checklist.map((item) => makeBlock("checklist", item, { checked: false }))
-      : [makeBlock("freeform", note.text || "")];
+  let noteCreated = false;
+  let taskCreated = false;
+  if ((notesResult.count || 0) === 0) {
+    const content: Block[] = [
+      makeBlock("freeform", "Este é o seu espaço para escrever livremente. Use o checklist abaixo quando uma ideia virar ação."),
+      makeBlock("checklist", "Explore os Cadernos", { checked: false }),
+    ];
     const { error } = await supabase.from("pages").insert({
-      title: note.title,
+      title: "Bem-vindo ao VISTA",
       content: content as unknown as Json,
-      notebook_id: notebooks.get(note.notebook)?.id || notebooks.get("Geral")!.id,
-      position: index,
+      notebook_id: notebookId,
+      position: 0,
       user_id: userId,
     });
     if (error) throw error;
+    noteCreated = true;
   }
 
-  const today = format(new Date(), "yyyy-MM-dd");
-  const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-  const taskInputs = [
-    { title: "Revisar landing page do VISTA", notebook: "VISTA", priority: "high", description: "Checar clareza da promessa, CTA e links principais." },
-    { title: "Criar post sobre produtividade", notebook: "AnchorLab", priority: "medium", description: "Usar aprendizado de produtividade como gancho para LinkedIn." },
-    { title: "Testar fluxo anotação → tarefa", notebook: "VISTA", priority: "high", description: "Criar uma anotação real, transformar em tarefa e validar calendário." },
-    { title: "Organizar caderno AnchorLab", notebook: "AnchorLab", priority: "medium", description: "Separar ideias, clientes e validações em anotações acionáveis." },
-    { title: "Validar app por 7 dias sem Google Keep", notebook: "Geral", priority: "high", description: "Usar o app no dia a dia e registrar atritos no checklist de evolucao." },
-  ];
-
-  const { error: taskError } = await supabase.from("weekly_tasks").insert(taskInputs.map((task) => ({
-    title: task.title,
-    description: task.description,
-    notebook_id: notebooks.get(task.notebook)?.id || notebooks.get("Geral")!.id,
-    priority: task.priority,
-    progress_current: 0,
-    progress_target: null,
-    status: "pending" as TaskStatus,
-    task_date: today,
-    week_start: weekStart,
-    user_id: userId,
-  })));
-  if (taskError) throw taskError;
-
-  return { notebooks: notebookTitles.length, notes: noteInputs.length, tasks: taskInputs.length };
+  if ((tasksResult.count || 0) === 0) {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const { error } = await supabase.from("weekly_tasks").insert({
+      title: "Concluir minha primeira tarefa",
+      description: "Marque esta tarefa como concluída para conhecer o fluxo do VISTA.",
+      notebook_id: notebookId,
+      priority: "medium",
+      progress_current: 0,
+      progress_target: null,
+      status: "pending" as TaskStatus,
+      task_date: today,
+      week_start: format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+      user_id: userId,
+    });
+    if (error) throw error;
+    taskCreated = true;
+  }
+  return { noteCreated, taskCreated };
 }

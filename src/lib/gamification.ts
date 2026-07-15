@@ -27,23 +27,23 @@ export interface GamificationStats {
 export const GAMIFICATION_REWARDS: GamificationReward[] = [
   {
     level: 5,
-    title: "Ritual de foco",
-    description: "Desbloqueia um marco guiado para planejar o dia com prioridades claras.",
+    title: "Selo Ritmo Inicial",
+    description: "Um selo de perfil que reconhece sua primeira rotina consistente.",
   },
   {
     level: 10,
-    title: "Biblioteca de templates",
-    description: "Recompensa de produtividade com modelos para reuniao, projeto e planejamento semanal.",
+    title: "Título Organizador",
+    description: "Exiba o título Organizador ao lado do seu nível.",
   },
   {
     level: 15,
     title: "Selo Executor",
-    description: "Reconhecimento para quem transforma anotacoes em tarefas concluidas com consistencia.",
+    description: "Reconhecimento visual para quem transforma anotações em tarefas concluídas.",
   },
   {
     level: 20,
-    title: "Revisao premium",
-    description: "Marco para revisar backlog, pendencias e proximas acoes em uma rotina semanal.",
+    title: "Selo Consistência",
+    description: "Marco de perfil por manter captura, organização e execução em equilíbrio.",
   },
   {
     level: 30,

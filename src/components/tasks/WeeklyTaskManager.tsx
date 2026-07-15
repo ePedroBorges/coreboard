@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  CircleAlert,
   Clock3,
   ListChecks,
   Loader2,
@@ -41,6 +40,7 @@ import {
 import { DEFAULT_NOTEBOOK_NAME } from "@/lib/noteUtils";
 import { cn } from "@/lib/utils";
 import { Notebook } from "@/types/notes";
+import { ContextHelp } from "@/components/ui/context-help";
 
 const statusLabel: Record<TaskStatus, string> = {
   pending: "Pendente",
@@ -241,7 +241,7 @@ export function WeeklyTaskManager({
     view === "completed"
       ? "Nenhuma tarefa concluída ainda. Finalize uma tarefa e acompanhe sua evolução."
       : view === "pending"
-        ? "Nenhuma pendência no momento. Ótimo sinal."
+        ? "Nenhuma tarefa pendente no momento. Ótimo sinal."
         : view === "all"
           ? "Seu espaço de execução está vazio. Crie sua primeira tarefa do dia."
           : "Planeje uma tarefa ou escolha outro dia.";
@@ -255,7 +255,6 @@ export function WeeklyTaskManager({
           <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
           <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
           <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
-          <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
         </div>
         <div className="grid grid-cols-2 gap-1 rounded-md border border-border/60 bg-card/70 p-1">
           {viewTabs.map((item) => (
@@ -286,20 +285,17 @@ export function WeeklyTaskManager({
             <div className="max-w-2xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
-                AnchorLab Productivity
+                Execução diária
               </div>
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Tarefas
-              </h1>
+              <div className="flex items-center gap-1"><h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">Tarefas</h1><ContextHelp text="Organize o que precisa ser feito. Use subtarefas quando uma tarefa tiver etapas menores." /></div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
-                Planeje ações por data, acompanhe pendências e conclua prioridades.
+                Planeje ações por data, organize subtarefas e conclua prioridades.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
+            <div className="grid grid-cols-3 gap-2 lg:min-w-[480px]">
               <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
               <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
               <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
-              <Metric label="Pendências" value={stats.openReasons} tone="warning" icon={<CircleAlert className="h-4 w-4" />} />
             </div>
           </div>
         </div>
@@ -778,7 +774,7 @@ const TaskCard = memo(function TaskCard({
               {statusLabel[task.status]}
             </Badge>
             {openReasons > 0 && (
-              <Badge variant="secondary" className="rounded text-[10px]">{openReasons} pendência(s)</Badge>
+              <Badge variant="secondary" className="rounded text-[10px]">{openReasons} subtarefa(s)</Badge>
             )}
             {task.progress_target && (
               <Badge variant="outline" className="rounded text-[10px]">
@@ -913,7 +909,7 @@ const TaskCard = memo(function TaskCard({
 
           <div>
             <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Pendências
+              Subtarefas
             </div>
 
             <div className="space-y-2">
@@ -932,7 +928,7 @@ const TaskCard = memo(function TaskCard({
               <Textarea
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Motivo da pendência"
+                placeholder="Nome da subtarefa"
                 className="min-h-10 resize-none"
               />
               <Input value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="Responsável" className="h-10" />

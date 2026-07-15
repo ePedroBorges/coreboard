@@ -15,7 +15,6 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
-  CircleAlert,
   Clock3,
   Link2,
   ListChecks,
@@ -30,7 +29,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { GamificationPanel } from "@/components/gamification/GamificationPanel";
 import { cn } from "@/lib/utils";
 import { GamificationStats } from "@/lib/gamification";
 import {
@@ -149,10 +147,10 @@ export function TodayView({
             Capture ideias, organize anotações e execute suas prioridades.
           </p>
         </div>
-        <div className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm">
+        <Link to="/conquistas" className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm transition-colors hover:border-primary/40 hover:bg-primary/15" title="Ver níveis, conquistas e formas de ganhar XP">
           <div className="font-semibold text-primary">{gamification.levelName}</div>
           <div className="text-xs text-muted-foreground">{gamification.xpToNextLevel} XP para subir</div>
-        </div>
+        </Link>
       </section>
 
       <QuickCaptureBar
@@ -187,7 +185,6 @@ export function TodayView({
         <CompactStats stats={stats} />
         <CollapsibleCalendar tasks={tasks} onOpenCalendar={onOpenCalendar} />
       </div>
-      <GamificationPanel stats={gamification} compact />
     </div>
   );
 }
@@ -362,7 +359,7 @@ function TodayPriorities({
                       )}
                       {openReasons > 0 && (
                         <Badge variant="outline" className="rounded border-warning/40 text-warning">
-                          {openReasons} pendência(s)
+                          {openReasons} subtarefa(s)
                         </Badge>
                       )}
                     </div>
@@ -406,9 +403,11 @@ function RecentNotes({
           <h2 className="text-base font-semibold">Anotações recentes</h2>
           <p className="text-sm text-muted-foreground">Suas últimas ideias, links e checklists.</p>
         </div>
-        <Button variant="outline" size="sm" className="h-10 w-full sm:h-9 sm:w-auto" onClick={onOpenNotes}>
-          Ver anotações
-        </Button>
+        {notes.length > 0 && (
+          <Button variant="outline" size="sm" className="h-10 w-full sm:h-9 sm:w-auto" onClick={onOpenNotes}>
+            Ver cadernos
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -481,7 +480,6 @@ function CompactStats({
     { label: "Total", value: stats.total, icon: ListChecks },
     { label: "Pendentes", value: stats.pending, icon: Clock3 },
     { label: "Concluídas", value: stats.completed, icon: CheckCircle2 },
-    { label: "Pendências", value: stats.openReasons, icon: CircleAlert },
   ];
 
   return (
@@ -490,7 +488,7 @@ function CompactStats({
         <h2 className="text-sm font-semibold">Resumo</h2>
         <p className="text-xs text-muted-foreground">Um pulso rápido da sua execução.</p>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2">
         {items.map((item) => {
           const Icon = item.icon;
           return (

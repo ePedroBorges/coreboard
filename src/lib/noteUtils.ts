@@ -1,8 +1,8 @@
 import { Block, Page } from "@/types/notes";
 
-export const DEFAULT_NOTE_TAGS = ["AnchorLab", "VISTA", "MEMIQ", "Pessoal", "Estudos", "Clientes", "Ideias"];
-export const DEFAULT_NOTEBOOK_NAMES = ["Geral", "AnchorLab", "VISTA", "MEMIQ", "Pessoal", "Estudos", "Clientes", "Ideias"];
-export const DEFAULT_NOTEBOOK_NAME = "Geral";
+export const DEFAULT_NOTE_TAGS = ["Pessoal", "Trabalho", "Estudos", "Ideias", "Importante"];
+export const DEFAULT_NOTEBOOK_NAMES = ["Meu caderno"];
+export const DEFAULT_NOTEBOOK_NAME = "Meu caderno";
 
 const NOTE_META_KEY = "vistaNoteMeta";
 

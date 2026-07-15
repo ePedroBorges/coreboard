@@ -114,7 +114,7 @@ export function AppSidebar({
             <SidebarGroupContent>
               <SidebarMenu>
                 <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={() => runAndClose(onSelectToday)} collapsed={collapsed} />
-                <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
+                <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Cadernos" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
                 <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={() => runAndClose(onSelectTasks)} collapsed={collapsed} />
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild className="min-h-[44px] text-sm sm:min-h-0 sm:text-xs">
@@ -247,7 +247,7 @@ function MobileBottomNavigation({
       <div className="mx-auto max-w-md">
         <div className="grid min-w-0 grid-cols-4 gap-1 rounded-md border border-sidebar-border bg-background/25 p-1">
           <MobileBottomNavButton active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} />
-          <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Anotações" onClick={onSelectNotes} />
+          <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Cadernos" onClick={onSelectNotes} />
           <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={onSelectTasks} />
           <ProfileMenu mobileNav onOpenSettings={onOpenSettings} />
         </div>

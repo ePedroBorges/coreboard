@@ -107,6 +107,7 @@ export type Database = {
           description?: string | null
           id?: string
           position?: number
+          parent_id?: string | null
           title?: string
           updated_at?: string
           user_id: string
@@ -116,6 +117,7 @@ export type Database = {
           description?: string | null
           id?: string
           position?: number
+          parent_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -125,6 +127,7 @@ export type Database = {
           description: string | null
           id?: string
           position: number
+          parent_id?: string | null
           title: string
           updated_at: string
           user_id: string

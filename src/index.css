@@ -82,6 +82,11 @@
     --sidebar-primary: 265 85% 65%;
     --sidebar-ring: 265 85% 65%;
   }
+
+  .dark.theme-ocean { --primary: 215 92% 62%; --ring: 215 92% 62%; --accent: 190 82% 52%; --glow: 215 92% 62%; --sidebar-primary: 215 92% 62%; --sidebar-ring: 215 92% 62%; }
+  .light.theme-ocean { --primary: 215 85% 48%; --ring: 215 85% 48%; --accent: 190 72% 42%; --glow: 215 85% 52%; }
+  .dark.theme-focus { --primary: 145 68% 50%; --ring: 145 68% 50%; --accent: 180 65% 44%; --glow: 145 68% 50%; --sidebar-primary: 145 68% 50%; --sidebar-ring: 145 68% 50%; }
+  .light.theme-focus { --primary: 145 72% 34%; --ring: 145 72% 34%; --accent: 180 62% 36%; --glow: 145 72% 40%; }
   .light.theme-midnight {
     --primary: 265 75% 50%;
     --ring: 265 75% 50%;

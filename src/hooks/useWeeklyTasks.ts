@@ -378,7 +378,7 @@ export function useWeeklyTasks() {
     },
     onSuccess: () => {
       invalidateTasks();
-      toast.success("Pendência registrada");
+      toast.success("Subtarefa adicionada");
     },
     onError: (e: Error) => toast.error(e.message),
   });

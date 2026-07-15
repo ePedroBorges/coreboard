@@ -126,7 +126,7 @@ function AutoResizeTextarea({
     const element = ref.current;
     if (!element) return;
     element.style.height = "auto";
-    element.style.height = `${Math.max(element.scrollHeight, 128)}px`;
+    element.style.height = `${Math.max(element.scrollHeight, 320)}px`;
   };
 
   useLayoutEffect(() => {
@@ -150,7 +150,7 @@ function AutoResizeTextarea({
       }}
       onBlur={onBlur}
       placeholder={placeholder}
-      className="min-h-32 w-full resize-none overflow-hidden rounded-md border border-border/50 bg-background/45 px-3 py-2 text-base leading-6 outline-none focus:border-primary/45 sm:text-sm"
+      className="min-h-80 w-full resize-none overflow-hidden rounded-md border border-border/50 bg-background/35 px-4 py-4 text-base leading-7 outline-none focus:border-primary/45 sm:text-sm"
     />
   );
 }
@@ -161,6 +161,15 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const blockRefs = useRef<(HTMLElement | null)[]>([]);
+
+  useEffect(() => {
+    const textBlocks = blocks.filter((block) => block.type !== "checklist" && block.type !== "attachment");
+    const auxiliaryBlocks = blocks.filter((block) => block.type === "checklist" || block.type === "attachment");
+    const alreadyUnified = textBlocks.length === 1 && textBlocks[0].type === "freeform";
+    if (alreadyUnified) return;
+    const content = textBlocks.map((block) => block.content).filter(Boolean).join("\n");
+    onChange([{ id: textBlocks[0]?.id || generateId(), type: "freeform", content }, ...auxiliaryBlocks]);
+  }, [blocks, onChange]);
 
   const addBlock = (type: BlockType = "freeform", afterIndex?: number) => {
     if (type === "attachment" && !canUseAttachments) {
@@ -274,26 +283,7 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
     }
   };
 
-  if (blocks.length === 0) {
-    return (
-      <div className="grid gap-2 sm:grid-cols-2">
-        {BLOCK_TYPES.slice(0, 4).map((blockType) => {
-          const Icon = blockType.icon;
-          return (
-            <button
-              key={blockType.type}
-              type="button"
-              onClick={() => addBlock(blockType.type)}
-              className="flex min-h-12 items-center gap-2 rounded-md border border-border/60 bg-background/35 px-3 text-left text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              <Icon className="h-4 w-4 text-primary" />
-              {blockType.label}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
+  if (blocks.length === 0) return <div className="min-h-80 rounded-md border border-border/50 bg-background/35" />;
 
   return (
     <div className="space-y-1">
@@ -301,7 +291,7 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
         const isEditing = editingBlockId === block.id || !block.content.trim();
         return (
           <div key={block.id} className="group/block relative flex items-start gap-1">
-            <div className="flex shrink-0 items-center gap-0.5 pt-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/block:opacity-100">
+            <div className={cn("shrink-0 items-center gap-0.5 pt-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/block:opacity-100", block.type === "freeform" ? "hidden" : "flex")}>
               <BlockTypeMenu onSelect={(type) => addBlock(type, index)} />
               <span className="flex min-h-9 min-w-9 items-center justify-center rounded text-muted-foreground sm:min-h-0 sm:min-w-0 sm:p-0.5">
                 <GripVertical className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
@@ -413,13 +403,13 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
               )}
             </div>
 
-            <button
+            {block.type !== "freeform" && <button
               type="button"
               onClick={() => deleteBlock(index)}
               className="mt-1 flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded text-destructive/60 opacity-100 transition-opacity hover:bg-destructive/10 sm:min-h-0 sm:min-w-0 sm:p-0.5 sm:opacity-0 sm:group-hover/block:opacity-100"
             >
               <Trash2 className="h-4 w-4 sm:h-3 w-3" />
-            </button>
+            </button>}
 
             {slashMenuIndex === index && (
               <div className="absolute left-8 top-full z-50 mt-1 w-56 rounded-md border bg-popover p-1 shadow-lg">
@@ -445,6 +435,7 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
       <div className="pt-2">
         <BlockTypeMenu
           onSelect={(type) => addBlock(type)}
+          auxiliaryOnly
           trigger={
             <button
               type="button"
@@ -463,10 +454,15 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
 function BlockTypeMenu({
   onSelect,
   trigger,
+  auxiliaryOnly = false,
 }: {
   onSelect: (type: BlockType) => void;
   trigger?: React.ReactNode;
+  auxiliaryOnly?: boolean;
 }) {
+  const availableTypes = auxiliaryOnly
+    ? BLOCK_TYPES.filter((item) => item.type === "checklist" || item.type === "attachment")
+    : BLOCK_TYPES;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -480,7 +476,7 @@ function BlockTypeMenu({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
-        {BLOCK_TYPES.map((blockType) => {
+        {availableTypes.map((blockType) => {
           const Icon = blockType.icon;
           return (
             <DropdownMenuItem

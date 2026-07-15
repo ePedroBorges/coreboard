@@ -1,5 +1,5 @@
-import { type ElementType, useEffect, useMemo, useState } from "react";
-import { AlignLeft, CheckSquare, Loader2, Pin, Plus, Rows3, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckSquare, Loader2, Pin, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TagSelector } from "./TagSelector";
-import { makeFreeformNoteBlocks, makeLineByLineNoteBlocks } from "@/lib/noteUtils";
+import { makeFreeformNoteBlocks } from "@/lib/noteUtils";
 import { Block, Notebook } from "@/types/notes";
 
 interface QuickCaptureModalProps {
@@ -27,7 +27,6 @@ interface QuickCaptureModalProps {
 }
 
 type ChecklistDraft = { id: string; text: string; checked?: boolean };
-type CreationMode = "line-by-line" | "freeform";
 
 const createDraftItem = (): ChecklistDraft => ({
   id: Math.random().toString(36).slice(2, 10),
@@ -37,7 +36,6 @@ const createDraftItem = (): ChecklistDraft => ({
 export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebookId, onSave }: QuickCaptureModalProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [creationMode, setCreationMode] = useState<CreationMode>("line-by-line");
   const [tags, setTags] = useState<string[]>([]);
   const [selectedNotebookId, setSelectedNotebookId] = useState(defaultNotebookId || "");
   const [pinned, setPinned] = useState(false);
@@ -56,7 +54,6 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
   const reset = () => {
     setTitle("");
     setContent("");
-    setCreationMode("line-by-line");
     setTags([]);
     setSelectedNotebookId(defaultNotebookId || notebooks[0]?.id || "");
     setPinned(false);
@@ -67,9 +64,7 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
   const save = async (createTask: boolean) => {
     if (!canSave) return;
     setSavingMode(createTask ? "task" : "note");
-    const blocks = creationMode === "freeform"
-      ? makeFreeformNoteBlocks(content, checklistItems, tags)
-      : makeLineByLineNoteBlocks(content, checklistItems, tags);
+    const blocks = makeFreeformNoteBlocks(content, checklistItems, tags);
     await onSave({
       title: title.trim(),
       content: blocks,
@@ -97,25 +92,6 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
 
         <div className="space-y-4">
           <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título opcional" />
-          <div className="grid gap-2">
-            <Label>Como deseja criar a anotação?</Label>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <CreationModeButton
-                active={creationMode === "line-by-line"}
-                icon={Rows3}
-                title="Linha a linha"
-                description="Cada linha vira um bloco separado, ideal para listas simples e ideias soltas."
-                onClick={() => setCreationMode("line-by-line")}
-              />
-              <CreationModeButton
-                active={creationMode === "freeform"}
-                icon={AlignLeft}
-                title="Modo livre"
-                description="Um campo amplo para texto corrido, rascunhos longos e colagens."
-                onClick={() => setCreationMode("freeform")}
-              />
-            </div>
-          </div>
           <div className="space-y-2">
             <Label htmlFor="quick-capture-notebook">Caderno</Label>
             <Select value={selectedNotebookId} onValueChange={setSelectedNotebookId}>
@@ -134,8 +110,8 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
           <Textarea
             value={content}
             onChange={(event) => setContent(event.target.value)}
-            placeholder={creationMode === "freeform" ? "Escreva livremente..." : "Escreva uma ideia por linha..."}
-            className="min-h-40 resize-y leading-6"
+            placeholder="Escreva livremente..."
+            className="min-h-64 resize-y leading-7"
           />
 
           <div className="rounded-md border border-border/60 bg-background/35 p-3">
@@ -197,41 +173,5 @@ export function QuickCaptureModal({ open, onOpenChange, notebooks, defaultNotebo
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function CreationModeButton({
-  active,
-  icon: Icon,
-  title,
-  description,
-  onClick,
-}: {
-  active: boolean;
-  icon: ElementType;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={[
-        "flex min-h-20 gap-3 rounded-md border p-3 text-left transition-colors",
-        active
-          ? "border-primary/50 bg-primary/10 text-foreground ring-1 ring-primary/25"
-          : "border-border/60 bg-background/35 text-muted-foreground hover:border-primary/30 hover:text-foreground",
-      ].join(" ")}
-    >
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold">{title}</span>
-        <span className="mt-1 block text-xs leading-5">{description}</span>
-      </span>
-    </button>
   );
 }

@@ -48,12 +48,10 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useTheme, PRO_THEME_VARIANTS, THEME_VARIANT_META, ThemeVariant } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { UserSettings } from "@/hooks/useUserSettings";
-import { GamificationPanel } from "@/components/gamification/GamificationPanel";
 import { Notebook, Page } from "@/types/notes";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaymentsReturnBaseUrl, getStripeEnvironment } from "@/lib/stripe";
 import { cn } from "@/lib/utils";
-import { GamificationStats } from "@/lib/gamification";
 import {
   collectUserBackup,
   downloadBackup,
@@ -86,7 +84,6 @@ interface SettingsViewProps {
   onSettingsImported: (settings: UserSettings) => void;
   onOpenOnboarding: () => void;
   onGoToday: () => void;
-  gamification: GamificationStats;
   notifications: NotificationControls;
 }
 
@@ -100,7 +97,6 @@ export function SettingsView({
   onSettingsImported,
   onOpenOnboarding,
   onGoToday,
-  gamification,
   notifications,
 }: SettingsViewProps) {
   const queryClient = useQueryClient();
@@ -290,8 +286,6 @@ export function SettingsView({
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-4">
-          <GamificationPanel stats={gamification} />
-
           <SettingsCard title="Sua conta" icon={UserRound}>
             <div className="grid gap-2 text-sm text-muted-foreground">
               <InfoRow label="Nome" value={userName} />

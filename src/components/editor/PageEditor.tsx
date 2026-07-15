@@ -1,11 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
   Check,
+  CheckCircle2,
   Clock,
   Copy,
   Download,
+  Pencil,
+  Plus,
   ListChecks,
   Mail,
   Minimize2,
@@ -16,8 +19,18 @@ import {
 import { Page, Block, Notebook } from "@/types/notes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +45,7 @@ import { generatePagePdf } from "@/lib/pdfExport";
 import { blocksToText, getNoteTags, setNoteTags } from "@/lib/noteUtils";
 import { Json } from "@/integrations/supabase/types";
 import { useSubscription } from "@/hooks/useSubscription";
+import { Priority, TaskPendingReason, WeeklyTask } from "@/hooks/useWeeklyTasks";
 
 interface PageEditorProps {
   page: Page;
@@ -39,12 +53,18 @@ interface PageEditorProps {
   focusMode: boolean;
   onExitFocus: () => void;
   onCreateTaskFromPage?: (page: Page) => void;
+  linkedTasks?: WeeklyTask[];
+  onUpdateTask?: (id: string, updates: Partial<WeeklyTask>) => void;
+  onDeleteTask?: (id: string) => void;
+  onAddSubtask?: (taskId: string, title: string) => void;
+  onUpdateSubtask?: (id: string, updates: Partial<TaskPendingReason>) => void;
+  onDeleteSubtask?: (id: string) => void;
   onDelete?: () => void;
   notebooks?: Notebook[];
   onNotebookChange?: (notebookId: string) => void;
 }
 
-export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
+export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, linkedTasks = [], onUpdateTask, onDeleteTask, onAddSubtask, onUpdateSubtask, onDeleteSubtask, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
   const { isPro } = useSubscription();
   const [title, setTitle] = useState(page.title);
   const [blocks, setBlocks] = useState<Block[]>(page.content || []);
@@ -204,18 +224,6 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            {onCreateTaskFromPage && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="hidden h-8 gap-1 sm:inline-flex"
-                onClick={() => onCreateTaskFromPage(currentPage)}
-              >
-                <ListChecks className="h-3.5 w-3.5" />
-                Criar tarefa
-              </Button>
-            )}
-
             <Button
               variant="ghost"
               size="icon"
@@ -280,17 +288,6 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
             Capture ideias, links e checklists. Depois transforme tudo em tarefa.
           </span>
           {page.is_favorite && <Badge variant="outline" className="rounded-full border-warning/40 text-warning">Fixada</Badge>}
-          {onCreateTaskFromPage && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-10 w-full gap-1 sm:hidden"
-              onClick={() => onCreateTaskFromPage(currentPage)}
-            >
-              <ListChecks className="h-3.5 w-3.5" />
-              Criar tarefa
-            </Button>
-          )}
         </div>
       </div>
 
@@ -329,11 +326,196 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         </div>
       </div>
 
-      <div className="px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-16">
-        <div className="min-w-0 rounded-lg border border-border/50 bg-card/35 p-2.5 sm:p-4">
+      <div className="px-3 pb-4 sm:px-6">
+        <div className="min-w-0 border-t border-border/60 pt-3 sm:pt-4">
           <BlockEditor blocks={blocks} onChange={handleBlocksChange} canUseAttachments={isPro} />
         </div>
       </div>
+
+      <div className="px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-16">
+        <LinkedTasksPanel
+          tasks={linkedTasks}
+          onCreate={onCreateTaskFromPage ? () => onCreateTaskFromPage(currentPage) : undefined}
+          onUpdate={onUpdateTask}
+          onDelete={onDeleteTask}
+          onAddSubtask={onAddSubtask}
+          onUpdateSubtask={onUpdateSubtask}
+          onDeleteSubtask={onDeleteSubtask}
+        />
+      </div>
     </div>
+  );
+}
+
+function LinkedTasksPanel({
+  tasks,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onAddSubtask,
+  onUpdateSubtask,
+  onDeleteSubtask,
+}: {
+  tasks: WeeklyTask[];
+  onCreate?: () => void;
+  onUpdate?: (id: string, updates: Partial<WeeklyTask>) => void;
+  onDelete?: (id: string) => void;
+  onAddSubtask?: (taskId: string, title: string) => void;
+  onUpdateSubtask?: (id: string, updates: Partial<TaskPendingReason>) => void;
+  onDeleteSubtask?: (id: string) => void;
+}) {
+  const [editingTask, setEditingTask] = useState<WeeklyTask | null>(null);
+
+  return (
+    <section className="border-t border-border/60 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <ListChecks className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold">Tarefas desta anotação</h2>
+            <Badge variant="secondary" className="rounded-full">{tasks.length}</Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">Acompanhe e ajuste a execução sem sair da anotação.</p>
+        </div>
+        {onCreate && <Button size="sm" className="h-10 w-full gap-2 sm:w-auto" onClick={onCreate}><Plus className="h-4 w-4" />Nova tarefa</Button>}
+      </div>
+
+      {tasks.length === 0 ? (
+        <div className="mt-4 border border-dashed border-border/70 px-4 py-6 text-center text-sm text-muted-foreground">
+          Nenhuma tarefa vinculada a esta anotação.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {tasks.map((task) => (
+            <LinkedTaskRow
+              key={task.id}
+              task={task}
+              onToggle={() => onUpdate?.(task.id, { status: task.status === "completed" ? "pending" : "completed" })}
+              onEdit={() => setEditingTask(task)}
+              onDelete={() => {
+                if (window.confirm(`Excluir a tarefa "${task.title}"?`)) onDelete?.(task.id);
+              }}
+              onAddSubtask={onAddSubtask}
+              onUpdateSubtask={onUpdateSubtask}
+              onDeleteSubtask={onDeleteSubtask}
+            />
+          ))}
+        </div>
+      )}
+
+      <TaskEditDialog
+        task={editingTask}
+        open={!!editingTask}
+        onOpenChange={(open) => !open && setEditingTask(null)}
+        onSave={(updates) => {
+          if (!editingTask) return;
+          onUpdate?.(editingTask.id, updates);
+          setEditingTask(null);
+        }}
+      />
+    </section>
+  );
+}
+
+function LinkedTaskRow({
+  task,
+  onToggle,
+  onEdit,
+  onDelete,
+  onAddSubtask,
+  onUpdateSubtask,
+  onDeleteSubtask,
+}: {
+  task: WeeklyTask;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddSubtask?: (taskId: string, title: string) => void;
+  onUpdateSubtask?: (id: string, updates: Partial<TaskPendingReason>) => void;
+  onDeleteSubtask?: (id: string) => void;
+}) {
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const submitSubtask = () => {
+    const title = subtaskTitle.trim();
+    if (!title || !onAddSubtask) return;
+    onAddSubtask(task.id, title);
+    setSubtaskTitle("");
+  };
+
+  return (
+    <article className="rounded-md border border-border/60 bg-card/45 p-3">
+      <div className="flex items-start gap-3">
+        <button type="button" onClick={onToggle} className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded border border-border/70 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary" title={task.status === "completed" ? "Reabrir tarefa" : "Concluir tarefa"}>
+          {task.status === "completed" ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Check className="h-4 w-4" />}
+        </button>
+        <div className="min-w-0 flex-1">
+          <h3 className={cn("break-words text-sm font-semibold", task.status === "completed" && "text-muted-foreground line-through")}>{task.title}</h3>
+          <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span>{format(parseISO(task.task_date), "dd/MM/yyyy")}</span>
+            <span>{task.priority === "high" ? "Alta" : task.priority === "low" ? "Baixa" : "Média"}</span>
+            {task.assignee && <span>{task.assignee}</span>}
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onEdit} title="Editar tarefa"><Pencil className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir tarefa"><Trash2 className="h-4 w-4" /></Button>
+      </div>
+
+      <div className="ml-0 mt-3 border-t border-border/50 pt-3 sm:ml-12">
+        {task.pending_reasons.length > 0 && (
+          <div className="mb-2 space-y-1">
+            {task.pending_reasons.map((subtask) => (
+              <div key={subtask.id} className="flex min-h-9 items-center gap-2 text-sm">
+                <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted" onClick={() => onUpdateSubtask?.(subtask.id, { completed_at: subtask.completed_at ? null : new Date().toISOString() })} title={subtask.completed_at ? "Reabrir subtarefa" : "Concluir subtarefa"}>
+                  {subtask.completed_at ? <CheckCircle2 className="h-4 w-4 text-success" /> : <Check className="h-3.5 w-3.5" />}
+                </button>
+                <span className={cn("min-w-0 flex-1 break-words", subtask.completed_at && "text-muted-foreground line-through")}>{subtask.reason}</span>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteSubtask?.(subtask.id)} title="Excluir subtarefa"><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+            ))}
+          </div>
+        )}
+        {onAddSubtask && (
+          <div className="flex gap-2">
+            <Input value={subtaskTitle} onChange={(event) => setSubtaskTitle(event.target.value)} onKeyDown={(event) => event.key === "Enter" && submitSubtask()} placeholder="Adicionar subtarefa" className="h-9" />
+            <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={submitSubtask} disabled={!subtaskTitle.trim()} title="Adicionar subtarefa"><Plus className="h-4 w-4" /></Button>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function TaskEditDialog({ task, open, onOpenChange, onSave }: { task: WeeklyTask | null; open: boolean; onOpenChange: (open: boolean) => void; onSave: (updates: Partial<WeeklyTask>) => void }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [taskDate, setTaskDate] = useState("");
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [assignee, setAssignee] = useState("");
+
+  useEffect(() => {
+    if (!task) return;
+    setTitle(task.title);
+    setDescription(task.description || "");
+    setTaskDate(task.task_date);
+    setPriority(task.priority);
+    setAssignee(task.assignee || "");
+  }, [task]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100svh-2rem)] w-[calc(100vw-1.5rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader><DialogTitle>Editar tarefa</DialogTitle><DialogDescription>As alterações também aparecem na tela de tarefas.</DialogDescription></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2"><Label htmlFor="linked-task-title">Título</Label><Input id="linked-task-title" value={title} onChange={(event) => setTitle(event.target.value)} /></div>
+          <div className="space-y-2"><Label htmlFor="linked-task-description">Descrição</Label><Textarea id="linked-task-description" value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-20" /></div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2"><Label htmlFor="linked-task-date">Data</Label><Input id="linked-task-date" type="date" value={taskDate} onChange={(event) => setTaskDate(event.target.value)} /></div>
+            <div className="space-y-2"><Label>Prioridade</Label><Select value={priority} onValueChange={(value) => setPriority(value as Priority)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">Baixa</SelectItem><SelectItem value="medium">Média</SelectItem><SelectItem value="high">Alta</SelectItem></SelectContent></Select></div>
+          </div>
+          <div className="space-y-2"><Label htmlFor="linked-task-assignee">Responsável</Label><Input id="linked-task-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} placeholder="Opcional" /></div>
+        </div>
+        <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button disabled={!title.trim() || !taskDate} onClick={() => onSave({ title: title.trim(), description: description.trim() || null, task_date: taskDate, priority, assignee: assignee.trim() || null })}>Salvar alterações</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

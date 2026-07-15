@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
-import { BarChart3, LogOut, Settings, Sparkles, UserRound } from "lucide-react";
+import { BarChart3, GraduationCap, LogOut, Settings, Sparkles, Trophy, UserRound } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface ProfileMenuProps {
@@ -22,7 +22,7 @@ export function ProfileMenu({ onOpenSettings, mobileNav = false }: ProfileMenuPr
   const navigate = useNavigate();
   const location = useLocation();
   const initials = user?.email?.slice(0, 2).toUpperCase() || "?";
-  const profileSectionActive = ["/dashboard", "/configuracoes", "/planos"].includes(location.pathname);
+  const profileSectionActive = ["/dashboard", "/configuracoes", "/planos", "/conquistas", "/curso"].includes(location.pathname);
 
   return (
     <DropdownMenu>
@@ -66,6 +66,14 @@ export function ProfileMenu({ onOpenSettings, mobileNav = false }: ProfileMenuPr
         <DropdownMenuItem onClick={onOpenSettings}>
           <Settings className="mr-2 h-4 w-4" />
           Configurações
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/conquistas")}>
+          <Trophy className="mr-2 h-4 w-4" />
+          Níveis e conquistas
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/curso")}>
+          <GraduationCap className="mr-2 h-4 w-4" />
+          Aprenda a usar
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/planos")}>
           <Sparkles className="mr-2 h-4 w-4 text-primary" />

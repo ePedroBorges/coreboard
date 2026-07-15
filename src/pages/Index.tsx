@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { BookOpen, CheckCircle2, Clock3, Link2, Linkedin, ListChecks, Loader2, MoveRight, NotebookPen, Pencil, Pin, Plus, Search, Star, Tag, Trash2 } from "lucide-react";
+import { BookOpen, CheckCircle2, Clock3, Folder, FolderPlus, Link2, Linkedin, ListChecks, Loader2, MoveRight, NotebookPen, Pencil, Pin, Plus, Search, Star, Tag, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages, useAllPages } from "@/hooks/usePages";
@@ -44,6 +44,7 @@ import {
 import { cn } from "@/lib/utils";
 import { calculateGamificationStats } from "@/lib/gamification";
 import { toast } from "sonner";
+import { ContextHelp } from "@/components/ui/context-help";
 
 const defaultDiaryName = () => {
   const monthName = format(new Date(), "MMMM", { locale: ptBR });
@@ -650,8 +651,8 @@ const Index = () => {
                 notebookTitleById={notebookTitleById}
                 onFilterChange={setNotesFilter}
                 onCreateNote={(notebookId) => openQuickCapture(notebookId)}
-                onCreateNotebook={async (title) => {
-                  const notebook = await notebooks.createNotebook.mutateAsync(title);
+                onCreateNotebook={async (title, parentId) => {
+                  const notebook = await notebooks.createNotebook.mutateAsync({ title, parentId });
                   setNotesFilter(notebook.id);
                   return notebook;
                 }}
@@ -678,7 +679,6 @@ const Index = () => {
                 onSettingsImported={userSettings.updateSettings}
                 onOpenOnboarding={() => setOnboardingOpen(true)}
                 onGoToday={handleSelectToday}
-                gamification={gamification}
                 notifications={notifications}
               />
             ) : selectedPage ? (
@@ -704,6 +704,12 @@ const Index = () => {
                 focusMode={focusMode}
                 onExitFocus={() => setFocusMode(false)}
                 onCreateTaskFromPage={createTaskFromPage}
+                linkedTasks={normalizedTasks.filter((task) => task.source_note_id === selectedPage.id)}
+                onUpdateTask={(id, updates) => tasks.updateTask.mutate({ id, ...updates })}
+                onDeleteTask={(id) => tasks.deleteTask.mutate(id)}
+                onAddSubtask={(taskId, title) => tasks.addPendingReason.mutate({ taskId, reason: title })}
+                onUpdateSubtask={(id, updates) => tasks.updatePendingReason.mutate({ id, ...updates })}
+                onDeleteSubtask={(id) => tasks.deletePendingReason.mutate(id)}
                 onDelete={() => {
                   const pageId = selectedPage.id;
                   setSelectedPageId(null);
@@ -929,7 +935,7 @@ function NotesLibrary({
   notebookTitleById: Map<string, string>;
   onFilterChange: (filter: NotesFilter) => void;
   onCreateNote: (notebookId?: string) => void;
-  onCreateNotebook: (title: string) => Promise<Notebook>;
+  onCreateNotebook: (title: string, parentId?: string | null) => Promise<Notebook>;
   onRenameNotebook: (id: string, title: string) => void;
   onDeleteNotebook: (id: string, targetNotebookId?: string) => void;
   pinnedNotebookIds: string[];
@@ -941,6 +947,7 @@ function NotesLibrary({
 }) {
   const [newNotebookName, setNewNotebookName] = useState("");
   const [showNotebookCreator, setShowNotebookCreator] = useState(false);
+  const [subfolderParentId, setSubfolderParentId] = useState<string | null>(null);
   const [creatingNotebook, setCreatingNotebook] = useState(false);
   const [renameNotebookId, setRenameNotebookId] = useState<string | null>(null);
   const [renameNotebookName, setRenameNotebookName] = useState("");
@@ -1006,9 +1013,10 @@ function NotesLibrary({
     }
     setCreatingNotebook(true);
     try {
-      await onCreateNotebook(title);
+      await onCreateNotebook(title, subfolderParentId);
       setNewNotebookName("");
       setShowNotebookCreator(false);
+      setSubfolderParentId(null);
     } finally {
       setCreatingNotebook(false);
     }
@@ -1053,7 +1061,7 @@ function NotesLibrary({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Anotações</h1>
+          <div className="flex items-center gap-1"><h1 className="text-2xl font-semibold tracking-tight">Cadernos</h1><ContextHelp text="Use cadernos para áreas da sua vida ou trabalho. Dentro deles, crie subpastas para projetos e assuntos específicos." /></div>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
             Guarde textos, links, checklists e ideias em cadernos organizados.
           </p>
@@ -1063,10 +1071,15 @@ function NotesLibrary({
             <Plus className="h-4 w-4" />
             Nova anotação
           </Button>
-          <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => setShowNotebookCreator(true)} disabled={creatingNotebook}>
+          <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => { setSubfolderParentId(null); setShowNotebookCreator(true); }} disabled={creatingNotebook}>
             <BookOpen className="h-4 w-4" />
             Novo caderno
           </Button>
+          {isNotebookSelected && (
+            <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => { setSubfolderParentId(selectedNotebook?.parent_id ? selectedNotebook.parent_id : selectedNotebook?.id || null); setShowNotebookCreator(true); }}>
+              <FolderPlus className="h-4 w-4" /> Nova subpasta
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1079,7 +1092,7 @@ function NotesLibrary({
               if (event.key === "Enter") handleCreateNotebook();
               if (event.key === "Escape") setShowNotebookCreator(false);
             }}
-            placeholder="Nome do caderno"
+            placeholder={subfolderParentId ? "Nome da subpasta" : "Nome do caderno"}
             className="h-10"
             autoFocus
           />
@@ -1121,8 +1134,8 @@ function NotesLibrary({
             <MobileNotebookFilterButton
               key={notebook.id}
               active={activeFilter === notebook.id}
-              icon={NotebookPen}
-              label={notebook.title}
+              icon={notebook.parent_id ? Folder : NotebookPen}
+              label={notebook.parent_id ? `↳ ${notebook.title}` : notebook.title}
               count={(notebookCounts.get(notebook.id) || 0) + (taskCounts.get(notebook.id) || 0)}
               pinned={pinnedNotebookIds.includes(notebook.id)}
               onClick={() => onFilterChange(notebook.id)}
@@ -1145,8 +1158,8 @@ function NotesLibrary({
               <NotebookFilterButton
                 key={notebook.id}
                 active={activeFilter === notebook.id}
-                icon={NotebookPen}
-                label={notebook.title}
+                icon={notebook.parent_id ? Folder : NotebookPen}
+                label={notebook.parent_id ? `↳ ${notebook.title}` : notebook.title}
                 count={(notebookCounts.get(notebook.id) || 0) + (taskCounts.get(notebook.id) || 0)}
                 onClick={() => onFilterChange(notebook.id)}
                 pinned={pinnedNotebookIds.includes(notebook.id)}
@@ -1185,10 +1198,6 @@ function NotesLibrary({
                   : `${sortedNotes.length} ${sortedNotes.length === 1 ? "anota??o" : "anota??es"}`}
               </p>
             </div>
-            <Button variant="outline" className="h-10 w-full gap-2 sm:h-9 sm:w-auto" onClick={() => onCreateNote(activeNotebookId)}>
-              <Plus className="h-4 w-4" />
-              Nova anotação
-            </Button>
           </div>
 
           {isNotebookSelected && (
@@ -1213,10 +1222,6 @@ function NotesLibrary({
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {isNotebookSelected ? "Crie uma anota??o para come?ar a organizar este tema." : "Escreva uma ideia, salve um link ou crie um checklist."}
               </p>
-              <Button className="mt-4 h-10 gap-2" onClick={() => onCreateNote(activeNotebookId)}>
-                <Plus className="h-4 w-4" />
-                Nova anotação
-              </Button>
             </div>
           ) : (
             <div className="grid gap-2 md:gap-3 lg:grid-cols-2">

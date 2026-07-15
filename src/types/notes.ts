@@ -6,6 +6,7 @@ export interface Notebook {
   position: number;
   created_at: string;
   updated_at: string;
+  parent_id?: string | null;
   page_count?: number;
 }
 

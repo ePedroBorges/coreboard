@@ -17,6 +17,8 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const CheckoutReturn = lazy(() => import("./pages/CheckoutReturn"));
+const Achievements = lazy(() => import("./pages/Achievements"));
+const Course = lazy(() => import("./pages/Course"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const RouteLoader = () => (
@@ -84,6 +86,8 @@ const App = () => {
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/conquistas" element={<Achievements />} />
+                  <Route path="/curso" element={<Course />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
