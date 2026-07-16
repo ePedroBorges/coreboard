@@ -73,7 +73,7 @@
   }
 
   /* Premium theme variants — override accent tokens on top of base dark/light */
-  .dark.theme-midnight {
+  .dark.scheme-midnight {
     --primary: 265 85% 65%;
     --primary-foreground: 220 18% 7%;
     --ring: 265 85% 65%;
@@ -83,18 +83,18 @@
     --sidebar-ring: 265 85% 65%;
   }
 
-  .dark.theme-ocean { --primary: 215 92% 62%; --ring: 215 92% 62%; --accent: 190 82% 52%; --glow: 215 92% 62%; --sidebar-primary: 215 92% 62%; --sidebar-ring: 215 92% 62%; }
-  .light.theme-ocean { --primary: 215 85% 48%; --ring: 215 85% 48%; --accent: 190 72% 42%; --glow: 215 85% 52%; }
-  .dark.theme-focus { --primary: 145 68% 50%; --ring: 145 68% 50%; --accent: 180 65% 44%; --glow: 145 68% 50%; --sidebar-primary: 145 68% 50%; --sidebar-ring: 145 68% 50%; }
-  .light.theme-focus { --primary: 145 72% 34%; --ring: 145 72% 34%; --accent: 180 62% 36%; --glow: 145 72% 40%; }
-  .light.theme-midnight {
+  .dark.scheme-ocean { --primary: 215 92% 62%; --ring: 215 92% 62%; --accent: 190 82% 52%; --glow: 215 92% 62%; --sidebar-primary: 215 92% 62%; --sidebar-ring: 215 92% 62%; }
+  .light.scheme-ocean { --primary: 215 85% 48%; --ring: 215 85% 48%; --accent: 190 72% 42%; --glow: 215 85% 52%; }
+  .dark.scheme-focus { --primary: 145 68% 50%; --ring: 145 68% 50%; --accent: 180 65% 44%; --glow: 145 68% 50%; --sidebar-primary: 145 68% 50%; --sidebar-ring: 145 68% 50%; }
+  .light.scheme-focus { --primary: 145 72% 34%; --ring: 145 72% 34%; --accent: 180 62% 36%; --glow: 145 72% 40%; }
+  .light.scheme-midnight {
     --primary: 265 75% 50%;
     --ring: 265 75% 50%;
     --accent: 295 70% 50%;
     --glow: 275 75% 55%;
   }
 
-  .dark.theme-sunset {
+  .dark.scheme-sunset {
     --primary: 22 92% 58%;
     --primary-foreground: 220 18% 7%;
     --ring: 22 92% 58%;
@@ -103,14 +103,14 @@
     --sidebar-primary: 22 92% 58%;
     --sidebar-ring: 22 92% 58%;
   }
-  .light.theme-sunset {
+  .light.scheme-sunset {
     --primary: 22 92% 48%;
     --ring: 22 92% 48%;
     --accent: 350 82% 52%;
     --glow: 22 92% 50%;
   }
 
-  .dark.theme-forest {
+  .dark.scheme-forest {
     --primary: 158 70% 48%;
     --primary-foreground: 220 18% 7%;
     --ring: 158 70% 48%;
@@ -119,14 +119,14 @@
     --sidebar-primary: 158 70% 48%;
     --sidebar-ring: 158 70% 48%;
   }
-  .light.theme-forest {
+  .light.scheme-forest {
     --primary: 158 70% 38%;
     --ring: 158 70% 38%;
     --accent: 175 70% 38%;
     --glow: 158 70% 42%;
   }
 
-  .dark.theme-mono {
+  .dark.scheme-mono {
     --primary: 0 0% 92%;
     --primary-foreground: 220 18% 7%;
     --ring: 0 0% 92%;
@@ -135,11 +135,36 @@
     --sidebar-primary: 0 0% 92%;
     --sidebar-ring: 0 0% 92%;
   }
-  .light.theme-mono {
+  .light.scheme-mono {
     --primary: 220 20% 15%;
     --ring: 220 20% 15%;
     --accent: 220 10% 40%;
     --glow: 220 20% 25%;
+  }
+
+  .dark.scheme-luminous {
+    --primary: 188 95% 58%;
+    --primary-foreground: 218 64% 5%;
+    --ring: 188 95% 58%;
+    --accent: 210 100% 72%;
+    --glow: 188 100% 70%;
+    --sidebar-primary: 188 95% 58%;
+    --sidebar-ring: 188 95% 58%;
+  }
+  .light.scheme-luminous {
+    --primary: 192 95% 38%;
+    --ring: 192 95% 38%;
+    --accent: 212 88% 48%;
+    --glow: 192 95% 48%;
+  }
+
+  .scheme-rgb {
+    --primary: 330 85% 58%;
+    --ring: 330 85% 58%;
+    --accent: 155 76% 48%;
+    --glow: 275 92% 62%;
+    --sidebar-primary: 330 85% 58%;
+    --sidebar-ring: 330 85% 58%;
   }
 }
 
@@ -217,4 +242,230 @@
   .safe-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
+}
+
+/* Visual themes are intentionally separate from color schemes. They change the
+   product's shape, typography, density and surface treatment. */
+html.visual-journal {
+  --radius: 0.125rem;
+}
+.visual-journal body {
+  font-family: Georgia, "Times New Roman", serif;
+}
+.visual-journal :where(button, input, textarea, select, [role="tab"]) {
+  font-family: Inter, system-ui, sans-serif;
+}
+.visual-journal main :where(section, article) {
+  border-left-width: 3px;
+  border-left-color: hsl(var(--primary) / 0.55);
+}
+.visual-journal :where(h1, h2, h3) {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+}
+
+html.visual-compact {
+  --radius: 0.125rem;
+}
+.visual-compact main :where(section, article) {
+  box-shadow: none !important;
+}
+.visual-compact main :where(.p-4, .sm\:p-4, .sm\:p-5) {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+.visual-compact :where([class*="text-xs"], time, label) {
+  font-family: "JetBrains Mono", monospace;
+}
+
+.dark.visual-anime,
+.light.visual-anime {
+  --radius: 0.125rem;
+  --primary: 320 100% 65%;
+  --ring: 320 100% 65%;
+  --accent: 188 100% 55%;
+  --glow: 320 100% 65%;
+}
+.visual-anime :where(.rounded-lg, .rounded-md, .rounded-sm, .rounded-xl) {
+  border-radius: 2px;
+}
+.visual-anime main :where(section, article) {
+  border-width: 1px 2px 2px 1px;
+  box-shadow: 5px 5px 0 hsl(var(--primary) / 0.16);
+}
+.visual-anime :where(h1, h2) {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+}
+.visual-anime button:where(:hover, [aria-pressed="true"], [data-state="active"]) {
+  box-shadow: 3px 3px 0 hsl(var(--accent) / 0.25);
+}
+
+.dark.visual-comic,
+.light.visual-comic {
+  --radius: 0.5rem;
+  --primary: 12 100% 60%;
+  --ring: 12 100% 60%;
+  --accent: 48 100% 52%;
+  --glow: 12 100% 60%;
+}
+.visual-comic main :where(section, article) {
+  border-width: 2px;
+  border-color: hsl(var(--foreground) / 0.72);
+  box-shadow: 4px 4px 0 hsl(var(--foreground) / 0.18);
+}
+.visual-comic :where(button, [role="tab"], input, textarea) {
+  border-width: 2px;
+}
+.visual-comic :where(h1, h2, h3) {
+  font-weight: 700;
+}
+
+.dark.visual-noir-gold,
+.light.visual-noir-gold {
+  --background: 0 0% 2%;
+  --foreground: 42 35% 92%;
+  --card: 42 22% 6%;
+  --card-foreground: 42 35% 92%;
+  --popover: 42 22% 5%;
+  --popover-foreground: 42 35% 92%;
+  --primary: 45 68% 52%;
+  --primary-foreground: 0 0% 3%;
+  --secondary: 42 18% 12%;
+  --muted: 42 14% 10%;
+  --muted-foreground: 42 16% 62%;
+  --border: 45 32% 24%;
+  --input: 45 32% 24%;
+  --ring: 45 68% 52%;
+  --sidebar-background: 0 0% 3%;
+  --sidebar-border: 45 32% 20%;
+  --sidebar-primary: 45 68% 52%;
+  --glow: 45 68% 52%;
+  --radius: 0.125rem;
+}
+.visual-noir-gold :where(h1, h2, h3) {
+  font-family: Georgia, "Times New Roman", serif;
+}
+.visual-noir-gold main :where(section, article) {
+  border-style: double;
+  border-width: 3px;
+  box-shadow: 0 10px 28px hsl(0 0% 0% / 0.35);
+}
+
+.dark.visual-ivory-gold,
+.light.visual-ivory-gold {
+  --background: 0 0% 100%;
+  --foreground: 36 18% 12%;
+  --card: 45 22% 97%;
+  --card-foreground: 36 18% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 36 18% 12%;
+  --primary: 43 72% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 44 24% 92%;
+  --muted: 44 18% 95%;
+  --muted-foreground: 36 10% 42%;
+  --border: 43 28% 78%;
+  --input: 43 28% 78%;
+  --ring: 43 72% 38%;
+  --sidebar-background: 45 22% 97%;
+  --sidebar-foreground: 36 18% 12%;
+  --sidebar-border: 43 28% 78%;
+  --sidebar-primary: 43 72% 38%;
+  --glow: 43 72% 44%;
+  --radius: 0.125rem;
+}
+.visual-ivory-gold :where(h1, h2, h3) {
+  font-family: Georgia, "Times New Roman", serif;
+}
+.visual-ivory-gold main :where(section, article) {
+  box-shadow: 0 8px 24px hsl(43 52% 28% / 0.1);
+}
+
+.dark.visual-blockcraft,
+.light.visual-blockcraft {
+  --background: 126 20% 8%;
+  --foreground: 45 28% 92%;
+  --card: 118 18% 14%;
+  --card-foreground: 45 28% 92%;
+  --popover: 118 18% 12%;
+  --popover-foreground: 45 28% 92%;
+  --primary: 96 44% 51%;
+  --primary-foreground: 126 20% 8%;
+  --secondary: 116 15% 22%;
+  --muted: 116 14% 18%;
+  --muted-foreground: 84 12% 67%;
+  --accent: 34 65% 52%;
+  --border: 115 18% 28%;
+  --input: 115 18% 28%;
+  --ring: 96 44% 51%;
+  --sidebar-background: 126 22% 7%;
+  --sidebar-foreground: 45 28% 92%;
+  --sidebar-border: 115 18% 25%;
+  --sidebar-primary: 96 44% 51%;
+  --glow: 96 44% 51%;
+  --radius: 0;
+}
+.visual-blockcraft body,
+.visual-blockcraft :where(button, input, textarea, select) {
+  font-family: "JetBrains Mono", monospace;
+}
+.visual-blockcraft main :where(section, article),
+.visual-blockcraft :where(button, input, textarea, [role="tab"]) {
+  border-width: 2px;
+  box-shadow: 4px 4px 0 hsl(126 28% 2% / 0.7);
+}
+
+.enhanced-effects.scheme-luminous main :where(section, article),
+.enhanced-effects.scheme-luminous :where(button, [role="tab"])[data-state="active"] {
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2), 0 0 24px hsl(var(--glow) / 0.12);
+}
+.enhanced-effects.scheme-rgb {
+  animation: vista-rgb-shift 12s linear infinite;
+}
+.enhanced-effects.scheme-rgb main :where(section, article) {
+  box-shadow: 0 0 22px hsl(var(--glow) / 0.1);
+}
+
+@keyframes vista-rgb-shift {
+  0%, 100% { --primary: 330 85% 58%; --ring: 330 85% 58%; --glow: 275 92% 62%; }
+  33% { --primary: 188 92% 48%; --ring: 188 92% 48%; --glow: 188 92% 58%; }
+  66% { --primary: 145 72% 46%; --ring: 145 72% 46%; --glow: 145 72% 56%; }
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+.theme-preview {
+  display: grid;
+  grid-template-columns: 1.15rem 1fr;
+  width: 5.5rem;
+  height: 4.5rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--preview-accent) 45%, transparent);
+  border-radius: 4px;
+  background: var(--preview-background);
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--preview-accent) 20%, transparent);
+}
+.theme-preview-sidebar { background: var(--preview-surface); border-right: 1px solid var(--preview-accent); }
+.theme-preview-content { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.55rem 0.45rem; }
+.theme-preview-title { width: 68%; height: 0.28rem; background: var(--preview-accent); }
+.theme-preview-line { width: 88%; height: 0.18rem; background: color-mix(in srgb, var(--preview-accent) 48%, transparent); }
+.theme-preview-card { flex: 1; border: 1px solid color-mix(in srgb, var(--preview-accent) 62%, transparent); background: var(--preview-surface); }
+.theme-preview-journal { font-family: Georgia, serif; border-left-width: 3px; }
+.theme-preview-compact { border-radius: 1px; box-shadow: none; }
+.theme-preview-anime { border-radius: 1px; box-shadow: 3px 3px 0 #22d3ee; }
+.theme-preview-comic { border-width: 2px; box-shadow: 3px 3px 0 #171717; }
+.theme-preview-noir-gold { border-style: double; border-width: 3px; }
+.theme-preview-ivory-gold { box-shadow: 0 4px 9px #b58a1933; }
+.theme-preview-blockcraft { border-radius: 0; border-width: 2px; box-shadow: 3px 3px 0 #07120a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .enhanced-effects.scheme-rgb { animation: none; }
 }

@@ -1,67 +1,91 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from "react";
-
-type Mode = "dark" | "light";
-export type ThemeVariant = "default" | "ocean" | "focus" | "midnight" | "sunset" | "forest" | "mono";
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import {
+  COLOR_SCHEMES,
+  ColorScheme,
+  Mode,
+  VISUAL_THEMES,
+  VisualTheme,
+} from "@/lib/appearance";
 
 const MODE_STORAGE_KEY = "vista_tasks_theme";
-const VARIANT_STORAGE_KEY = "vista_tasks_theme_variant";
+const SCHEME_STORAGE_KEY = "vista_tasks_theme_variant";
+const VISUAL_THEME_STORAGE_KEY = "vista_tasks_visual_theme";
+const REDUCED_MOTION_STORAGE_KEY = "vista_tasks_reduced_motion";
+const ENHANCED_EFFECTS_STORAGE_KEY = "vista_tasks_enhanced_effects";
 const LEGACY_THEME_STORAGE_KEY = "smartnotes-theme";
-
-const VARIANTS: ThemeVariant[] = ["default", "ocean", "focus", "midnight", "sunset", "forest", "mono"];
-
-export const PRO_THEME_VARIANTS: ThemeVariant[] = ["midnight", "sunset", "forest", "mono"];
-
-export const THEME_VARIANT_META: Record<
-  ThemeVariant,
-  { label: string; description: string; swatch: string; pro: boolean }
-> = {
-  default: { label: "AnchorLab", description: "Ciano, marinho e violeta", swatch: "#00aaff", pro: false },
-  ocean: { label: "Oceano", description: "Azul sereno para rotinas longas", swatch: "#2563eb", pro: false },
-  focus: { label: "Foco", description: "Verde equilibrado e discreto", swatch: "#22c55e", pro: false },
-  midnight: { label: "Studio Violet", description: "Violeta profundo e tecnológico", swatch: "#8b5cf6", pro: true },
-  sunset: { label: "Pulse Coral", description: "Coral energético e equilibrado", swatch: "#f97360", pro: true },
-  forest: { label: "Signal Mint", description: "Verde nítido e concentrado", swatch: "#10b981", pro: true },
-  mono: { label: "Graphite", description: "Contraste neutro e minimalista", swatch: "#a1a1aa", pro: true },
-};
 
 interface ThemeContextType {
   theme: Mode;
+  setTheme: (mode: Mode) => void;
   toggleTheme: () => void;
-  variant: ThemeVariant;
-  setVariant: (v: ThemeVariant) => void;
+  colorScheme: ColorScheme;
+  setColorScheme: (scheme: ColorScheme) => void;
+  visualTheme: VisualTheme;
+  setVisualTheme: (theme: VisualTheme) => void;
+  reducedMotion: boolean;
+  setReducedMotion: (reduced: boolean) => void;
+  enhancedEffects: boolean;
+  setEnhancedEffects: (enabled: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+function readBoolean(key: string, fallback: boolean) {
+  const value = localStorage.getItem(key);
+  return value === null ? fallback : value === "true";
+}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Mode>(() => {
     const stored = localStorage.getItem(MODE_STORAGE_KEY) || localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
     return stored === "light" || stored === "dark" ? stored : "dark";
   });
-  const [variant, setVariantState] = useState<ThemeVariant>(() => {
-    const stored = localStorage.getItem(VARIANT_STORAGE_KEY);
-    return VARIANTS.includes(stored as ThemeVariant) ? (stored as ThemeVariant) : "default";
+  const [colorScheme, setColorScheme] = useState<ColorScheme>(() => {
+    const stored = localStorage.getItem(SCHEME_STORAGE_KEY);
+    return COLOR_SCHEMES.includes(stored as ColorScheme) ? (stored as ColorScheme) : "default";
   });
+  const [visualTheme, setVisualTheme] = useState<VisualTheme>(() => {
+    const stored = localStorage.getItem(VISUAL_THEME_STORAGE_KEY);
+    return VISUAL_THEMES.includes(stored as VisualTheme) ? (stored as VisualTheme) : "studio";
+  });
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    readBoolean(REDUCED_MOTION_STORAGE_KEY, window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false),
+  );
+  const [enhancedEffects, setEnhancedEffects] = useState(() => readBoolean(ENHANCED_EFFECTS_STORAGE_KEY, true));
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
-    VARIANTS.forEach((v) => root.classList.remove(`theme-${v}`));
-    root.classList.add(`theme-${variant}`);
+    COLOR_SCHEMES.forEach((scheme) => root.classList.remove(`scheme-${scheme}`, `theme-${scheme}`));
+    VISUAL_THEMES.forEach((item) => root.classList.remove(`visual-${item}`));
+    root.classList.add(`scheme-${colorScheme}`, `visual-${visualTheme}`);
+    root.classList.toggle("reduce-motion", reducedMotion);
+    root.classList.toggle("enhanced-effects", enhancedEffects);
+
     localStorage.setItem(MODE_STORAGE_KEY, theme);
-    localStorage.setItem(VARIANT_STORAGE_KEY, variant);
+    localStorage.setItem(SCHEME_STORAGE_KEY, colorScheme);
+    localStorage.setItem(VISUAL_THEME_STORAGE_KEY, visualTheme);
+    localStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(reducedMotion));
+    localStorage.setItem(ENHANCED_EFFECTS_STORAGE_KEY, String(enhancedEffects));
     localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-  }, [theme, variant]);
+  }, [colorScheme, enhancedEffects, reducedMotion, theme, visualTheme]);
 
   const value = useMemo(
     () => ({
       theme,
-      toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
-      variant,
-      setVariant: setVariantState,
+      setTheme,
+      toggleTheme: () => setTheme((current) => (current === "dark" ? "light" : "dark")),
+      colorScheme,
+      setColorScheme,
+      visualTheme,
+      setVisualTheme,
+      reducedMotion,
+      setReducedMotion,
+      enhancedEffects,
+      setEnhancedEffects,
     }),
-    [theme, variant],
+    [colorScheme, enhancedEffects, reducedMotion, theme, visualTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

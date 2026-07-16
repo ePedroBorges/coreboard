@@ -10,6 +10,7 @@ import {
   Download,
   FileJson,
   LifeBuoy,
+  Layers3,
   Loader2,
   LogOut,
   Lock,
@@ -19,12 +20,14 @@ import {
   Paperclip,
   RotateCcw,
   Settings,
+  Shapes,
   ShieldCheck,
   Sparkles,
   Sun,
   Trash2,
   Upload,
   UserRound,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -45,7 +48,8 @@ import { Label } from "@/components/ui/label";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { NotificationControls } from "@/hooks/useNotifications";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useTheme, PRO_THEME_VARIANTS, THEME_VARIANT_META, ThemeVariant } from "@/hooks/useTheme";
+import { useTheme } from "@/hooks/useTheme";
+import { COLOR_SCHEME_META, ColorScheme, VISUAL_THEME_META, VisualTheme } from "@/lib/appearance";
 import { useAuth } from "@/hooks/useAuth";
 import { UserSettings } from "@/hooks/useUserSettings";
 import { Notebook, Page } from "@/types/notes";
@@ -102,7 +106,18 @@ export function SettingsView({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { signOut, resetPassword } = useAuth();
-  const { theme, toggleTheme, variant, setVariant } = useTheme();
+  const {
+    theme,
+    toggleTheme,
+    colorScheme,
+    setColorScheme,
+    visualTheme,
+    setVisualTheme,
+    reducedMotion,
+    setReducedMotion,
+    enhancedEffects,
+    setEnhancedEffects,
+  } = useTheme();
   const { isPro, loading: subscriptionLoading, plan, subscription, isLifetime } = useSubscription();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -228,15 +243,35 @@ export function SettingsView({
     else toast.success("Enviamos um link de redefinição para seu email.");
   };
 
-  const handleSetVariant = (v: ThemeVariant) => {
-    const meta = THEME_VARIANT_META[v];
+  const handleSetColorScheme = (scheme: ColorScheme) => {
+    const meta = COLOR_SCHEME_META[scheme];
     if (meta.pro && !isPro) {
-      toast.error("Tema Pro. Assine para desbloquear.");
+      toast.error("Esquema Pro. Assine para desbloquear.");
       navigate("/planos");
       return;
     }
-    setVariant(v);
-    toast.success(`Tema alterado para ${meta.label}.`);
+    setColorScheme(scheme);
+    toast.success(`Esquema alterado para ${meta.label}.`);
+  };
+
+  const handleSetVisualTheme = (selectedTheme: VisualTheme) => {
+    const meta = VISUAL_THEME_META[selectedTheme];
+    if (meta.pro && !isPro) {
+      toast.error("Tema visual Pro. Assine para desbloquear.");
+      navigate("/planos");
+      return;
+    }
+    setVisualTheme(selectedTheme);
+    toast.success(`Tema visual alterado para ${meta.label}.`);
+  };
+
+  const handleEnhancedEffectsChange = (enabled: boolean) => {
+    if (!isPro) {
+      toast.error("Efeitos avançados são um recurso Pro.");
+      navigate("/planos");
+      return;
+    }
+    setEnhancedEffects(enabled);
   };
 
   const handleNotificationChange = async (enabled: boolean) => {
@@ -352,7 +387,8 @@ export function SettingsView({
 
           <SettingsCard title="Recursos Pro" icon={Sparkles}>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <ProFeatureRow icon={Palette} title="Temas premium" description="Quatro paletas exclusivas para personalizar seu espaço de trabalho." active={isPro} />
+              <ProFeatureRow icon={Layers3} title="Temas visuais premium" description="Anime, desenho, ouro e blocos mudam a personalidade completa do app." active={isPro} />
+              <ProFeatureRow icon={Zap} title="Cores e efeitos avançados" description="Esquemas luminosos, RGB dinâmico e realces de profundidade." active={isPro} />
               <ProFeatureRow icon={Bell} title="Lembretes locais" description="Receba alertas no Android para tarefas pendentes com data definida." active={isPro} />
               <ProFeatureRow icon={Paperclip} title="Anexos" description="Adicione imagens e arquivos PDF às suas anotações." active={isPro} />
               <ProFeatureRow icon={Download} title="Exportação em PDF" description="Baixe ou compartilhe anotações em um formato pronto para uso." active={isPro} />
@@ -371,43 +407,100 @@ export function SettingsView({
             </div>
           </SettingsCard>
 
-          <SettingsCard title="Tema de cor" icon={Palette}>
+          <SettingsCard title="Esquemas de cores" icon={Palette}>
             <p className="mb-3 text-sm leading-6 text-muted-foreground">
-              Personalize a cor primária do app. Temas premium são exclusivos do plano Pro.
+              O esquema define as cores de ação e destaque sem mudar a estrutura visual.
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {(Object.keys(THEME_VARIANT_META) as ThemeVariant[]).map((v) => {
-                const meta = THEME_VARIANT_META[v];
+              {(Object.keys(COLOR_SCHEME_META) as ColorScheme[]).map((v) => {
+                const meta = COLOR_SCHEME_META[v];
                 const locked = meta.pro && !isPro;
-                const active = variant === v;
+                const active = colorScheme === v;
                 return (
                   <button
                     key={v}
                     type="button"
-                    onClick={() => handleSetVariant(v)}
+                    onClick={() => handleSetColorScheme(v)}
                     className={cn(
                       "group relative flex flex-col items-start gap-2 rounded-md border p-3 text-left transition-all hover:border-primary/60",
                       active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 bg-background/40",
                     )}
+                    aria-pressed={active}
                   >
                     <div className="flex w-full items-center justify-between">
-                      <span
-                        className="h-6 w-6 rounded-full ring-2 ring-background"
-                        style={{ backgroundColor: meta.swatch }}
-                      />
+                      <span className="flex -space-x-1" aria-hidden="true">
+                        {meta.swatches.map((swatch) => (
+                          <span key={swatch} className="h-6 w-6 rounded-full border-2 border-background" style={{ backgroundColor: swatch }} />
+                        ))}
+                      </span>
                       {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
                       {active && <CheckCircle2 className="h-4 w-4 text-primary" />}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                         {meta.label}
-                    {meta.pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
+                        {meta.pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
                       </div>
                       <p className="mt-0.5 text-xs leading-tight text-muted-foreground">{meta.description}</p>
                     </div>
                   </button>
                 );
               })}
+            </div>
+          </SettingsCard>
+
+          <SettingsCard title="Temas visuais" icon={Shapes}>
+            <p className="mb-3 text-sm leading-6 text-muted-foreground">
+              Temas mudam superfícies, tipografia, contornos, sombras e densidade do aplicativo.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(Object.keys(VISUAL_THEME_META) as VisualTheme[]).map((selectedTheme) => {
+                const meta = VISUAL_THEME_META[selectedTheme];
+                const locked = meta.pro && !isPro;
+                const active = visualTheme === selectedTheme;
+                return (
+                  <button
+                    key={selectedTheme}
+                    type="button"
+                    onClick={() => handleSetVisualTheme(selectedTheme)}
+                    className={cn(
+                      "group grid min-h-28 grid-cols-[5.5rem_1fr] gap-3 rounded-md border p-3 text-left transition-all hover:border-primary/60",
+                      active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 bg-background/40",
+                    )}
+                    aria-pressed={active}
+                  >
+                    <ThemePreview theme={selectedTheme} colors={meta.preview} />
+                    <span className="min-w-0">
+                      <span className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-foreground">
+                        {meta.label}
+                        {meta.pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
+                        {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                        {active && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">{meta.description}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </SettingsCard>
+
+          <SettingsCard title="Conforto e efeitos" icon={Layers3}>
+            <div className="divide-y divide-border/60">
+              <PreferenceToggle
+                title="Reduzir animações"
+                description="Mais conforto visual e menor consumo de recursos. Disponível no plano gratuito."
+                checked={reducedMotion}
+                onCheckedChange={setReducedMotion}
+              />
+              <PreferenceToggle
+                title="Realces luminosos"
+                description="Aumenta profundidade, brilho e movimento nos esquemas compatíveis."
+                checked={enhancedEffects && isPro}
+                onCheckedChange={handleEnhancedEffectsChange}
+                pro
+                locked={!isPro}
+              />
             </div>
           </SettingsCard>
 
@@ -603,6 +696,62 @@ export function SettingsView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function ThemePreview({
+  theme,
+  colors,
+}: {
+  theme: VisualTheme;
+  colors: [string, string, string];
+}) {
+  return (
+    <span
+      className={cn("theme-preview", `theme-preview-${theme}`)}
+      style={{
+        "--preview-background": colors[0],
+        "--preview-surface": colors[1],
+        "--preview-accent": colors[2],
+      } as React.CSSProperties}
+      aria-hidden="true"
+    >
+      <span className="theme-preview-sidebar" />
+      <span className="theme-preview-content">
+        <span className="theme-preview-title" />
+        <span className="theme-preview-line" />
+        <span className="theme-preview-card" />
+      </span>
+    </span>
+  );
+}
+
+function PreferenceToggle({
+  title,
+  description,
+  checked,
+  onCheckedChange,
+  pro = false,
+  locked = false,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  pro?: boolean;
+  locked?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          {pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
+        </div>
+        <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} aria-label={title} />
     </div>
   );
 }

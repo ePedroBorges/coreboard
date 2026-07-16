@@ -13,9 +13,9 @@ GRANT ALL ON public.plan_entitlements TO service_role;
 
 DROP POLICY IF EXISTS "Service role can manage plan entitlements" ON public.plan_entitlements;
 CREATE POLICY "Service role can manage plan entitlements"
-  ON public.plan_entitlements FOR ALL
-  USING (auth.role() = 'service_role')
-  WITH CHECK (auth.role() = 'service_role');
+  ON public.plan_entitlements FOR ALL TO service_role
+  USING (true)
+  WITH CHECK (true);
 
 CREATE OR REPLACE FUNCTION public.has_active_subscription(
   user_uuid uuid,
@@ -27,7 +27,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF auth.uid() IS NULL OR (auth.uid() <> user_uuid AND auth.role() <> 'service_role') THEN
+  IF ((SELECT auth.uid()) IS NULL OR (SELECT auth.uid()) <> user_uuid)
+    AND COALESCE((SELECT auth.jwt() ->> 'role'), '') <> 'service_role' THEN
     RETURN false;
   END IF;
 
