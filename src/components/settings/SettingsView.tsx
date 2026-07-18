@@ -18,6 +18,7 @@ import {
   Palette,
   Paperclip,
   RotateCcw,
+  Save,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -26,6 +27,7 @@ import {
   Upload,
   UserRound,
   Volume2,
+  Type,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -49,6 +51,8 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useTheme } from "@/hooks/useTheme";
 import { AppearanceThemePreset } from "@/lib/appearance";
 import { ThemeLibrary } from "@/components/settings/ThemeLibrary";
+import { FontLibrary } from "@/components/settings/FontLibrary";
+import { SoundLibrary } from "@/components/settings/SoundLibrary";
 import { useAuth } from "@/hooks/useAuth";
 import { UserSettings } from "@/hooks/useUserSettings";
 import { Notebook, Page } from "@/types/notes";
@@ -76,6 +80,7 @@ interface SettingsViewProps {
   tasks: WeeklyTask[];
   settings: UserSettings;
   onSettingsImported: (settings: UserSettings) => void;
+  onForceSaveSettings: (settings: UserSettings) => Promise<void>;
   onOpenOnboarding: () => void;
   onGoToday: () => void;
   notifications: NotificationControls;
@@ -88,6 +93,7 @@ export function SettingsView({
   tasks,
   settings,
   onSettingsImported,
+  onForceSaveSettings,
   onOpenOnboarding,
   onGoToday,
   notifications,
@@ -103,10 +109,15 @@ export function SettingsView({
     setColorScheme,
     visualTheme,
     setVisualTheme,
+    fontFamily,
+    setFontFamily,
     reducedMotion,
     setReducedMotion,
     enhancedEffects,
     setEnhancedEffects,
+    hasUnsavedAppearance,
+    saveAppearance,
+    restoreSavedAppearance,
   } = useTheme();
   const { isPro, loading: subscriptionLoading, plan, subscription, isLifetime } = useSubscription();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +129,8 @@ export function SettingsView({
   const [resetText, setResetText] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
   const [notificationBusy, setNotificationBusy] = useState(false);
+  const [soundDraft, setSoundDraft] = useState({ enabled: settings.soundEnabled, style: settings.soundStyle });
+  const [appearanceSaving, setAppearanceSaving] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileDraft, setProfileDraft] = useState(() => ({
     fullName: settings.profile.fullName || user.user_metadata?.full_name || user.user_metadata?.name || "",
@@ -134,6 +147,10 @@ export function SettingsView({
       birthDate: settings.profile.birthDate || user.user_metadata?.birth_date || "",
     });
   }, [settings.profile, user.user_metadata]);
+
+  useEffect(() => {
+    setSoundDraft({ enabled: settings.soundEnabled, style: settings.soundStyle });
+  }, [settings.soundEnabled, settings.soundStyle]);
 
   const invalidateUserData = async () => {
     await Promise.all([
@@ -285,7 +302,7 @@ export function SettingsView({
     setColorScheme(preset.colorScheme);
     setVisualTheme(preset.visualTheme);
     setEnhancedEffects(Boolean(preset.enhancedEffects));
-    toast.success(`Tema ${preset.label} aplicado.`);
+    toast.info(`Prévia do tema ${preset.label}. Salve para manter a alteração.`);
   };
 
   const handleEnhancedEffectsChange = (enabled: boolean) => {
@@ -295,6 +312,46 @@ export function SettingsView({
       return;
     }
     setEnhancedEffects(enabled);
+  };
+
+  const handleFontSelect = (font: Parameters<typeof setFontFamily>[0], pro: boolean) => {
+    if (pro && !isPro) {
+      toast.error("Esta fonte faz parte da personalização Pro.");
+      navigate("/planos");
+      return;
+    }
+    setFontFamily(font);
+  };
+
+  const handleSoundSelect = (style: typeof soundDraft.style, pro: boolean) => {
+    if (pro && !isPro) {
+      toast.error("Este perfil sonoro faz parte do Pro.");
+      navigate("/planos");
+      return;
+    }
+    setSoundDraft((current) => ({ ...current, style }));
+    playAppSound("preview", true, style);
+  };
+
+  const soundChanged = soundDraft.enabled !== settings.soundEnabled || soundDraft.style !== settings.soundStyle;
+  const handleSavePersonalization = async () => {
+    setAppearanceSaving(true);
+    try {
+      await Promise.all([
+        saveAppearance(),
+        onForceSaveSettings({ ...settings, soundEnabled: soundDraft.enabled, soundStyle: soundDraft.style }),
+      ]);
+      toast.success("Personalização salva definitivamente neste dispositivo.");
+    } catch {
+      toast.error("Não foi possível concluir o salvamento. Tente novamente.");
+    } finally {
+      setAppearanceSaving(false);
+    }
+  };
+
+  const restorePersonalization = () => {
+    restoreSavedAppearance();
+    setSoundDraft({ enabled: settings.soundEnabled, style: settings.soundStyle });
   };
 
   const handleNotificationChange = async (enabled: boolean) => {
@@ -410,6 +467,20 @@ export function SettingsView({
         </TabsContent>
 
         <TabsContent value="aparencia" className="space-y-4">
+          <section className="sticky top-2 z-20 flex flex-col gap-3 rounded-lg border border-primary/30 bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">Personalização em prévia</p>
+              <p className="text-xs leading-5 text-muted-foreground">Explore livremente. As escolhas só se tornam definitivas após salvar.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex">
+              <Button variant="outline" className="h-10" onClick={restorePersonalization} disabled={!hasUnsavedAppearance && !soundChanged}>Descartar</Button>
+              <Button className="h-10 gap-2" onClick={handleSavePersonalization} disabled={appearanceSaving || (!hasUnsavedAppearance && !soundChanged)}>
+                {appearanceSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar alterações
+              </Button>
+            </div>
+          </section>
+
           <SettingsCard title="Modo" icon={theme === "dark" ? Moon : Sun}>
             <div className="space-y-3 text-sm text-muted-foreground">
               <InfoRow label="Modo atual" value={theme === "dark" ? "Escuro" : "Claro"} />
@@ -431,6 +502,11 @@ export function SettingsView({
               isPro={isPro}
               onSelect={handleSetAppearanceTheme}
             />
+          </SettingsCard>
+
+          <SettingsCard title="Fontes" icon={Type}>
+            <p className="text-sm leading-6 text-muted-foreground">Escolha uma família tipográfica e veja a mudança em toda a interface antes de salvar.</p>
+            <FontLibrary value={fontFamily} isPro={isPro} onSelect={handleFontSelect} />
           </SettingsCard>
 
           <SettingsCard title="Conforto e efeitos" icon={Layers3}>
@@ -457,44 +533,13 @@ export function SettingsView({
               <PreferenceToggle
                 title="Feedback sonoro"
                 description="Confirma ações importantes com sons curtos e discretos."
-                checked={settings.soundEnabled}
+                checked={soundDraft.enabled}
                 onCheckedChange={(checked) => {
-                  onSettingsImported({ ...settings, soundEnabled: checked });
-                  playAppSound("preview", checked, settings.soundStyle);
+                  setSoundDraft((current) => ({ ...current, enabled: checked }));
+                  playAppSound("preview", checked, soundDraft.style);
                 }}
               />
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={settings.soundStyle === "soft" ? "secondary" : "outline"}
-                  onClick={() => {
-                    onSettingsImported({ ...settings, soundStyle: "soft" });
-                    playAppSound("preview", true, "soft");
-                  }}
-                >Sutil</Button>
-                <Button
-                  variant={settings.soundStyle === "zen" ? "secondary" : "outline"}
-                  onClick={() => {
-                    onSettingsImported({ ...settings, soundStyle: "zen" });
-                    playAppSound("preview", true, "zen");
-                  }}
-                >Zen</Button>
-                <Button
-                  variant={settings.soundStyle === "arcade" ? "secondary" : "outline"}
-                  onClick={() => {
-                    if (!isPro) { toast.error("O perfil Arcade faz parte do Pro."); navigate("/planos"); return; }
-                    onSettingsImported({ ...settings, soundStyle: "arcade" });
-                    playAppSound("preview", true, "arcade");
-                  }}
-                >Arcade {!isPro && <Lock className="ml-2 h-3.5 w-3.5" />}</Button>
-                <Button
-                  variant={settings.soundStyle === "digital" ? "secondary" : "outline"}
-                  onClick={() => {
-                    if (!isPro) { toast.error("O perfil Digital faz parte do Pro."); navigate("/planos"); return; }
-                    onSettingsImported({ ...settings, soundStyle: "digital" });
-                    playAppSound("preview", true, "digital");
-                  }}
-                >Digital {!isPro && <Lock className="ml-2 h-3.5 w-3.5" />}</Button>
-              </div>
+              <SoundLibrary value={soundDraft.style} isPro={isPro} onSelect={handleSoundSelect} onPreview={(style) => playAppSound("preview", true, style)} />
             </div>
           </SettingsCard>
 

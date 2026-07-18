@@ -26,13 +26,12 @@ export function ThemeLibrary({ mode, colorScheme, visualTheme, isPro, onSelect }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 rounded-md border border-primary/25 bg-primary/5 p-3">
-        <ThemePreview preset={activePreset || APPEARANCE_THEME_PRESETS[0]} active />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-muted-foreground">Tema atual</p>
-          <p className="truncate text-sm font-semibold text-foreground">{activePreset?.label || "Personalizado"}</p>
+      <div className="rounded-md border border-primary/25 bg-primary/5 p-3">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="min-w-0 flex-1"><p className="text-xs font-medium text-muted-foreground">Prévia em tempo real</p><p className="truncate text-sm font-semibold text-foreground">{activePreset?.label || "Personalizado"}</p></div>
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
         </div>
-        <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+        <ThemeStage preset={activePreset || APPEARANCE_THEME_PRESETS[0]} />
       </div>
 
       <Accordion type="single" collapsible defaultValue={defaultCategory} className="overflow-hidden rounded-md border border-border/60">
@@ -92,6 +91,21 @@ export function ThemeLibrary({ mode, colorScheme, visualTheme, isPro, onSelect }
       </Accordion>
     </div>
   );
+}
+
+function ThemeStage({ preset }: { preset: AppearanceThemePreset }) {
+  return <div
+    className={cn("appearance-theme-stage", preset.animated && "is-animated")}
+    style={{ "--preview-background": preset.preview[0], "--preview-surface": preset.preview[1], "--preview-accent": preset.preview[2] } as React.CSSProperties}
+    aria-label={`Prévia do tema ${preset.label}`}
+  >
+    <div className="appearance-theme-stage__sidebar"><span /><span /><span /><span /></div>
+    <div className="appearance-theme-stage__content">
+      <div className="appearance-theme-stage__header"><strong>VISTA</strong><i /></div>
+      <div className="appearance-theme-stage__stats"><span /><span /><span /></div>
+      <div className="appearance-theme-stage__task"><div><strong>Tarefa em foco</strong><small>Hoje · Prioridade média</small></div><button>Concluir</button></div>
+    </div>
+  </div>;
 }
 
 function ThemePreview({ preset, active = false }: { preset: AppearanceThemePreset; active?: boolean }) {

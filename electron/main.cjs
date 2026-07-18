@@ -1,5 +1,24 @@
 const path = require("node:path");
-const { app, BrowserWindow, shell } = require("electron");
+const fs = require("node:fs");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
+
+const storageFile = () => path.join(app.getPath("userData"), "vista-storage.json");
+const readStorage = () => {
+  try { return JSON.parse(fs.readFileSync(storageFile(), "utf8")); }
+  catch { return {}; }
+};
+const writeStorage = (data) => {
+  const target = storageFile();
+  const temporary = `${target}.tmp`;
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(temporary, JSON.stringify(data), "utf8");
+  fs.renameSync(temporary, target);
+};
+let storageWriteQueue = Promise.resolve();
+const enqueueStorageWrite = (operation) => {
+  storageWriteQueue = storageWriteQueue.then(operation, operation);
+  return storageWriteQueue;
+};
 
 const isExternalUrl = (url) => /^(https?:|mailto:)/i.test(url);
 
@@ -18,6 +37,7 @@ function createWindow() {
     autoHideMenuBar: true,
     icon: path.join(__dirname, "..", "public", "favicon.ico"),
     webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -39,6 +59,14 @@ function createWindow() {
 }
 
 app.setAppUserModelId("studio.anchorlab.vistataskcontrol");
+
+ipcMain.handle("vista-storage:get", (_event, key) => readStorage()[key] ?? null);
+ipcMain.handle("vista-storage:set", (_event, key, value) => enqueueStorageWrite(() => writeStorage({ ...readStorage(), [key]: value })));
+ipcMain.handle("vista-storage:remove", (_event, key) => enqueueStorageWrite(() => {
+  const data = readStorage();
+  delete data[key];
+  writeStorage(data);
+}));
 
 app.whenReady().then(() => {
   createWindow();

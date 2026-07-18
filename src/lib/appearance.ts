@@ -18,6 +18,7 @@ export type VisualTheme =
   | "noir-gold"
   | "ivory-gold"
   | "blockcraft";
+export type FontFamily = "inter" | "system" | "editorial" | "rounded" | "mono" | "display" | "pixel";
 
 export const COLOR_SCHEMES: ColorScheme[] = [
   "default", "ocean", "focus", "midnight", "sunset", "forest", "mono", "luminous", "rgb",
@@ -27,6 +28,34 @@ export const VISUAL_THEMES: VisualTheme[] = [
 ];
 export const PRO_COLOR_SCHEMES: ColorScheme[] = ["midnight", "sunset", "forest", "mono", "luminous", "rgb"];
 export const PRO_VISUAL_THEMES: VisualTheme[] = ["anime", "comic", "noir-gold", "ivory-gold", "blockcraft"];
+export const FONT_FAMILIES: FontFamily[] = ["inter", "system", "editorial", "rounded", "mono", "display", "pixel"];
+export const PRO_FONT_FAMILIES: FontFamily[] = ["display", "pixel"];
+
+export type FontCategory = "essential" | "reading" | "expressive";
+export interface FontPreset {
+  id: FontFamily;
+  label: string;
+  description: string;
+  category: FontCategory;
+  pro: boolean;
+  sampleStyle: string;
+}
+
+export const FONT_CATEGORIES: Array<{ id: FontCategory; label: string; description: string }> = [
+  { id: "essential", label: "Essenciais", description: "Fontes limpas para uso diário." },
+  { id: "reading", label: "Leitura e foco", description: "Opções confortáveis para textos e planejamento." },
+  { id: "expressive", label: "Expressivas Pro", description: "Tipografias com mais personalidade visual." },
+];
+
+export const FONT_PRESETS: FontPreset[] = [
+  { id: "inter", label: "Inter", description: "A fonte original do VISTA, equilibrada e precisa.", category: "essential", pro: false, sampleStyle: "Inter, system-ui, sans-serif" },
+  { id: "system", label: "Sistema", description: "Usa a fonte nativa do dispositivo para máxima familiaridade.", category: "essential", pro: false, sampleStyle: "system-ui, sans-serif" },
+  { id: "rounded", label: "Amigável", description: "Formas suaves para uma experiência mais leve.", category: "essential", pro: false, sampleStyle: "Trebuchet MS, Arial, sans-serif" },
+  { id: "editorial", label: "Editorial", description: "Serifas confortáveis para anotações longas.", category: "reading", pro: false, sampleStyle: "Georgia, Times New Roman, serif" },
+  { id: "mono", label: "Mono Focus", description: "Ritmo uniforme para listas e organização técnica.", category: "reading", pro: false, sampleStyle: "JetBrains Mono, Consolas, monospace" },
+  { id: "display", label: "Studio Display", description: "Títulos marcantes com corpo de texto limpo.", category: "expressive", pro: true, sampleStyle: "Arial Black, Inter, sans-serif" },
+  { id: "pixel", label: "Pixel Code", description: "Identidade gamer inspirada em interfaces retrô.", category: "expressive", pro: true, sampleStyle: "JetBrains Mono, Consolas, monospace" },
+];
 
 export type AppearanceThemeCategory = "essential" | "productivity" | "atmosphere" | "signature" | "dynamic";
 
@@ -57,7 +86,7 @@ export const APPEARANCE_THEME_CATEGORIES: Array<{
 ];
 
 export const APPEARANCE_THEME_PRESETS: AppearanceThemePreset[] = [
-  { id: "anchorlab", label: "AnchorLab Studio", description: "Marinho profundo, ciano elétrico e violeta da marca.", category: "essential", mode: "dark", colorScheme: "default", visualTheme: "studio", pro: false, enhancedEffects: true, preview: ["#020817", "#07172b", "#08b8ff"] },
+  { id: "anchorlab", label: "AnchorLab Studio", description: "Marinho profundo, ciano elétrico e violeta da marca.", category: "essential", mode: "dark", colorScheme: "default", visualTheme: "studio", pro: false, preview: ["#020817", "#07172b", "#08b8ff"] },
   { id: "ocean", label: "Oceano", description: "Azuis serenos para leitura e planejamento.", category: "essential", mode: "dark", colorScheme: "ocean", visualTheme: "studio", pro: false, preview: ["#071426", "#102a43", "#38bdf8"] },
   { id: "journal", label: "Papel aberto", description: "Leitura clara, tipografia editorial e mais respiro.", category: "essential", mode: "light", colorScheme: "ocean", visualTheme: "journal", pro: false, preview: ["#f7f7f5", "#ffffff", "#2563eb"] },
   { id: "focus", label: "Foco", description: "Verde equilibrado com hierarquia discreta.", category: "productivity", mode: "dark", colorScheme: "focus", visualTheme: "studio", pro: false, preview: ["#07140e", "#102219", "#22c55e"] },

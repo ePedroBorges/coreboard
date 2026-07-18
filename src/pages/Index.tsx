@@ -691,6 +691,7 @@ const Index = () => {
                 tasks={normalizedTasks}
                 settings={userSettings.settings}
                 onSettingsImported={userSettings.updateSettings}
+                onForceSaveSettings={userSettings.forceSaveSettings}
                 onOpenOnboarding={() => setOnboardingOpen(true)}
                 onGoToday={handleSelectToday}
                 notifications={notifications}

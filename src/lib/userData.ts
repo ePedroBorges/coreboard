@@ -153,6 +153,7 @@ export function validateBackup(input: unknown): VistaBackup {
       pageVersions: Array.isArray(backup.data?.pageVersions) ? backup.data?.pageVersions : [],
       taskOrigins: backup.data?.taskOrigins || {},
       settings: backup.data?.settings || {
+        updatedAt: 0,
         hasSeenOnboarding: true,
         validationChecklist: {},
         soundEnabled: false,

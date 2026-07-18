@@ -5,6 +5,7 @@ const memoryStorage = new Map<string, string>();
 
 export const nativeStorage = {
   getItem: async (key: string) => {
+    if (typeof window !== "undefined" && window.vistaStorage) return window.vistaStorage.getItem(key);
     if (Capacitor.isNativePlatform()) {
       const { value } = await Preferences.get({ key });
       return value;
@@ -15,6 +16,7 @@ export const nativeStorage = {
     return memoryStorage.get(key) ?? null;
   },
   setItem: async (key: string, value: string) => {
+    if (typeof window !== "undefined" && window.vistaStorage) return window.vistaStorage.setItem(key, value);
     if (Capacitor.isNativePlatform()) {
       await Preferences.set({ key, value });
       return;
@@ -26,6 +28,7 @@ export const nativeStorage = {
     memoryStorage.set(key, value);
   },
   removeItem: async (key: string) => {
+    if (typeof window !== "undefined" && window.vistaStorage) return window.vistaStorage.removeItem(key);
     if (Capacitor.isNativePlatform()) {
       await Preferences.remove({ key });
       return;

@@ -8,7 +8,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { BrowserRouter, HashRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
-import { canEnforceFreeAppearance, PRO_COLOR_SCHEMES, PRO_VISUAL_THEMES } from "@/lib/appearance";
+import { canEnforceFreeAppearance, PRO_COLOR_SCHEMES, PRO_FONT_FAMILIES, PRO_VISUAL_THEMES } from "@/lib/appearance";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -34,27 +34,29 @@ function ProThemeGuard() {
   const {
     storageHydrated,
     colorScheme,
-    setColorScheme,
     visualTheme,
-    setVisualTheme,
+    fontFamily,
     enhancedEffects,
-    setEnhancedEffects,
+    saveAppearance,
   } = useTheme();
 
   useEffect(() => {
     if (!canEnforceFreeAppearance({ storageHydrated, subscriptionLoading: loading, subscriptionVerified: verified, isPro })) return;
-    if (PRO_COLOR_SCHEMES.includes(colorScheme)) setColorScheme("default");
-    if (PRO_VISUAL_THEMES.includes(visualTheme)) setVisualTheme("studio");
-    if (enhancedEffects) setEnhancedEffects(false);
+    const next = {
+      ...(PRO_COLOR_SCHEMES.includes(colorScheme) ? { colorScheme: "default" as const } : {}),
+      ...(PRO_VISUAL_THEMES.includes(visualTheme) ? { visualTheme: "studio" as const } : {}),
+      ...(PRO_FONT_FAMILIES.includes(fontFamily) ? { fontFamily: "inter" as const } : {}),
+      ...(enhancedEffects ? { enhancedEffects: false } : {}),
+    };
+    if (Object.keys(next).length > 0) void saveAppearance(next);
   }, [
     colorScheme,
     enhancedEffects,
+    fontFamily,
     isPro,
     loading,
     storageHydrated,
-    setColorScheme,
-    setEnhancedEffects,
-    setVisualTheme,
+    saveAppearance,
     visualTheme,
     verified,
   ]);

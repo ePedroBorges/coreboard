@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ThemeLibrary } from "@/components/settings/ThemeLibrary";
+import { FontLibrary } from "@/components/settings/FontLibrary";
+import { SoundLibrary } from "@/components/settings/SoundLibrary";
 import { QuickCaptureModal } from "@/components/notes/QuickCaptureModal";
 
 describe("appearance and notes experience", () => {
@@ -16,6 +18,7 @@ describe("appearance and notes experience", () => {
       />,
     );
 
+    expect(screen.getByLabelText("Prévia do tema AnchorLab Studio")).toBeInTheDocument();
     expect(screen.queryByText("Anime Neon")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Coleções Pro/i }));
     fireEvent.click(screen.getByRole("button", { name: /Anime Neon/i }));
@@ -40,5 +43,19 @@ describe("appearance and notes experience", () => {
     expect(screen.getByPlaceholderText("Comece a escrever...")).toHaveClass("min-h-[52svh]");
     expect(screen.getByText("Checklist")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Salvar anota/i })).toBeInTheDocument();
+  });
+
+  it("groups font and sound options into expandable libraries", () => {
+    const onFont = vi.fn();
+    const onSound = vi.fn();
+    const { rerender } = render(<FontLibrary value="inter" isPro onSelect={onFont} />);
+    fireEvent.click(screen.getByRole("button", { name: /Expressivas Pro/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Pixel Code/i }));
+    expect(onFont).toHaveBeenCalledWith("pixel", true);
+
+    rerender(<SoundLibrary value="soft" isPro onSelect={onSound} onPreview={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Gaming Pro/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Synthwave/i }));
+    expect(onSound).toHaveBeenCalledWith("synth", true);
   });
 });

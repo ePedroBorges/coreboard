@@ -15,6 +15,7 @@ import {
   Minimize2,
   Pin,
   Share2,
+  Save,
   Target,
   Trash2,
 } from "lucide-react";
@@ -69,10 +70,24 @@ interface PageEditorProps {
 }
 
 export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocus, onCreateTaskFromPage, linkedTasks = [], onOpenTask, onUpdateTask, onDeleteTask, onAddSubtask, onUpdateSubtask, onDeleteSubtask, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
+  const draftKey = `vistaPageDraft:${page.user_id}:${page.id}`;
+  const readDraft = () => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return null;
+      const draft = JSON.parse(raw) as { title: string; blocks: Block[] };
+      if (draft.title === page.title && JSON.stringify(draft.blocks) === JSON.stringify(page.content || [])) {
+        localStorage.removeItem(draftKey);
+        return null;
+      }
+      return draft;
+    } catch { return null; }
+  };
+  const initialDraft = readDraft();
   const { isPro } = useSubscription();
-  const [title, setTitle] = useState(page.title);
-  const [blocks, setBlocks] = useState<Block[]>(page.content || []);
-  const [dirty, setDirty] = useState(false);
+  const [title, setTitle] = useState(initialDraft?.title || page.title);
+  const [blocks, setBlocks] = useState<Block[]>(initialDraft?.blocks || page.content || []);
+  const [dirty, setDirty] = useState(Boolean(initialDraft));
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const pageIdRef = useRef(page.id);
   const pendingRef = useRef<{ title: string; blocks: Block[] } | null>(null);
@@ -89,9 +104,11 @@ export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocu
     }
 
     pageIdRef.current = page.id;
-    setTitle(page.title);
-    setBlocks(page.content || []);
-    setDirty(false);
+    const recovered = readDraft();
+    setTitle(recovered?.title || page.title);
+    setBlocks(recovered?.blocks || page.content || []);
+    setDirty(Boolean(recovered));
+    if (recovered) onUpdate({ title: recovered.title, content: recovered.blocks });
     // Only reset local editor state when switching notes; autosave invalidations should not steal the cursor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page.id]);
@@ -100,6 +117,7 @@ export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocu
     (newTitle: string, newBlocks: Block[]) => {
       setDirty(true);
       pendingRef.current = { title: newTitle, blocks: newBlocks };
+      localStorage.setItem(draftKey, JSON.stringify({ title: newTitle, blocks: newBlocks, savedAt: Date.now() }));
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = setTimeout(() => {
         onUpdate({ title: newTitle, content: newBlocks });
@@ -107,7 +125,7 @@ export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocu
         setDirty(false);
       }, 800);
     },
-    [onUpdate]
+    [draftKey, onUpdate]
   );
 
   const handleTitleChange = (newTitle: string) => {
@@ -228,6 +246,9 @@ export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocu
           </div>
 
           <div className="ml-auto flex items-center gap-1">
+            <Button variant={dirty ? "default" : "ghost"} size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={handleForceSave} title="Salvar agora">
+              <Save className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"

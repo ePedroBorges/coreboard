@@ -1,13 +1,16 @@
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import {
   COLOR_SCHEMES,
   ColorScheme,
+  FONT_FAMILIES,
+  FontFamily,
   Mode,
   VISUAL_THEMES,
   VisualTheme,
 } from "@/lib/appearance";
 import { nativeStorage } from "@/lib/nativeStorage";
 
+const APPEARANCE_STORAGE_KEY = "vista_tasks_appearance_v2";
 const MODE_STORAGE_KEY = "vista_tasks_theme";
 const SCHEME_STORAGE_KEY = "vista_tasks_theme_variant";
 const VISUAL_THEME_STORAGE_KEY = "vista_tasks_visual_theme";
@@ -15,8 +18,89 @@ const REDUCED_MOTION_STORAGE_KEY = "vista_tasks_reduced_motion";
 const ENHANCED_EFFECTS_STORAGE_KEY = "vista_tasks_enhanced_effects";
 const LEGACY_THEME_STORAGE_KEY = "smartnotes-theme";
 
+export interface AppearanceSnapshot {
+  version: 2;
+  updatedAt: number;
+  theme: Mode;
+  colorScheme: ColorScheme;
+  visualTheme: VisualTheme;
+  fontFamily: FontFamily;
+  reducedMotion: boolean;
+  enhancedEffects: boolean;
+}
+
+const defaultAppearance = (): AppearanceSnapshot => ({
+  version: 2,
+  updatedAt: 0,
+  theme: "dark",
+  colorScheme: "default",
+  visualTheme: "studio",
+  fontFamily: "inter",
+  reducedMotion: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false,
+  enhancedEffects: true,
+});
+
+function parseAppearance(raw: string | null): AppearanceSnapshot | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<AppearanceSnapshot>;
+    if (value.version !== 2 || (value.theme !== "light" && value.theme !== "dark")) return null;
+    if (!COLOR_SCHEMES.includes(value.colorScheme as ColorScheme)) return null;
+    if (!VISUAL_THEMES.includes(value.visualTheme as VisualTheme)) return null;
+    return {
+      ...defaultAppearance(),
+      ...value,
+      fontFamily: FONT_FAMILIES.includes(value.fontFamily as FontFamily) ? value.fontFamily as FontFamily : "inter",
+      updatedAt: Number(value.updatedAt) || 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readLegacyLocal(): AppearanceSnapshot {
+  const fallback = defaultAppearance();
+  const mode = localStorage.getItem(MODE_STORAGE_KEY) || localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+  const scheme = localStorage.getItem(SCHEME_STORAGE_KEY);
+  const visual = localStorage.getItem(VISUAL_THEME_STORAGE_KEY);
+  const reduced = localStorage.getItem(REDUCED_MOTION_STORAGE_KEY);
+  const enhanced = localStorage.getItem(ENHANCED_EFFECTS_STORAGE_KEY);
+  return {
+    ...fallback,
+    theme: mode === "light" || mode === "dark" ? mode : fallback.theme,
+    colorScheme: COLOR_SCHEMES.includes(scheme as ColorScheme) ? scheme as ColorScheme : fallback.colorScheme,
+    visualTheme: VISUAL_THEMES.includes(visual as VisualTheme) ? visual as VisualTheme : fallback.visualTheme,
+    reducedMotion: reduced === null ? fallback.reducedMotion : reduced === "true",
+    enhancedEffects: enhanced === null ? fallback.enhancedEffects : enhanced === "true",
+  };
+}
+
+function readInitialAppearance() {
+  return parseAppearance(localStorage.getItem(APPEARANCE_STORAGE_KEY)) || readLegacyLocal();
+}
+
+async function persistAppearance(snapshot: AppearanceSnapshot) {
+  const serialized = JSON.stringify(snapshot);
+  localStorage.setItem(APPEARANCE_STORAGE_KEY, serialized);
+  localStorage.setItem(MODE_STORAGE_KEY, snapshot.theme);
+  localStorage.setItem(SCHEME_STORAGE_KEY, snapshot.colorScheme);
+  localStorage.setItem(VISUAL_THEME_STORAGE_KEY, snapshot.visualTheme);
+  localStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(snapshot.reducedMotion));
+  localStorage.setItem(ENHANCED_EFFECTS_STORAGE_KEY, String(snapshot.enhancedEffects));
+  localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+  await Promise.all([
+    nativeStorage.setItem(APPEARANCE_STORAGE_KEY, serialized),
+    nativeStorage.setItem(MODE_STORAGE_KEY, snapshot.theme),
+    nativeStorage.setItem(SCHEME_STORAGE_KEY, snapshot.colorScheme),
+    nativeStorage.setItem(VISUAL_THEME_STORAGE_KEY, snapshot.visualTheme),
+    nativeStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(snapshot.reducedMotion)),
+    nativeStorage.setItem(ENHANCED_EFFECTS_STORAGE_KEY, String(snapshot.enhancedEffects)),
+  ]);
+}
+
 interface ThemeContextType {
   storageHydrated: boolean;
+  hasUnsavedAppearance: boolean;
   theme: Mode;
   setTheme: (mode: Mode) => void;
   toggleTheme: () => void;
@@ -24,66 +108,54 @@ interface ThemeContextType {
   setColorScheme: (scheme: ColorScheme) => void;
   visualTheme: VisualTheme;
   setVisualTheme: (theme: VisualTheme) => void;
+  fontFamily: FontFamily;
+  setFontFamily: (font: FontFamily) => void;
   reducedMotion: boolean;
   setReducedMotion: (reduced: boolean) => void;
   enhancedEffects: boolean;
   setEnhancedEffects: (enabled: boolean) => void;
+  saveAppearance: (overrides?: Partial<AppearanceSnapshot>) => Promise<void>;
+  restoreSavedAppearance: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function readBoolean(key: string, fallback: boolean) {
-  const value = localStorage.getItem(key);
-  return value === null ? fallback : value === "true";
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const initial = useMemo(readInitialAppearance, []);
   const [storageHydrated, setStorageHydrated] = useState(false);
-  const [theme, setTheme] = useState<Mode>(() => {
-    const stored = localStorage.getItem(MODE_STORAGE_KEY) || localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
-    return stored === "light" || stored === "dark" ? stored : "dark";
-  });
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(() => {
-    const stored = localStorage.getItem(SCHEME_STORAGE_KEY);
-    return COLOR_SCHEMES.includes(stored as ColorScheme) ? (stored as ColorScheme) : "default";
-  });
-  const [visualTheme, setVisualTheme] = useState<VisualTheme>(() => {
-    const stored = localStorage.getItem(VISUAL_THEME_STORAGE_KEY);
-    return VISUAL_THEMES.includes(stored as VisualTheme) ? (stored as VisualTheme) : "studio";
-  });
-  const [reducedMotion, setReducedMotion] = useState(() =>
-    readBoolean(REDUCED_MOTION_STORAGE_KEY, window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false),
-  );
-  const [enhancedEffects, setEnhancedEffects] = useState(() => readBoolean(ENHANCED_EFFECTS_STORAGE_KEY, true));
+  const [savedAppearance, setSavedAppearance] = useState(initial);
+  const [theme, setTheme] = useState<Mode>(initial.theme);
+  const [colorScheme, setColorScheme] = useState<ColorScheme>(initial.colorScheme);
+  const [visualTheme, setVisualTheme] = useState<VisualTheme>(initial.visualTheme);
+  const [fontFamily, setFontFamily] = useState<FontFamily>(initial.fontFamily);
+  const [reducedMotion, setReducedMotion] = useState(initial.reducedMotion);
+  const [enhancedEffects, setEnhancedEffects] = useState(initial.enhancedEffects);
+
+  const apply = useCallback((snapshot: AppearanceSnapshot) => {
+    setTheme(snapshot.theme);
+    setColorScheme(snapshot.colorScheme);
+    setVisualTheme(snapshot.visualTheme);
+    setFontFamily(snapshot.fontFamily);
+    setReducedMotion(snapshot.reducedMotion);
+    setEnhancedEffects(snapshot.enhancedEffects);
+  }, []);
 
   useEffect(() => {
     let active = true;
-
-    Promise.all([
-      nativeStorage.getItem(MODE_STORAGE_KEY),
-      nativeStorage.getItem(SCHEME_STORAGE_KEY),
-      nativeStorage.getItem(VISUAL_THEME_STORAGE_KEY),
-      nativeStorage.getItem(REDUCED_MOTION_STORAGE_KEY),
-      nativeStorage.getItem(ENHANCED_EFFECTS_STORAGE_KEY),
-    ]).then(([storedMode, storedScheme, storedVisualTheme, storedReducedMotion, storedEnhancedEffects]) => {
+    nativeStorage.getItem(APPEARANCE_STORAGE_KEY).then(async (nativeRaw) => {
       if (!active) return;
-      const localMode = localStorage.getItem(MODE_STORAGE_KEY);
-      const localScheme = localStorage.getItem(SCHEME_STORAGE_KEY);
-      const localVisualTheme = localStorage.getItem(VISUAL_THEME_STORAGE_KEY);
-      const localReducedMotion = localStorage.getItem(REDUCED_MOTION_STORAGE_KEY);
-      const localEnhancedEffects = localStorage.getItem(ENHANCED_EFFECTS_STORAGE_KEY);
-      if (localMode !== "light" && localMode !== "dark" && (storedMode === "light" || storedMode === "dark")) setTheme(storedMode);
-      if (!COLOR_SCHEMES.includes(localScheme as ColorScheme) && COLOR_SCHEMES.includes(storedScheme as ColorScheme)) setColorScheme(storedScheme as ColorScheme);
-      if (!VISUAL_THEMES.includes(localVisualTheme as VisualTheme) && VISUAL_THEMES.includes(storedVisualTheme as VisualTheme)) setVisualTheme(storedVisualTheme as VisualTheme);
-      if (localReducedMotion === null && storedReducedMotion !== null) setReducedMotion(storedReducedMotion === "true");
-      if (localEnhancedEffects === null && storedEnhancedEffects !== null) setEnhancedEffects(storedEnhancedEffects === "true");
-      setStorageHydrated(true);
+      const local = parseAppearance(localStorage.getItem(APPEARANCE_STORAGE_KEY));
+      const native = parseAppearance(nativeRaw);
+      const resolved = local && native
+        ? (local.updatedAt >= native.updatedAt ? local : native)
+        : local || native || readLegacyLocal();
+      apply(resolved);
+      setSavedAppearance(resolved);
+      await persistAppearance(resolved);
+      if (active) setStorageHydrated(true);
     }).catch(() => setStorageHydrated(true));
-
-    return () => {
-      active = false;
-    };
-  }, []);
+    return () => { active = false; };
+  }, [apply]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -91,45 +163,61 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.add(theme);
     COLOR_SCHEMES.forEach((scheme) => root.classList.remove(`scheme-${scheme}`, `theme-${scheme}`));
     VISUAL_THEMES.forEach((item) => root.classList.remove(`visual-${item}`));
-    root.classList.add(`scheme-${colorScheme}`, `visual-${visualTheme}`);
+    FONT_FAMILIES.forEach((font) => root.classList.remove(`font-${font}`));
+    root.classList.add(`scheme-${colorScheme}`, `visual-${visualTheme}`, `font-${fontFamily}`);
     root.classList.toggle("reduce-motion", reducedMotion);
     root.classList.toggle("enhanced-effects", enhancedEffects);
+  }, [colorScheme, enhancedEffects, fontFamily, reducedMotion, theme, visualTheme]);
 
-  }, [colorScheme, enhancedEffects, reducedMotion, theme, visualTheme]);
+  const currentAppearance = useMemo<AppearanceSnapshot>(() => ({
+    version: 2,
+    updatedAt: savedAppearance.updatedAt,
+    theme,
+    colorScheme,
+    visualTheme,
+    fontFamily,
+    reducedMotion,
+    enhancedEffects,
+  }), [colorScheme, enhancedEffects, fontFamily, reducedMotion, savedAppearance.updatedAt, theme, visualTheme]);
 
-  useEffect(() => {
-    if (!storageHydrated) return;
-    const entries: Array<[string, string]> = [
-      [MODE_STORAGE_KEY, theme],
-      [SCHEME_STORAGE_KEY, colorScheme],
-      [VISUAL_THEME_STORAGE_KEY, visualTheme],
-      [REDUCED_MOTION_STORAGE_KEY, String(reducedMotion)],
-      [ENHANCED_EFFECTS_STORAGE_KEY, String(enhancedEffects)],
-    ];
-    entries.forEach(([key, value]) => {
-      localStorage.setItem(key, value);
-      void nativeStorage.setItem(key, value);
-    });
-    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
-  }, [colorScheme, enhancedEffects, reducedMotion, storageHydrated, theme, visualTheme]);
+  const appearanceSignature = (value: AppearanceSnapshot) => JSON.stringify({
+    theme: value.theme,
+    colorScheme: value.colorScheme,
+    visualTheme: value.visualTheme,
+    fontFamily: value.fontFamily,
+    reducedMotion: value.reducedMotion,
+    enhancedEffects: value.enhancedEffects,
+  });
+  const hasUnsavedAppearance = appearanceSignature(currentAppearance) !== appearanceSignature(savedAppearance);
 
-  const value = useMemo(
-    () => ({
-      storageHydrated,
-      theme,
-      setTheme,
-      toggleTheme: () => setTheme((current) => (current === "dark" ? "light" : "dark")),
-      colorScheme,
-      setColorScheme,
-      visualTheme,
-      setVisualTheme,
-      reducedMotion,
-      setReducedMotion,
-      enhancedEffects,
-      setEnhancedEffects,
-    }),
-    [colorScheme, enhancedEffects, reducedMotion, storageHydrated, theme, visualTheme],
-  );
+  const saveAppearance = useCallback(async (overrides: Partial<AppearanceSnapshot> = {}) => {
+    const next: AppearanceSnapshot = { ...currentAppearance, ...overrides, version: 2, updatedAt: Date.now() };
+    apply(next);
+    await persistAppearance(next);
+    setSavedAppearance(next);
+  }, [apply, currentAppearance]);
+
+  const restoreSavedAppearance = useCallback(() => apply(savedAppearance), [apply, savedAppearance]);
+
+  const value = useMemo<ThemeContextType>(() => ({
+    storageHydrated,
+    hasUnsavedAppearance,
+    theme,
+    setTheme,
+    toggleTheme: () => setTheme((current) => current === "dark" ? "light" : "dark"),
+    colorScheme,
+    setColorScheme,
+    visualTheme,
+    setVisualTheme,
+    fontFamily,
+    setFontFamily,
+    reducedMotion,
+    setReducedMotion,
+    enhancedEffects,
+    setEnhancedEffects,
+    saveAppearance,
+    restoreSavedAppearance,
+  }), [colorScheme, enhancedEffects, fontFamily, hasUnsavedAppearance, reducedMotion, restoreSavedAppearance, saveAppearance, storageHydrated, theme, visualTheme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

@@ -255,6 +255,7 @@
   .font-mono-accent {
     font-family: 'JetBrains Mono', monospace;
   }
+
   
   /* Safe area padding for notched phones */
   .safe-bottom {
@@ -582,6 +583,32 @@ body::before {
   animation: vista-preview-flow 5s ease-in-out infinite alternate;
 }
 
+.appearance-theme-stage {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  min-height: 10rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--preview-accent) 55%, transparent);
+  border-radius: 4px;
+  background: var(--preview-background);
+  color: white;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--preview-accent) 16%, transparent);
+}
+.appearance-theme-stage__sidebar { display: flex; flex-direction: column; gap: 0.65rem; padding: 0.8rem; border-right: 1px solid color-mix(in srgb, var(--preview-accent) 42%, transparent); background: var(--preview-surface); }
+.appearance-theme-stage__sidebar span { height: 0.42rem; border-radius: 2px; background: color-mix(in srgb, var(--preview-accent) 48%, transparent); }
+.appearance-theme-stage__sidebar span:nth-child(2) { background: var(--preview-accent); }
+.appearance-theme-stage__content { min-width: 0; padding: 0.75rem; }
+.appearance-theme-stage__header { display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: var(--preview-accent); }
+.appearance-theme-stage__header i { width: 1.8rem; height: 0.42rem; background: var(--preview-accent); }
+.appearance-theme-stage__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem; margin-top: 0.7rem; }
+.appearance-theme-stage__stats span { height: 2.2rem; border: 1px solid color-mix(in srgb, var(--preview-accent) 35%, transparent); background: var(--preview-surface); }
+.appearance-theme-stage__task { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.55rem; border-left: 2px solid var(--preview-accent); background: var(--preview-surface); padding: 0.65rem; }
+.appearance-theme-stage__task strong, .appearance-theme-stage__task small { display: block; }
+.appearance-theme-stage__task strong { font-size: 0.65rem; }
+.appearance-theme-stage__task small { margin-top: 0.2rem; color: color-mix(in srgb, white 60%, var(--preview-surface)); font-size: 0.52rem; }
+.appearance-theme-stage__task button { border: 0; border-radius: 2px; background: var(--preview-accent); padding: 0.38rem 0.5rem; color: var(--preview-background); font-size: 0.55rem; font-weight: 700; }
+.appearance-theme-stage.is-animated { background-image: linear-gradient(125deg, var(--preview-background), var(--preview-surface), color-mix(in srgb, var(--preview-accent) 35%, var(--preview-background)), var(--preview-background)); background-size: 260% 260%; animation: vista-preview-flow 5s ease-in-out infinite alternate; }
+
 @keyframes vista-preview-flow {
   to { background-position: 100% 60%; }
 }
@@ -590,6 +617,19 @@ body::before {
   .enhanced-effects.scheme-rgb body::before,
   .enhanced-effects.scheme-rgb,
   .enhanced-effects.scheme-rgb :where(.bg-primary),
-  .enhanced-effects.visual-noir-gold body::before,
-  .appearance-theme-preview.is-animated { animation: none; }
+    .enhanced-effects.visual-noir-gold body::before,
+    .appearance-theme-preview.is-animated,
+    .appearance-theme-stage.is-animated { animation: none; }
 }
+
+/* A fonte escolhida pelo usuário deve prevalecer sobre a tipografia sugerida pelo tema visual. */
+html.font-inter body, html.font-inter :where(button, input, textarea, select) { font-family: Inter, system-ui, sans-serif !important; }
+html.font-system body, html.font-system :where(button, input, textarea, select) { font-family: system-ui, sans-serif !important; }
+html.font-rounded body, html.font-rounded :where(button, input, textarea, select) { font-family: "Trebuchet MS", Arial, sans-serif !important; }
+html.font-editorial body { font-family: Georgia, "Times New Roman", serif !important; }
+html.font-editorial :where(button, input, textarea, select) { font-family: Inter, system-ui, sans-serif !important; }
+html.font-mono body, html.font-mono :where(button, input, textarea, select) { font-family: "JetBrains Mono", Consolas, monospace !important; }
+html.font-display body, html.font-display :where(button, input, textarea, select) { font-family: Inter, system-ui, sans-serif !important; }
+html.font-display :where(h1, h2, h3) { font-family: "Arial Black", Inter, sans-serif !important; }
+html.font-pixel body, html.font-pixel :where(button, input, textarea, select) { font-family: "JetBrains Mono", Consolas, monospace !important; }
+html.font-pixel :where(h1, h2, h3) { text-transform: uppercase; }

@@ -13,6 +13,7 @@ export interface UserProfile {
 }
 
 export interface UserSettings {
+  updatedAt: number;
   hasSeenOnboarding: boolean;
   validationChecklist: ValidationChecklist;
   soundEnabled: boolean;
@@ -22,6 +23,7 @@ export interface UserSettings {
 }
 
 const defaultSettings: UserSettings = {
+  updatedAt: 0,
   hasSeenOnboarding: false,
   validationChecklist: {},
   soundEnabled: false,
@@ -62,10 +64,10 @@ const readLocalSettings = (userId?: string): UserSettings => {
 };
 
 const writeLocalSettings = (userId: string | undefined, settings: UserSettings) => {
-  if (!userId || typeof window === "undefined") return;
+  if (!userId || typeof window === "undefined") return Promise.resolve();
   const serialized = JSON.stringify(settings);
   window.localStorage.setItem(settingsKey(userId), serialized);
-  void nativeStorage.setItem(settingsKey(userId), serialized);
+  return nativeStorage.setItem(settingsKey(userId), serialized);
 };
 
 export function useUserSettings(userId?: string) {
@@ -78,15 +80,16 @@ export function useUserSettings(userId?: string) {
     nativeStorage.getItem(settingsKey(userId)).then((raw) => {
       if (!active) return;
       const localRaw = window.localStorage.getItem(settingsKey(userId));
-      if (localRaw) {
-        void nativeStorage.setItem(settingsKey(userId), localRaw);
-        return;
-      }
-      if (!raw) return;
       try {
-        const parsed = JSON.parse(raw) as Partial<UserSettings>;
+        const localParsed = localRaw ? JSON.parse(localRaw) as Partial<UserSettings> : null;
+        const nativeParsed = raw ? JSON.parse(raw) as Partial<UserSettings> : null;
+        const parsed = localParsed && nativeParsed
+          ? ((localParsed.updatedAt || 0) >= (nativeParsed.updatedAt || 0) ? localParsed : nativeParsed)
+          : localParsed || nativeParsed;
+        if (!parsed) return;
         const stored = { ...defaultSettings, ...parsed, profile: { ...defaultSettings.profile, ...parsed.profile } } as UserSettings;
         window.localStorage.setItem(settingsKey(userId), JSON.stringify(stored));
+        void nativeStorage.setItem(settingsKey(userId), JSON.stringify(stored));
         setSettings(stored);
       } catch {
         // Mantém as configurações locais válidas quando o registro nativo estiver corrompido.
@@ -103,10 +106,11 @@ export function useUserSettings(userId?: string) {
       const next = {
         ...current,
         ...updates,
+        updatedAt: Date.now(),
         validationChecklist: updates.validationChecklist || current.validationChecklist,
         profile: updates.profile ? { ...current.profile, ...updates.profile } : current.profile,
       };
-      writeLocalSettings(userId, next);
+      void writeLocalSettings(userId, next);
       return next;
     });
   }, [userId]);
@@ -120,14 +124,22 @@ export function useUserSettings(userId?: string) {
     setSettings((current) => {
       const next = {
         ...current,
+        updatedAt: Date.now(),
         validationChecklist: {
           ...current.validationChecklist,
           [itemId]: checked,
         },
       };
-      writeLocalSettings(userId, next);
+      void writeLocalSettings(userId, next);
       return next;
     });
+  }, [userId]);
+
+  const forceSaveSettings = useCallback(async (nextSettings: UserSettings) => {
+    if (!userId) return;
+    const next = { ...nextSettings, updatedAt: Date.now() };
+    setSettings(next);
+    await writeLocalSettings(userId, next);
   }, [userId]);
 
   return useMemo(() => ({
@@ -135,7 +147,8 @@ export function useUserSettings(userId?: string) {
     setHasSeenOnboarding,
     setChecklistItem,
     updateSettings,
-  }), [settings, setChecklistItem, setHasSeenOnboarding, updateSettings]);
+    forceSaveSettings,
+  }), [forceSaveSettings, settings, setChecklistItem, setHasSeenOnboarding, updateSettings]);
 }
 
 export async function syncPendingUserProfile(userId: string) {
@@ -154,7 +167,7 @@ export async function syncPendingUserProfile(userId: string) {
       },
     });
     if (error) throw error;
-    writeLocalSettings(userId, { ...settings, profileSyncPending: false });
+    await writeLocalSettings(userId, { ...settings, updatedAt: Date.now(), profileSyncPending: false });
     return true;
   } catch {
     return false;
