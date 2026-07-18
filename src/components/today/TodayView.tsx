@@ -1,28 +1,16 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  addDays,
-  eachDayOfInterval,
-  endOfMonth,
-  format,
-  getDay,
-  isSameDay,
-  parseISO,
-  startOfMonth,
-} from "date-fns";
+import { format } from "date-fns";
 import {
   ArrowRight,
-  CalendarDays,
   Check,
   CheckCircle2,
-  Clock3,
   Link2,
   ListChecks,
   Loader2,
   NotebookPen,
   Pin,
   Plus,
-  Search,
   Sparkles,
   Tag,
 } from "lucide-react";
@@ -54,10 +42,8 @@ interface TodayViewProps {
   onOpenAdvancedCapture: (mode: CaptureMode) => void;
   onOpenTasks: () => void;
   onOpenNotes: () => void;
-  onOpenCalendar: () => void;
   onOpenNote: (page: Page) => void;
   onToggleTaskStatus: (task: WeeklyTask) => void;
-  onCreateTaskFromPage: (page: Page) => void;
   gamification: GamificationStats;
 }
 
@@ -83,10 +69,8 @@ export function TodayView({
   onOpenAdvancedCapture,
   onOpenTasks,
   onOpenNotes,
-  onOpenCalendar,
   onOpenNote,
   onToggleTaskStatus,
-  onCreateTaskFromPage,
   gamification,
 }: TodayViewProps) {
   const [captureText, setCaptureText] = useState("");
@@ -97,7 +81,7 @@ export function TodayView({
 
   const todayTasks = useMemo(() => {
     return tasks
-      .filter((task) => task.task_date === todayKey)
+      .filter((task) => task.task_date === todayKey && task.status === "pending")
       .sort((a, b) => {
         if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
         if (priorityRank[a.priority] !== priorityRank[b.priority]) {
@@ -119,16 +103,6 @@ export function TodayView({
       })
       .slice(0, 6);
   }, [notes]);
-
-  const stats = useMemo(() => {
-    const pending = tasks.filter((task) => task.status === "pending").length;
-    const completed = tasks.filter((task) => task.status === "completed").length;
-    const openReasons = tasks.reduce(
-      (total, task) => total + task.pending_reasons.filter((reason) => !reason.completed_at).length,
-      0
-    );
-    return { total: tasks.length, pending, completed, openReasons };
-  }, [tasks]);
 
   const handleSave = async () => {
     const text = captureText.trim();
@@ -177,14 +151,9 @@ export function TodayView({
           loading={notesLoading}
           onOpenNotes={onOpenNotes}
           onOpenNote={onOpenNote}
-          onCreateTaskFromPage={onCreateTaskFromPage}
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <CompactStats stats={stats} />
-        <CollapsibleCalendar tasks={tasks} onOpenCalendar={onOpenCalendar} />
-      </div>
     </div>
   );
 }
@@ -302,8 +271,7 @@ function TodayPriorities({
     <section className="space-y-3 rounded-lg border border-border/65 bg-card/70 p-3 shadow-sm ring-1 ring-white/5 sm:p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold">Prioridades de hoje</h2>
-          <p className="text-sm text-muted-foreground">O que precisa avançar hoje.</p>
+          <h2 className="text-base font-semibold">Tarefas de hoje</h2>
         </div>
         <Button variant="outline" size="sm" className="h-10 w-full sm:h-9 sm:w-auto" onClick={onOpenTasks}>
           Ver todas as tarefas
@@ -315,10 +283,7 @@ function TodayPriorities({
       ) : tasks.length === 0 ? (
         <EmptyPanel
           icon={ListChecks}
-          title="Nada urgente por agora."
-          text="Crie uma tarefa ou transforme uma anotação em ação."
-          cta="Criar tarefa"
-          onAction={onOpenTasks}
+          title="Nenhuma tarefa"
         />
       ) : (
         <div className="grid gap-2">
@@ -348,7 +313,7 @@ function TodayPriorities({
                       {task.assignee && <Badge variant="secondary" className="rounded">{task.assignee}</Badge>}
                       {task.progress_target && (
                         <Badge variant="outline" className="rounded">
-                          Meta {task.progress_current}/{task.progress_target}
+                          Quantidade {task.progress_current}/{task.progress_target}
                         </Badge>
                       )}
                       {task.source_note_title && (
@@ -387,20 +352,17 @@ function RecentNotes({
   loading,
   onOpenNotes,
   onOpenNote,
-  onCreateTaskFromPage,
 }: {
   notes: Page[];
   loading: boolean;
   onOpenNotes: () => void;
   onOpenNote: (page: Page) => void;
-  onCreateTaskFromPage: (page: Page) => void;
 }) {
   return (
     <section className="space-y-3 rounded-lg border border-border/65 bg-card/70 p-3 shadow-sm ring-1 ring-white/5 sm:p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-base font-semibold">Anotações recentes</h2>
-          <p className="text-sm text-muted-foreground">Suas últimas ideias, links e checklists.</p>
         </div>
         {notes.length > 0 && (
           <Button variant="outline" size="sm" className="h-10 w-full sm:h-9 sm:w-auto" onClick={onOpenNotes}>
@@ -451,131 +413,11 @@ function RecentNotes({
                     Link
                   </Badge>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-10 w-full justify-center gap-1 sm:ml-auto sm:h-8 sm:w-auto"
-                  onClick={() => onCreateTaskFromPage(page)}
-                >
-                  <ListChecks className="h-3.5 w-3.5" />
-                  Criar tarefa
-                </Button>
               </div>
             </article>
           ))}
         </div>
 
-      )}
-    </section>
-  );
-}
-
-function CompactStats({
-  stats,
-}: {
-  stats: { total: number; pending: number; completed: number; openReasons: number };
-}) {
-  const items = [
-    { label: "Total", value: stats.total, icon: ListChecks },
-    { label: "Pendentes", value: stats.pending, icon: Clock3 },
-    { label: "Concluídas", value: stats.completed, icon: CheckCircle2 },
-  ];
-
-  return (
-    <section className="rounded-lg border border-border/60 bg-card/60 p-3 sm:p-4">
-      <div className="mb-3">
-        <h2 className="text-sm font-semibold">Resumo</h2>
-        <p className="text-xs text-muted-foreground">Um pulso rápido da sua execução.</p>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="rounded-md border border-border/50 bg-background/35 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <Icon className="h-4 w-4 text-primary" />
-                <span className="text-xl font-semibold">{item.value}</span>
-              </div>
-              <div className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground">{item.label}</div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function CollapsibleCalendar({
-  tasks,
-  onOpenCalendar,
-}: {
-  tasks: WeeklyTask[];
-  onOpenCalendar: () => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const today = new Date();
-  const monthDays = eachDayOfInterval({ start: startOfMonth(today), end: endOfMonth(today) });
-  const offset = (getDay(monthDays[0]) + 6) % 7;
-  const visibleDays = [...Array.from({ length: offset }, (_, index) => addDays(monthDays[0], -offset + index)), ...monthDays];
-
-  const countTasksOnDay = (day: Date) =>
-    tasks.filter((task) => {
-      if (!task.task_date) return false;
-      return isSameDay(parseISO(task.task_date), day);
-    }).length;
-
-  return (
-    <section className="rounded-lg border border-border/60 bg-card/60 p-3 sm:p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <CalendarDays className="h-4 w-4 text-primary" />
-            Planejamento
-          </h2>
-          <p className="text-xs text-muted-foreground">Calendário compacto para não roubar o foco.</p>
-        </div>
-        <Button variant="outline" size="sm" className="h-9" onClick={onOpenCalendar}>
-          Abrir calendário
-        </Button>
-      </div>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mt-3 h-9 w-full justify-between"
-        onClick={() => setExpanded((current) => !current)}
-      >
-        <span>{format(today, "MMMM yyyy")}</span>
-        <span>{expanded ? "Recolher" : "Ver calendário"}</span>
-      </Button>
-
-      {expanded && (
-        <div className="mt-3">
-          <div className="mb-1 grid grid-cols-7 text-center text-[10px] uppercase text-muted-foreground">
-            {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => (
-              <div key={day}>{day}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {visibleDays.map((day) => {
-              const inMonth = day.getMonth() === today.getMonth();
-              const count = countTasksOnDay(day);
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={cn(
-                    "flex h-9 flex-col items-center justify-center rounded border border-border/45 text-[11px]",
-                    isSameDay(day, today) && "border-primary/60 bg-primary/10 text-primary",
-                    !inMonth && "opacity-35"
-                  )}
-                >
-                  <span>{format(day, "dd")}</span>
-                  {count > 0 && <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-warning" />}
-                </div>
-              );
-            })}
-          </div>
-        </div>
       )}
     </section>
   );
@@ -592,13 +434,13 @@ function LoadingPanel() {
 function EmptyPanel({
   icon: Icon,
   title,
-  text,
+  text = "",
   cta,
   onAction,
 }: {
   icon: React.ElementType;
   title: string;
-  text: string;
+  text?: string;
   cta?: string;
   onAction?: () => void;
 }) {
@@ -606,7 +448,7 @@ function EmptyPanel({
     <div className="rounded-md border border-dashed border-border bg-background/35 p-6 text-center">
       <Icon className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
       <p className="text-sm font-medium text-foreground">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">{text}</p>
+      {text && <p className="mt-1 text-sm leading-6 text-muted-foreground">{text}</p>}
       {cta && onAction && (
         <Button variant="outline" size="sm" className="mt-3 h-9" onClick={onAction}>
           {cta}

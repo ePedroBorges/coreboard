@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { Database } from "@/integrations/supabase/types";
+import { hasNetworkConnection, isNetworkError, queueOfflineOperation } from "@/lib/offlineData";
 
 export type TaskStatus = "pending" | "completed";
 export type Priority = "low" | "medium" | "high";
@@ -199,7 +200,9 @@ export function useWeeklyTasks() {
   const createTask = useMutation({
     mutationFn: async ({ title, description, assignee, priority, progress_target, task_date, notebook_id, source_note_id, source_note_title, source_notebook_title }: CreateTaskInput) => {
       const day = task_date || todayKey();
+      const now = new Date().toISOString();
       const basePayload = {
+        id: crypto.randomUUID(),
         title,
         description: description?.trim() || null,
         assignee: assignee?.trim() || null,
@@ -210,6 +213,8 @@ export function useWeeklyTasks() {
         task_date: day,
         week_start: format(startOfWeek(parseISO(day), { weekStartsOn: 1 }), "yyyy-MM-dd"),
         status: "pending" as DbTaskStatus,
+        created_at: now,
+        updated_at: now,
       } satisfies Omit<WeeklyTaskInsert, "notebook_id">;
 
       let payload: WeeklyTaskInsert = {
@@ -219,6 +224,16 @@ export function useWeeklyTasks() {
         ...(source_note_title ? { source_note_title } : {}),
         ...(source_notebook_title ? { source_notebook_title } : {}),
       };
+
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "upsert",
+          recordId: payload.id!,
+          payload: payload as Record<string, unknown>,
+        });
+        return payload as WeeklyTaskRow;
+      }
 
       let result = await supabase
         .from("weekly_tasks")
@@ -250,6 +265,15 @@ export function useWeeklyTasks() {
           .single();
       }
 
+      if (result.error && isNetworkError(result.error)) {
+        await queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "upsert",
+          recordId: payload.id!,
+          payload: payload as Record<string, unknown>,
+        });
+        return payload as WeeklyTaskRow;
+      }
       if (result.error) throw result.error;
       return result.data;
     },
@@ -261,6 +285,23 @@ export function useWeeklyTasks() {
           source_note_title: variables.source_note_title,
           source_notebook_title: variables.source_notebook_title,
         });
+      }
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) => {
+        if (!current || current.some((task) => task.id === createdTask.id)) return current;
+        return [{
+          ...createdTask,
+          status: createdTask.status === "completed" ? "completed" : "pending",
+          assignee: createdTask.assignee || null,
+          priority: (createdTask.priority || "medium") as Priority,
+          progress_current: createdTask.progress_current ?? 0,
+          progress_target: createdTask.progress_target ?? null,
+          completed_at: createdTask.completed_at || null,
+          pending_reasons: [],
+        } as WeeklyTask, ...current];
+      });
+      if (!hasNetworkConnection()) {
+        toast.success("Tarefa salva no dispositivo. Será sincronizada quando a conexão voltar.");
+        return;
       }
       invalidateTasks();
       toast.success(variables.source_note_id ? "Tarefa criada a partir da anotação." : "Tarefa criada.");
@@ -292,6 +333,18 @@ export function useWeeklyTasks() {
         payload.week_start = format(startOfWeek(parseISO(updates.task_date), { weekStartsOn: 1 }), "yyyy-MM-dd");
       }
 
+      payload.updated_at = new Date().toISOString();
+
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, payload };
+      }
+
       
 
       let result = await supabase.from("weekly_tasks").update(payload).eq("id", id);
@@ -318,9 +371,23 @@ export function useWeeklyTasks() {
           ...(source_notebook_title !== undefined ? { source_notebook_title } : {}),
         });
       }
+      if (result.error && isNetworkError(result.error)) {
+        await queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, payload };
+      }
       if (result.error) throw result.error;
+      return { id, payload };
     },
-    onSuccess: invalidateTasks,
+    onSuccess: ({ id, payload }) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
+        current?.map((task) => task.id === id ? { ...task, ...payload } as WeeklyTask : task));
+      if (hasNetworkConnection()) invalidateTasks();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -344,6 +411,16 @@ export function useWeeklyTasks() {
         source_notebook_title
       );
 
+      if (!hasNetworkConnection()) {
+        await Promise.all(matchingTasks.map((task) => queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "update",
+          recordId: task.id,
+          payload: { notebook_id, source_notebook_title, updated_at: new Date().toISOString() },
+        })));
+        return matchingTasks.length;
+      }
+
       let result = await supabase
         .from("weekly_tasks")
         .update({ notebook_id, source_notebook_title } satisfies WeeklyTaskUpdate)
@@ -354,11 +431,26 @@ export function useWeeklyTasks() {
           .update({ notebook_id } satisfies WeeklyTaskUpdate)
           .in("id", matchingTasks.map((task) => task.id));
       }
+      if (result.error && isNetworkError(result.error)) {
+        await Promise.all(matchingTasks.map((task) => queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "update",
+          recordId: task.id,
+          payload: { notebook_id, source_notebook_title, updated_at: new Date().toISOString() },
+        })));
+        return matchingTasks.length;
+      }
       if (result.error && !isMissingNotebookColumnError(result.error)) throw result.error;
 
       return matchingTasks.length;
     },
-    onSuccess: invalidateTasks,
+    onSuccess: (_count, variables) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) => current?.map((task) =>
+        task.source_note_id === variables.source_note_id
+          ? { ...task, notebook_id: variables.notebook_id, source_notebook_title: variables.source_notebook_title }
+          : task));
+      if (hasNetworkConnection()) invalidateTasks();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -381,20 +473,54 @@ export function useWeeklyTasks() {
         payload.status = "completed";
         payload.completed_at = new Date().toISOString();
       }
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, payload };
+      }
       const { error } = await supabase.from("weekly_tasks").update(payload).eq("id", id);
+      if (error && isNetworkError(error)) {
+        await queueOfflineOperation(user!.id, {
+          table: "weekly_tasks",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, payload };
+      }
       if (error) throw error;
+      return { id, payload };
     },
-    onSuccess: invalidateTasks,
+    onSuccess: ({ id, payload }) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) => current?.map((task) =>
+        task.id === id ? { ...task, ...payload } as WeeklyTask : task));
+      if (hasNetworkConnection()) invalidateTasks();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteTask = useMutation({
     mutationFn: async (id: string) => {
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, { table: "weekly_tasks", action: "delete", recordId: id });
+        return id;
+      }
       const { error } = await supabase.from("weekly_tasks").delete().eq("id", id);
+      if (error && isNetworkError(error)) {
+        await queueOfflineOperation(user!.id, { table: "weekly_tasks", action: "delete", recordId: id });
+        return id;
+      }
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
-      invalidateTasks();
+    onSuccess: (id) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
+        current?.filter((task) => task.id !== id));
+      if (hasNetworkConnection()) invalidateTasks();
       toast.success("Tarefa removida");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -402,7 +528,9 @@ export function useWeeklyTasks() {
 
   const addPendingReason = useMutation({
     mutationFn: async ({ taskId, reason, description, responsible, priority, progress_target }: AddPendingReasonInput) => {
+      const now = new Date().toISOString();
       const payload: PendingReasonInsert = {
+        id: crypto.randomUUID(),
         task_id: taskId,
         user_id: user!.id,
         reason,
@@ -411,7 +539,17 @@ export function useWeeklyTasks() {
         priority: priority || "medium",
         progress_target: progress_target ?? null,
         progress_current: 0,
+        created_at: now,
       };
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "upsert",
+          recordId: payload.id!,
+          payload: payload as Record<string, unknown>,
+        });
+        return payload as TaskPendingReason;
+      }
       let result = await supabase.from("task_pending_reasons").insert(payload);
       if (result.error && description && isMissingOptionalTaskColumnError(result.error)) {
         const { description: _description, ...fallbackPayload } = payload;
@@ -419,10 +557,24 @@ export function useWeeklyTasks() {
         result = await supabase.from("task_pending_reasons").insert(fallbackPayload);
       }
 
+      if (result.error && isNetworkError(result.error)) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "upsert",
+          recordId: payload.id!,
+          payload: payload as Record<string, unknown>,
+        });
+        return payload as TaskPendingReason;
+      }
       if (result.error) throw result.error;
+      return payload as TaskPendingReason;
     },
-    onSuccess: () => {
-      invalidateTasks();
+    onSuccess: (reason) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
+        current?.map((task) => task.id === reason.task_id
+          ? { ...task, pending_reasons: [...task.pending_reasons, { ...reason, completed_at: reason.completed_at || null }] }
+          : task));
+      if (hasNetworkConnection()) invalidateTasks();
       toast.success("Subtarefa adicionada");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -431,6 +583,15 @@ export function useWeeklyTasks() {
   const updatePendingReason = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<TaskPendingReason> & { id: string }) => {
       const payload: PendingReasonUpdate = { ...updates };
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, updates };
+      }
       let result = await supabase
         .from("task_pending_reasons")
         .update(payload)
@@ -443,9 +604,26 @@ export function useWeeklyTasks() {
           .update(fallbackPayload)
           .eq("id", id);
       }
+      if (result.error && isNetworkError(result.error)) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, updates };
+      }
       if (result.error) throw result.error;
+      return { id, updates };
     },
-    onSuccess: invalidateTasks,
+    onSuccess: ({ id, updates }) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
+        current?.map((task) => ({
+          ...task,
+          pending_reasons: task.pending_reasons.map((reason) => reason.id === id ? { ...reason, ...updates } : reason),
+        })));
+      if (hasNetworkConnection()) invalidateTasks();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -466,32 +644,100 @@ export function useWeeklyTasks() {
       if (target && next >= target) {
         payload.completed_at = new Date().toISOString();
       }
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, payload };
+      }
       const { error } = await supabase.from("task_pending_reasons").update(payload).eq("id", id);
+      if (error && isNetworkError(error)) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "update",
+          recordId: id,
+          payload: payload as Record<string, unknown>,
+        });
+        return { id, payload };
+      }
       if (error) throw error;
+      return { id, payload };
     },
-    onSuccess: invalidateTasks,
+    onSuccess: ({ id, payload }) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) => current?.map((task) => ({
+        ...task,
+        pending_reasons: task.pending_reasons.map((reason) => reason.id === id ? { ...reason, ...payload } : reason),
+      })));
+      if (hasNetworkConnection()) invalidateTasks();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const deletePendingReason = useMutation({
     mutationFn: async (id: string) => {
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, { table: "task_pending_reasons", action: "delete", recordId: id });
+        return id;
+      }
       const { error } = await supabase.from("task_pending_reasons").delete().eq("id", id);
+      if (error && isNetworkError(error)) {
+        await queueOfflineOperation(user!.id, { table: "task_pending_reasons", action: "delete", recordId: id });
+        return id;
+      }
       if (error) throw error;
+      return id;
     },
-    onSuccess: invalidateTasks,
+    onSuccess: (id) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
+        current?.map((task) => ({
+          ...task,
+          pending_reasons: task.pending_reasons.filter((reason) => reason.id !== id),
+        })));
+      if (hasNetworkConnection()) invalidateTasks();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const completePendingReason = useMutation({
     mutationFn: async (id: string) => {
+      const completed_at = new Date().toISOString();
+      if (!hasNetworkConnection()) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "update",
+          recordId: id,
+          payload: { completed_at },
+        });
+        return { id, completed_at };
+      }
       const { error } = await supabase
         .from("task_pending_reasons")
-        .update({ completed_at: new Date().toISOString() } satisfies PendingReasonUpdate)
+        .update({ completed_at } satisfies PendingReasonUpdate)
         .eq("id", id);
 
+      if (error && isNetworkError(error)) {
+        await queueOfflineOperation(user!.id, {
+          table: "task_pending_reasons",
+          action: "update",
+          recordId: id,
+          payload: { completed_at },
+        });
+        return { id, completed_at };
+      }
       if (error) throw error;
+      return { id, completed_at };
     },
-    onSuccess: invalidateTasks,
+    onSuccess: ({ id, completed_at }) => {
+      queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
+        current?.map((task) => ({
+          ...task,
+          pending_reasons: task.pending_reasons.map((reason) => reason.id === id ? { ...reason, completed_at } : reason),
+        })));
+      if (hasNetworkConnection()) invalidateTasks();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 

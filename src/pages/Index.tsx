@@ -7,8 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNotebooks } from "@/hooks/useNotebooks";
 import { usePages, useFavoritePages, useAllPages } from "@/hooks/usePages";
 import { Priority, useWeeklyTasks, WeeklyTask } from "@/hooks/useWeeklyTasks";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useOfflineDataSync } from "@/hooks/useOfflineDataSync";
 import { clearInitialOnboardingMarker, shouldShowInitialOnboarding, useUserSettings } from "@/hooks/useUserSettings";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -122,12 +122,13 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [notesFilter, setNotesFilter] = useState<NotesFilter>("all");
   const [taskSourcePage, setTaskSourcePage] = useState<Page | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [navigationStack, setNavigationStack] = useState<AppNavigationState[]>([]);
   const [pinnedNotebookIds, setPinnedNotebookIds] = useState<string[]>([]);
   const [pinnedTaskIds, setPinnedTaskIds] = useState<string[]>([]);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const isMobile = useIsMobile();
   const userSettings = useUserSettings(user?.id);
+  useOfflineDataSync(user?.id);
 
   const notebooks = useNotebooks();
   const pages = usePages(selectedNotebookId || undefined);
@@ -142,7 +143,6 @@ const Index = () => {
   const defaultNotebookId = generalNotebook?.id;
   const selectedPage = pages.data?.find((p) => p.id === selectedPageId) || allPages.data?.find((p) => p.id === selectedPageId);
   const sidebarOpen = sidebarPinned;
-  const searchPlaceholder = isMobile ? "Buscar..." : "Buscar tarefas, anotações, pastas, links ou tags...";
   const notebookTitleById = useMemo(() => {
     const map = new Map<string, string>();
     (notebooks.data || []).forEach((notebook) => map.set(notebook.id, notebook.title));
@@ -478,7 +478,8 @@ const Index = () => {
     setActiveView("tasks");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
-    setSearchQuery(task.title);
+    setSearchQuery("");
+    setSelectedTaskId(task.id);
   }, [pushNavigationState]);
 
   const handleDeleteNotebook = useCallback((id: string, targetNotebookId?: string) => {
@@ -569,7 +570,7 @@ const Index = () => {
     >
 
       <div className="flex h-svh min-h-0 w-full overflow-hidden">
-        <AppSidebar
+        {!(focusMode && selectedPageId) && <AppSidebar
           activeView={activeView}
           onToggleSidebarPinned={() => setSidebarPinned((current) => !current)}
           onMouseLeave={() => undefined}
@@ -584,31 +585,18 @@ const Index = () => {
           onOpenPage={openPage}
           onSelectTasks={handleSelectTasks}
           onOpenSettings={handleSelectSettings}
-        />
+        />}
 
         <div className="flex-1 flex flex-col min-w-0">
-          <AppHeader
+          {!(focusMode && selectedPageId) && <AppHeader
             canGoBack={navigationStack.length > 0}
+            showSearch={!selectedPageId && ["today", "notes", "tasks", "calendar"].includes(activeView)}
             onBack={handleGoBack}
+            onOpenSearch={() => setCommandPaletteOpen(true)}
             onOpenSettings={handleSelectSettings}
-          />
+          />}
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="shrink-0 border-b border-border/60 bg-background/80 px-3 py-3 backdrop-blur sm:px-4">
-              <div className="mx-auto max-w-6xl">
-                <div className="relative min-w-0 flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder={searchPlaceholder}
-                    className="h-10 w-full pl-9 text-base md:h-11 md:text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(6.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] lg:pb-0">
             {normalizedSearch ? (
               <GlobalSearchResults
@@ -632,13 +620,11 @@ const Index = () => {
                 onOpenAdvancedCapture={(mode) => openQuickCapture(undefined, mode)}
                 onOpenTasks={handleSelectTasks}
                 onOpenNotes={handleSelectNotes}
-                onOpenCalendar={handleSelectCalendar}
                 onOpenNote={openPage}
                 onToggleTaskStatus={(task) => tasks.updateTask.mutate({
                   id: task.id,
                   status: task.status === "completed" ? "pending" : "completed",
                 })}
-                onCreateTaskFromPage={createTaskFromPage}
                 gamification={gamification}
               />
             ) : activeView === "tasks" || activeView === "calendar" ? (
@@ -647,6 +633,7 @@ const Index = () => {
                 defaultNotebookId={defaultNotebookId}
                 pinnedTaskIds={pinnedTaskIds}
                 onTogglePinnedTask={togglePinnedTask}
+                selectedTaskId={selectedTaskId}
               />
             ) : activeView === "notes" ? (
               <FolderLibrary
@@ -705,6 +692,7 @@ const Index = () => {
                   });
                 }}
                 focusMode={focusMode}
+                onEnterFocus={() => setFocusMode(true)}
                 onExitFocus={() => setFocusMode(false)}
                 onCreateTaskFromPage={createTaskFromPage}
                 linkedTasks={normalizedTasks.filter((task) => task.source_note_id === selectedPage.id)}

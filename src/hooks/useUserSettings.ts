@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { nativeStorage } from "@/lib/nativeStorage";
 
 export type ValidationChecklist = Record<string, boolean>;
 
@@ -42,7 +43,9 @@ const readLocalSettings = (userId?: string): UserSettings => {
 
 const writeLocalSettings = (userId: string | undefined, settings: UserSettings) => {
   if (!userId || typeof window === "undefined") return;
-  window.localStorage.setItem(settingsKey(userId), JSON.stringify(settings));
+  const serialized = JSON.stringify(settings);
+  window.localStorage.setItem(settingsKey(userId), serialized);
+  void nativeStorage.setItem(settingsKey(userId), serialized);
 };
 
 export function useUserSettings(userId?: string) {
@@ -50,6 +53,21 @@ export function useUserSettings(userId?: string) {
 
   useEffect(() => {
     setSettings(readLocalSettings(userId));
+    if (!userId) return;
+    let active = true;
+    nativeStorage.getItem(settingsKey(userId)).then((raw) => {
+      if (!active || !raw) return;
+      try {
+        const stored = { ...defaultSettings, ...JSON.parse(raw) } as UserSettings;
+        window.localStorage.setItem(settingsKey(userId), JSON.stringify(stored));
+        setSettings(stored);
+      } catch {
+        // Mantém as configurações locais válidas quando o registro nativo estiver corrompido.
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [userId]);
 
   const updateSettings = useCallback((updates: Partial<UserSettings>) => {

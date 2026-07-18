@@ -20,7 +20,6 @@ import {
   Paperclip,
   RotateCcw,
   Settings,
-  Shapes,
   ShieldCheck,
   Sparkles,
   Sun,
@@ -49,7 +48,8 @@ import { WeeklyTask } from "@/hooks/useWeeklyTasks";
 import { NotificationControls } from "@/hooks/useNotifications";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useTheme } from "@/hooks/useTheme";
-import { COLOR_SCHEME_META, ColorScheme, VISUAL_THEME_META, VisualTheme } from "@/lib/appearance";
+import { AppearanceThemePreset } from "@/lib/appearance";
+import { ThemeLibrary } from "@/components/settings/ThemeLibrary";
 import { useAuth } from "@/hooks/useAuth";
 import { UserSettings } from "@/hooks/useUserSettings";
 import { Notebook, Page } from "@/types/notes";
@@ -108,6 +108,7 @@ export function SettingsView({
   const { signOut, resetPassword } = useAuth();
   const {
     theme,
+    setTheme,
     toggleTheme,
     colorScheme,
     setColorScheme,
@@ -243,26 +244,17 @@ export function SettingsView({
     else toast.success("Enviamos um link de redefinição para seu email.");
   };
 
-  const handleSetColorScheme = (scheme: ColorScheme) => {
-    const meta = COLOR_SCHEME_META[scheme];
-    if (meta.pro && !isPro) {
-      toast.error("Esquema Pro. Assine para desbloquear.");
+  const handleSetAppearanceTheme = (preset: AppearanceThemePreset) => {
+    if (preset.pro && !isPro) {
+      toast.error("Este tema faz parte da personalização Pro.");
       navigate("/planos");
       return;
     }
-    setColorScheme(scheme);
-    toast.success(`Esquema alterado para ${meta.label}.`);
-  };
-
-  const handleSetVisualTheme = (selectedTheme: VisualTheme) => {
-    const meta = VISUAL_THEME_META[selectedTheme];
-    if (meta.pro && !isPro) {
-      toast.error("Tema visual Pro. Assine para desbloquear.");
-      navigate("/planos");
-      return;
-    }
-    setVisualTheme(selectedTheme);
-    toast.success(`Tema visual alterado para ${meta.label}.`);
+    setTheme(preset.mode);
+    setColorScheme(preset.colorScheme);
+    setVisualTheme(preset.visualTheme);
+    setEnhancedEffects(Boolean(preset.enhancedEffects));
+    toast.success(`Tema ${preset.label} aplicado.`);
   };
 
   const handleEnhancedEffectsChange = (enabled: boolean) => {
@@ -407,82 +399,17 @@ export function SettingsView({
             </div>
           </SettingsCard>
 
-          <SettingsCard title="Esquemas de cores" icon={Palette}>
-            <p className="mb-3 text-sm leading-6 text-muted-foreground">
-              O esquema define as cores de ação e destaque sem mudar a estrutura visual.
+          <SettingsCard title="Biblioteca de temas" icon={Palette}>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Cada tema combina cores, modo, superfícies, tipografia e movimento. Abra uma categoria para explorar.
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {(Object.keys(COLOR_SCHEME_META) as ColorScheme[]).map((v) => {
-                const meta = COLOR_SCHEME_META[v];
-                const locked = meta.pro && !isPro;
-                const active = colorScheme === v;
-                return (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => handleSetColorScheme(v)}
-                    className={cn(
-                      "group relative flex flex-col items-start gap-2 rounded-md border p-3 text-left transition-all hover:border-primary/60",
-                      active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 bg-background/40",
-                    )}
-                    aria-pressed={active}
-                  >
-                    <div className="flex w-full items-center justify-between">
-                      <span className="flex -space-x-1" aria-hidden="true">
-                        {meta.swatches.map((swatch) => (
-                          <span key={swatch} className="h-6 w-6 rounded-full border-2 border-background" style={{ backgroundColor: swatch }} />
-                        ))}
-                      </span>
-                      {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                      {active && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                        {meta.label}
-                        {meta.pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
-                      </div>
-                      <p className="mt-0.5 text-xs leading-tight text-muted-foreground">{meta.description}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </SettingsCard>
-
-          <SettingsCard title="Temas visuais" icon={Shapes}>
-            <p className="mb-3 text-sm leading-6 text-muted-foreground">
-              Temas mudam superfícies, tipografia, contornos, sombras e densidade do aplicativo.
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(Object.keys(VISUAL_THEME_META) as VisualTheme[]).map((selectedTheme) => {
-                const meta = VISUAL_THEME_META[selectedTheme];
-                const locked = meta.pro && !isPro;
-                const active = visualTheme === selectedTheme;
-                return (
-                  <button
-                    key={selectedTheme}
-                    type="button"
-                    onClick={() => handleSetVisualTheme(selectedTheme)}
-                    className={cn(
-                      "group grid min-h-28 grid-cols-[5.5rem_1fr] gap-3 rounded-md border p-3 text-left transition-all hover:border-primary/60",
-                      active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60 bg-background/40",
-                    )}
-                    aria-pressed={active}
-                  >
-                    <ThemePreview theme={selectedTheme} colors={meta.preview} />
-                    <span className="min-w-0">
-                      <span className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-foreground">
-                        {meta.label}
-                        {meta.pro && <Badge variant={locked ? "outline" : "secondary"} className="h-4 px-1 text-[10px]">PRO</Badge>}
-                        {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
-                        {active && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                      </span>
-                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">{meta.description}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <ThemeLibrary
+              mode={theme}
+              colorScheme={colorScheme}
+              visualTheme={visualTheme}
+              isPro={isPro}
+              onSelect={handleSetAppearanceTheme}
+            />
           </SettingsCard>
 
           <SettingsCard title="Conforto e efeitos" icon={Layers3}>
@@ -697,33 +624,6 @@ export function SettingsView({
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function ThemePreview({
-  theme,
-  colors,
-}: {
-  theme: VisualTheme;
-  colors: [string, string, string];
-}) {
-  return (
-    <span
-      className={cn("theme-preview", `theme-preview-${theme}`)}
-      style={{
-        "--preview-background": colors[0],
-        "--preview-surface": colors[1],
-        "--preview-accent": colors[2],
-      } as React.CSSProperties}
-      aria-hidden="true"
-    >
-      <span className="theme-preview-sidebar" />
-      <span className="theme-preview-content">
-        <span className="theme-preview-title" />
-        <span className="theme-preview-line" />
-        <span className="theme-preview-card" />
-      </span>
-    </span>
   );
 }
 

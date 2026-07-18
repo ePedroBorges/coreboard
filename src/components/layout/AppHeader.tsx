@@ -1,15 +1,17 @@
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { ArrowLeft, ClipboardList } from "lucide-react";
+import { ArrowLeft, ClipboardList, Search } from "lucide-react";
 
 interface AppHeaderProps {
   canGoBack: boolean;
+  showSearch?: boolean;
   onBack: () => void;
+  onOpenSearch?: () => void;
   onOpenSettings: () => void;
 }
 
-export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps) {
+export function AppHeader({ canGoBack, showSearch = true, onBack, onOpenSearch, onOpenSettings }: AppHeaderProps) {
   return (
     <header
       className="z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-2 backdrop-blur"
@@ -43,8 +45,20 @@ export function AppHeader({ canGoBack, onBack, onOpenSettings }: AppHeaderProps)
         )}
       </div>
 
-      <div className="hidden lg:block">
-        <ProfileMenu onOpenSettings={onOpenSettings} />
+      <div className="flex items-center gap-1">
+        {showSearch && onOpenSearch && <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10"
+          onClick={onOpenSearch}
+          title="Busca global"
+          aria-label="Abrir busca global"
+        >
+          <Search className="h-4 w-4" />
+        </Button>}
+        <div className="hidden lg:block">
+          <ProfileMenu onOpenSettings={onOpenSettings} />
+        </div>
       </div>
     </header>
   );

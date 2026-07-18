@@ -5,15 +5,12 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Clock3,
   ListChecks,
   Loader2,
   Pencil,
   Pin,
   Plus,
-  Sparkles,
   Target,
   Trash2,
   UserRound,
@@ -72,6 +69,7 @@ interface WeeklyTaskManagerProps {
   defaultNotebookId?: string;
   pinnedTaskIds?: string[];
   onTogglePinnedTask?: (taskId: string) => void;
+  selectedTaskId?: string | null;
 }
 
 export function WeeklyTaskManager({
@@ -79,6 +77,7 @@ export function WeeklyTaskManager({
   defaultNotebookId,
   pinnedTaskIds = [],
   onTogglePinnedTask,
+  selectedTaskId,
 }: WeeklyTaskManagerProps) {
   const today = new Date();
   const [view, setView] = useState<"day" | "pending" | "completed" | "all">("day");
@@ -106,6 +105,10 @@ export function WeeklyTaskManager({
     deletePendingReason,
     completePendingReason,
   } = useWeeklyTasks();
+
+  useEffect(() => {
+    if (selectedTaskId && tasks.some((task) => task.id === selectedTaskId)) setView("all");
+  }, [selectedTaskId, tasks]);
 
   const stats = useMemo(() => {
     const pending = tasks.filter((task) => task.status === "pending").length;
@@ -250,12 +253,10 @@ export function WeeklyTaskManager({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:p-6 md:gap-4 lg:gap-6">
       <section className="space-y-2 md:hidden">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tarefas</h1>
-        <p className="text-sm leading-6 text-muted-foreground">Planeje e conclua suas prioridades.</p>
-        <div className="grid grid-cols-2 gap-2">
-          <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
-          <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
-          <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
-        </div>
+        <Button className="h-11 w-full gap-2" onClick={() => setTaskDialogOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Nova tarefa
+        </Button>
         <div className="grid grid-cols-2 gap-1 rounded-md border border-border/60 bg-card/70 p-1">
           {viewTabs.map((item) => (
             <Button
@@ -273,30 +274,21 @@ export function WeeklyTaskManager({
             </Button>
           ))}
         </div>
-        <Button className="h-11 w-full gap-2" onClick={() => setTaskDialogOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Nova tarefa
-        </Button>
       </section>
 
       <section className="hidden overflow-hidden rounded-lg border border-border/70 bg-card/80 shadow-sm ring-1 ring-white/5 md:block">
         <div className="border-b border-border/60 p-4 sm:p-5">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                Execução diária
-              </div>
               <div className="flex items-center gap-1"><h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">Tarefas</h1><ContextHelp text="Organize o que precisa ser feito. Use subtarefas quando uma tarefa tiver etapas menores." /></div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
                 Planeje ações por data, organize subtarefas e conclua prioridades.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 lg:min-w-[480px]">
-              <Metric label="Total" value={stats.total} icon={<ListChecks className="h-4 w-4" />} />
-              <Metric label="Pendentes" value={stats.pending} tone="warning" icon={<Clock3 className="h-4 w-4" />} />
-              <Metric label="Concluídas" value={stats.completed} tone="success" icon={<CheckCircle2 className="h-4 w-4" />} />
-            </div>
+            <Button className="h-11 shrink-0 gap-2" onClick={() => setTaskDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nova tarefa
+            </Button>
           </div>
         </div>
 
@@ -334,93 +326,6 @@ export function WeeklyTaskManager({
             ))}
           </div>
 
-          {view === "day" ? (
-          <div className="rounded-md border border-border/60 bg-background/45 p-3 sm:p-4">
-            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">Nova tarefa</h2>
-                <p className="text-xs text-muted-foreground">Capture uma ação clara para hoje ou para outro dia.</p>
-              </div>
-              <span className="text-xs text-muted-foreground">Pasta e projeto/meta são opcionais.</span>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-6">
-              <Input
-                value={newTitle}
-                onChange={(event) => setNewTitle(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && handleCreateTask()}
-                placeholder="Título da tarefa"
-                className="h-11 bg-card/80 sm:col-span-4"
-              />
-              <Input
-                value={newAssignee}
-                onChange={(event) => setNewAssignee(event.target.value)}
-                placeholder="Responsável"
-                className="h-11 bg-card/60 sm:col-span-2"
-              />
-              <Textarea
-                value={newDescription}
-                onChange={(event) => setNewDescription(event.target.value)}
-                placeholder="Descrição (opcional)"
-                className="min-h-11 resize-none bg-card/80 sm:col-span-6"
-              />
-              <Select value={newNotebookId} onValueChange={setNewNotebookId}>
-                <SelectTrigger className="h-11 bg-card/80 sm:col-span-2">
-                  <SelectValue placeholder="Pasta" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem pasta</SelectItem>
-                  {notebooks.map((notebook) => (
-                    <SelectItem key={notebook.id} value={notebook.id}>
-                      {notebook.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                value={newDate}
-                onChange={(event) => setNewDate(event.target.value)}
-                className="h-11 bg-card/80 sm:col-span-2"
-                aria-label="Dia da tarefa"
-              />
-              <Select value={newPriority} onValueChange={(value) => setNewPriority(value as Priority)}>
-                <SelectTrigger className="h-11 bg-card/80 sm:col-span-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Baixa</SelectItem>
-                  <SelectItem value="medium">Média</SelectItem>
-                  <SelectItem value="high">Alta</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="number"
-                min={1}
-                value={newTarget}
-                onChange={(event) => setNewTarget(event.target.value)}
-                placeholder="Meta"
-                className="h-11 bg-card/80 sm:col-span-1"
-              />
-              <Button
-                onClick={handleCreateTask}
-                className="h-11 w-full gap-2 sm:col-span-6"
-                disabled={!newTitle.trim() || createTask.isPending}
-              >
-                {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Criar tarefa
-              </Button>
-            </div>
-          </div>
-          ) : (
-            <div className="flex flex-col gap-3 rounded-md border border-border/60 bg-background/45 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">{listTitle}</h2>
-                <p className="text-xs leading-5 text-muted-foreground">{listDescription}</p>
-              </div>
-              <Button className="h-10 shrink-0 gap-2" onClick={() => setTaskDialogOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Nova tarefa
-              </Button>
-            </div>
-          )}
         </div>
       </section>
 
@@ -576,6 +481,7 @@ export function WeeklyTaskManager({
                   source_notebook_title: task.source_notebook_title || (task.notebook_id ? notebookTitleById.get(task.notebook_id) : undefined),
                 }}
                 pinned={pinnedTaskIds.includes(task.id)}
+                initiallyOpen={selectedTaskId === task.id}
                 onTogglePinned={() => onTogglePinnedTask?.(task.id)}
                 onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
                 onDelete={() => deleteTask.mutate(task.id)}
@@ -650,7 +556,7 @@ export function WeeklyTaskManager({
               min={1}
               value={newTarget}
               onChange={(event) => setNewTarget(event.target.value)}
-              placeholder="Projeto/Meta"
+              placeholder="Quantidade (opcional)"
               className="h-11 bg-background/70"
             />
             <Button
@@ -671,6 +577,7 @@ export function WeeklyTaskManager({
 const TaskCard = memo(function TaskCard({
   task,
   pinned,
+  initiallyOpen,
   onTogglePinned,
   onUpdate,
   onDelete,
@@ -681,6 +588,7 @@ const TaskCard = memo(function TaskCard({
 }: {
   task: WeeklyTask;
   pinned: boolean;
+  initiallyOpen?: boolean;
   onTogglePinned?: () => void;
   onUpdate: (updates: Partial<WeeklyTask>) => void;
   onDelete: () => void;
@@ -689,7 +597,7 @@ const TaskCard = memo(function TaskCard({
   onDeleteReason: (id: string) => void;
   onCompleteReason: (id: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyOpen);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(task.title);
   const [descriptionDraft, setDescriptionDraft] = useState(task.description || "");
@@ -706,6 +614,14 @@ const TaskCard = memo(function TaskCard({
     setTitleDraft(task.title);
     setDescriptionDraft(task.description || "");
   }, [task.description, task.title]);
+
+  useEffect(() => {
+    if (!initiallyOpen) return;
+    setExpanded(true);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`task-${task.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [initiallyOpen, task.id]);
 
   const handleSaveTitle = () => {
     const title = titleDraft.trim();
@@ -736,23 +652,21 @@ const TaskCard = memo(function TaskCard({
     const reachedTarget = !!task.progress_target && value >= task.progress_target;
     onUpdate({
       progress_current: value,
-          status: reachedTarget ? "completed" : "pending",
+      status: reachedTarget ? "completed" : "pending",
     });
   };
 
   return (
-    <article className="group overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm transition-colors [content-visibility:auto] [contain-intrinsic-size:240px] hover:border-primary/35 hover:bg-card">
+    <article id={`task-${task.id}`} className="group overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm transition-colors [content-visibility:auto] [contain-intrinsic-size:240px] hover:border-primary/35 hover:bg-card">
       <div className={cn("h-1 w-full", statusColor)} />
-      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-3 sm:flex sm:items-start sm:p-4">
+      <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:p-4">
         <button
+          type="button"
           onClick={() => setExpanded((current) => !current)}
-          className="mt-0.5 shrink-0 rounded-md border border-border/50 bg-background/40 p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          aria-label="Expandir tarefa"
+          className="min-w-0 flex-1 rounded-md text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/60"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? "Fechar" : "Abrir"} detalhes da tarefa ${task.title}`}
         >
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </button>
-
-        <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-start gap-2">
             <h2 className={cn(
               "w-full whitespace-normal break-words text-sm font-semibold leading-snug text-foreground sm:w-auto sm:min-w-0 sm:flex-1 sm:text-base",
@@ -807,9 +721,9 @@ const TaskCard = memo(function TaskCard({
               <span>Concluída {format(parseISO(task.completed_at), "dd/MM/yyyy")}</span>
             )}
           </div>
-        </div>
+        </button>
 
-        <div className="col-span-2 flex gap-2 sm:col-span-1 sm:shrink-0">
+        <div className="flex gap-2 sm:shrink-0">
           {onTogglePinned && (
             <Button
               variant="ghost"
@@ -894,7 +808,7 @@ const TaskCard = memo(function TaskCard({
           {task.progress_target && (
             <div className="rounded-md border border-border/50 bg-card/70 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">Progresso da meta</span>
+                <span className="text-xs text-muted-foreground">Quantidade concluída</span>
                 <span className="text-sm font-semibold">
                   {task.progress_current}/{task.progress_target}
                 </span>
@@ -945,7 +859,7 @@ const TaskCard = memo(function TaskCard({
                 min={1}
                 value={rTarget}
                 onChange={(event) => setRTarget(event.target.value)}
-                placeholder="Meta"
+                placeholder="Quantidade (opcional)"
                 className="h-10"
               />
               <Button onClick={handleAddReason} disabled={!reason.trim()} className="h-10 gap-1 sm:col-span-2 xl:col-span-1">

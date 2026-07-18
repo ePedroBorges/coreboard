@@ -101,6 +101,9 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     },
+    mutations: {
+      networkMode: "always",
+    },
   },
 });
 

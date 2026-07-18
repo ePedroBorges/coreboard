@@ -121,6 +121,7 @@ function AutoResizeTextarea({
   refCallback?: (el: HTMLTextAreaElement | null) => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const imageUrls = getImageUrls(value);
 
   const resize = () => {
     const element = ref.current;
@@ -134,24 +135,35 @@ function AutoResizeTextarea({
   }, [value]);
 
   return (
-    <textarea
-      ref={(el) => {
-        ref.current = el;
-        refCallback?.(el);
-      }}
-      value={value}
-      onChange={(event) => {
-        onChange(event.target.value);
-        requestAnimationFrame(resize);
-      }}
-      onFocus={() => {
-        onFocus();
-        requestAnimationFrame(resize);
-      }}
-      onBlur={onBlur}
-      placeholder={placeholder}
-      className="min-h-80 w-full resize-none overflow-hidden rounded-md border border-border/50 bg-background/35 px-4 py-4 text-base leading-7 outline-none focus:border-primary/45 sm:text-sm"
-    />
+    <div className="min-w-0">
+      <textarea
+        ref={(el) => {
+          ref.current = el;
+          refCallback?.(el);
+        }}
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value);
+          requestAnimationFrame(resize);
+        }}
+        onFocus={() => {
+          onFocus();
+          requestAnimationFrame(resize);
+        }}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className="min-h-[42svh] w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-1 text-[1.05rem] leading-8 outline-none placeholder:text-muted-foreground/45 focus:ring-0 sm:min-h-[46svh] sm:text-base"
+      />
+      {imageUrls.length > 0 && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {imageUrls.map((url) => (
+            <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md border border-border/60 bg-background/35">
+              <img src={url} alt="Imagem da anotacao" className="max-h-80 w-full object-contain" loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -336,22 +348,14 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
                   )}
                 </div>
               ) : block.type === "freeform" ? (
-                isEditing ? (
-                  <AutoResizeTextarea
-                    refCallback={(el) => { blockRefs.current[index] = el; }}
-                    value={block.content}
-                    onChange={(text) => updateBlock(index, { content: text })}
-                    onFocus={() => setEditingBlockId(block.id)}
-                    onBlur={() => setEditingBlockId(null)}
-                    placeholder="Escreva livremente..."
-                  />
-                ) : (
-                  <RichTextBlock
-                    text={block.content}
-                    className={cn("rounded-md px-3 py-2", blockClassName(block.type))}
-                    onEdit={() => setEditingBlockId(block.id)}
-                  />
-                )
+                <AutoResizeTextarea
+                  refCallback={(el) => { blockRefs.current[index] = el; }}
+                  value={block.content}
+                  onChange={(text) => updateBlock(index, { content: text })}
+                  onFocus={() => setEditingBlockId(block.id)}
+                  onBlur={() => setEditingBlockId(null)}
+                  placeholder="Comece a escrever. Suas ideias ficam salvas automaticamente..."
+                />
               ) : block.type === "bullet-list" || block.type === "numbered-list" ? (
                 <div className="flex items-start gap-2 py-1 sm:py-0.5">
                   <span className="mt-1 shrink-0 text-muted-foreground">

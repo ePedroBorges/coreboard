@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { Notebook } from "@/types/notes";
+import { Notebook, Page } from "@/types/notes";
 import { toast } from "sonner";
 import { DEFAULT_NOTEBOOK_NAME, DEFAULT_NOTEBOOK_NAMES } from "@/lib/noteUtils";
 import { createStarterContent } from "@/lib/userData";
+import { executeOrQueue, hasNetworkConnection, isNetworkError, queueOfflineOperation } from "@/lib/offlineData";
 
 const byPosition = (a: Notebook, b: Notebook) => {
   if (a.position !== b.position) return a.position - b.position;
@@ -90,35 +91,44 @@ export function useNotebooks() {
       const duplicate = query.data?.find((notebook) => notebook.title.trim().toLowerCase() === cleanTitle.toLowerCase());
       if (duplicate) return duplicate;
       const maxPos = query.data?.length || 0;
+      const now = new Date().toISOString();
       const insertPayload = {
+        id: crypto.randomUUID(),
         title: cleanTitle,
         user_id: user!.id,
         position: maxPos,
+        description: null,
+        created_at: now,
+        updated_at: now,
         ...(parentId ? { parent_id: parentId } : {}),
       };
-      let result = await supabase
-        .from("notebooks")
-        .insert(insertPayload)
-        .select()
-        .single();
-
-      if (result.error && parentId && /parent_id|schema cache/i.test(result.error.message)) {
-        result = await supabase
-          .from("notebooks")
-          .insert({
-            title: cleanTitle,
-            user_id: user!.id,
-            position: maxPos,
+      const result = await executeOrQueue<Notebook>(user!.id, {
+        table: "notebooks",
+        action: "upsert",
+        recordId: insertPayload.id,
+        payload: insertPayload,
+      }, async () => {
+        let response = await supabase.from("notebooks").insert(insertPayload).select().single();
+        if (response.error && parentId && /parent_id|schema cache/i.test(response.error.message)) {
+          response = await supabase.from("notebooks").insert({
+            ...insertPayload,
+            parent_id: undefined,
             description: `${PARENT_MARKER}${parentId}`,
-          })
-          .select()
-          .single();
-      }
-
-      if (result.error) throw result.error;
-      return normalizeFolders([result.data as Notebook])[0];
+          }).select().single();
+        }
+        return { data: response.data as Notebook | null, error: response.error };
+      });
+      return normalizeFolders([(result.data || insertPayload) as Notebook])[0];
     },
-    onSuccess: () => {
+    onSuccess: (notebook) => {
+      queryClient.setQueriesData<Notebook[]>({ queryKey: ["notebooks", user!.id] }, (current) => {
+        if (!current || current.some((item) => item.id === notebook.id)) return current;
+        return [...current, { ...notebook, page_count: 0 }].sort(byPosition);
+      });
+      if (!hasNetworkConnection()) {
+        toast.success("Pasta salva no dispositivo. Será sincronizada quando a conexão voltar.");
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       toast.success("Pasta criada.");
     },
@@ -135,13 +145,26 @@ export function useNotebooks() {
         );
         if (duplicate) throw new Error("Já existe uma pasta com esse nome.");
       }
-      const { error } = await supabase.from("notebooks").update({
+      const payload = {
         ...updates,
         ...(cleanTitle !== undefined ? { title: cleanTitle } : {}),
-      }).eq("id", id);
-      if (error) throw error;
+        updated_at: new Date().toISOString(),
+      };
+      await executeOrQueue<null>(user!.id, {
+        table: "notebooks",
+        action: "update",
+        recordId: id,
+        payload: payload as Record<string, unknown>,
+      }, async () => {
+        const { error } = await supabase.from("notebooks").update(payload).eq("id", id);
+        return { data: null, error };
+      });
+      return { id, payload };
     },
-    onSuccess: () => {
+    onSuccess: ({ id, payload }) => {
+      queryClient.setQueriesData<Notebook[]>({ queryKey: ["notebooks", user!.id] }, (current) =>
+        current?.map((notebook) => notebook.id === id ? { ...notebook, ...payload } : notebook));
+      if (!hasNetworkConnection()) return;
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       toast.success("Pasta renomeada.");
     },
@@ -161,6 +184,25 @@ export function useNotebooks() {
       const childFolders = query.data?.filter((current) => current.parent_id === id) || [];
       if (childFolders.length > 0) {
         throw new Error("Mova ou exclua as subpastas antes de excluir esta pasta.");
+      }
+
+      if (!hasNetworkConnection()) {
+        const cachedPages = queryClient.getQueryData<Page[]>(["all-pages", user?.id]) || [];
+        const pagesToMove = cachedPages.filter((page) => page.notebook_id === id);
+        if (pagesToMove.length > 0 && !targetNotebookId) {
+          throw new Error("Escolha uma pasta de destino para mover as anotações antes de excluir.");
+        }
+        if (targetNotebookId === id) throw new Error("Escolha uma pasta de destino diferente.");
+        if (targetNotebookId) {
+          await Promise.all(pagesToMove.map((page) => queueOfflineOperation(user!.id, {
+            table: "pages",
+            action: "update",
+            recordId: page.id,
+            payload: { notebook_id: targetNotebookId, updated_at: new Date().toISOString() },
+          })));
+        }
+        await queueOfflineOperation(user!.id, { table: "notebooks", action: "delete", recordId: id });
+        return { id, targetNotebookId, movedPageIds: pagesToMove.map((page) => page.id) };
       }
 
       const { count, error: countError } = await supabase
@@ -186,9 +228,27 @@ export function useNotebooks() {
       }
 
       const { error } = await supabase.from("notebooks").delete().eq("id", id);
+      if (error && isNetworkError(error)) {
+        await queueOfflineOperation(user!.id, { table: "notebooks", action: "delete", recordId: id });
+        return { id, targetNotebookId, movedPageIds: [] as string[] };
+      }
       if (error) throw error;
+      return { id, targetNotebookId, movedPageIds: [] as string[] };
     },
-    onSuccess: () => {
+    onSuccess: ({ id, targetNotebookId, movedPageIds }) => {
+      queryClient.setQueriesData<Notebook[]>({ queryKey: ["notebooks", user!.id] }, (current) => current?.filter((notebook) => notebook.id !== id));
+      if (targetNotebookId && movedPageIds.length > 0) {
+        queryClient.setQueriesData<Page[]>({
+          predicate: (cachedQuery) => (
+            ["pages", "favorite-pages", "all-pages"].includes(String(cachedQuery.queryKey[0]))
+            && cachedQuery.queryKey.includes(user!.id)
+          ),
+        }, (current) => current?.map((page) => movedPageIds.includes(page.id) ? { ...page, notebook_id: targetNotebookId } : page));
+      }
+      if (!hasNetworkConnection()) {
+        toast.success("Pasta removida no dispositivo.");
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       queryClient.invalidateQueries({ queryKey: ["pages"] });
       queryClient.invalidateQueries({ queryKey: ["favorite-pages"] });

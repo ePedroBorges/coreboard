@@ -6,6 +6,7 @@ import {
   VISUAL_THEMES,
   VisualTheme,
 } from "@/lib/appearance";
+import { nativeStorage } from "@/lib/nativeStorage";
 
 const MODE_STORAGE_KEY = "vista_tasks_theme";
 const SCHEME_STORAGE_KEY = "vista_tasks_theme_variant";
@@ -36,6 +37,7 @@ function readBoolean(key: string, fallback: boolean) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [storageHydrated, setStorageHydrated] = useState(false);
   const [theme, setTheme] = useState<Mode>(() => {
     const stored = localStorage.getItem(MODE_STORAGE_KEY) || localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
     return stored === "light" || stored === "dark" ? stored : "dark";
@@ -54,6 +56,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [enhancedEffects, setEnhancedEffects] = useState(() => readBoolean(ENHANCED_EFFECTS_STORAGE_KEY, true));
 
   useEffect(() => {
+    let active = true;
+
+    Promise.all([
+      nativeStorage.getItem(MODE_STORAGE_KEY),
+      nativeStorage.getItem(SCHEME_STORAGE_KEY),
+      nativeStorage.getItem(VISUAL_THEME_STORAGE_KEY),
+      nativeStorage.getItem(REDUCED_MOTION_STORAGE_KEY),
+      nativeStorage.getItem(ENHANCED_EFFECTS_STORAGE_KEY),
+    ]).then(([storedMode, storedScheme, storedVisualTheme, storedReducedMotion, storedEnhancedEffects]) => {
+      if (!active) return;
+      if (storedMode === "light" || storedMode === "dark") setTheme(storedMode);
+      if (COLOR_SCHEMES.includes(storedScheme as ColorScheme)) setColorScheme(storedScheme as ColorScheme);
+      if (VISUAL_THEMES.includes(storedVisualTheme as VisualTheme)) setVisualTheme(storedVisualTheme as VisualTheme);
+      if (storedReducedMotion !== null) setReducedMotion(storedReducedMotion === "true");
+      if (storedEnhancedEffects !== null) setEnhancedEffects(storedEnhancedEffects === "true");
+      setStorageHydrated(true);
+    }).catch(() => setStorageHydrated(true));
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const root = document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
@@ -63,13 +89,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.toggle("reduce-motion", reducedMotion);
     root.classList.toggle("enhanced-effects", enhancedEffects);
 
-    localStorage.setItem(MODE_STORAGE_KEY, theme);
-    localStorage.setItem(SCHEME_STORAGE_KEY, colorScheme);
-    localStorage.setItem(VISUAL_THEME_STORAGE_KEY, visualTheme);
-    localStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(reducedMotion));
-    localStorage.setItem(ENHANCED_EFFECTS_STORAGE_KEY, String(enhancedEffects));
-    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
   }, [colorScheme, enhancedEffects, reducedMotion, theme, visualTheme]);
+
+  useEffect(() => {
+    if (!storageHydrated) return;
+    const entries: Array<[string, string]> = [
+      [MODE_STORAGE_KEY, theme],
+      [SCHEME_STORAGE_KEY, colorScheme],
+      [VISUAL_THEME_STORAGE_KEY, visualTheme],
+      [REDUCED_MOTION_STORAGE_KEY, String(reducedMotion)],
+      [ENHANCED_EFFECTS_STORAGE_KEY, String(enhancedEffects)],
+    ];
+    entries.forEach(([key, value]) => void nativeStorage.setItem(key, value));
+    localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
+  }, [colorScheme, enhancedEffects, reducedMotion, storageHydrated, theme, visualTheme]);
 
   const value = useMemo(
     () => ({

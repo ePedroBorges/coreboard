@@ -11,6 +11,7 @@ import {
   Plus,
   ListChecks,
   Mail,
+  Maximize2,
   Minimize2,
   Pin,
   Share2,
@@ -52,6 +53,7 @@ interface PageEditorProps {
   page: Page;
   onUpdate: (updates: Partial<Page>) => void;
   focusMode: boolean;
+  onEnterFocus: () => void;
   onExitFocus: () => void;
   onCreateTaskFromPage?: (page: Page) => void;
   linkedTasks?: WeeklyTask[];
@@ -65,7 +67,7 @@ interface PageEditorProps {
   onNotebookChange?: (notebookId: string) => void;
 }
 
-export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTaskFromPage, linkedTasks = [], onUpdateTask, onDeleteTask, onAddSubtask, onUpdateSubtask, onDeleteSubtask, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
+export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocus, onCreateTaskFromPage, linkedTasks = [], onUpdateTask, onDeleteTask, onAddSubtask, onUpdateSubtask, onDeleteSubtask, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
   const { isPro } = useSubscription();
   const [title, setTitle] = useState(page.title);
   const [blocks, setBlocks] = useState<Block[]>(page.content || []);
@@ -203,9 +205,9 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
   }, [focusMode, handleForceSave, onExitFocus]);
 
   return (
-    <div className={cn("min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0", focusMode && "mx-auto max-w-3xl")}>
-      <div className="border-b border-border px-3 py-2.5 sm:px-6 sm:py-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+    <div className={cn("min-w-0 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0", focusMode && "mx-auto w-full max-w-6xl")}>
+      <div className="sticky top-0 z-20 border-b border-border bg-background/90 px-3 py-2.5 backdrop-blur-xl sm:px-6 sm:py-3">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-2 sm:gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex shrink-0 items-center gap-1">
               {dirty ? (
@@ -276,32 +278,29 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {focusMode && (
+            {focusMode ? (
               <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={onExitFocus}>
                 <Minimize2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" className="h-10 w-10 sm:h-7 sm:w-7" onClick={onEnterFocus} title="Modo foco">
+                <Maximize2 className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
               </Button>
             )}
           </div>
         </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="min-w-0 text-xs leading-5 text-muted-foreground">
-            Capture ideias, links e checklists. Depois transforme tudo em tarefa.
-          </span>
-          {page.is_favorite && <Badge variant="outline" className="rounded-full border-warning/40 text-warning">Fixada</Badge>}
-        </div>
       </div>
 
-      <div className="px-3 pb-3 pt-5 sm:px-6 sm:pt-8">
+      <div className="mx-auto w-full max-w-5xl px-4 pb-3 pt-6 sm:px-8 sm:pt-10">
         <input
           value={title}
           onChange={(event) => handleTitleChange(event.target.value)}
-          className="w-full border-none bg-transparent text-2xl font-bold leading-tight outline-none placeholder:text-muted-foreground/30 sm:text-2xl"
+          className="w-full border-none bg-transparent text-3xl font-bold leading-tight outline-none placeholder:text-muted-foreground/30 sm:text-4xl"
           placeholder="Título da anotação"
         />
       </div>
 
-      <div className="px-3 pb-4 sm:px-6">
+      <div className="mx-auto w-full max-w-5xl px-4 pb-4 sm:px-8">
         <div className="grid gap-3 sm:grid-cols-[minmax(180px,260px)_minmax(0,1fr)]">
           {notebooks.length > 0 && (
             <div className="space-y-2">
@@ -327,13 +326,13 @@ export function PageEditor({ page, onUpdate, focusMode, onExitFocus, onCreateTas
         </div>
       </div>
 
-      <div className="px-3 pb-4 sm:px-6">
-        <div className="min-w-0 border-t border-border/60 pt-3 sm:pt-4">
+      <div className="mx-auto w-full max-w-5xl px-4 pb-8 sm:px-8">
+        <div className="min-w-0 border-t border-border/60 pt-5 sm:pt-7">
           <BlockEditor blocks={blocks} onChange={handleBlocksChange} canUseAttachments={isPro} />
         </div>
       </div>
 
-      <div className="px-3 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 lg:pb-16">
+      <div className="mx-auto w-full max-w-5xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-8 lg:pb-16">
         <LinkedTasksPanel
           tasks={linkedTasks}
           onCreate={onCreateTaskFromPage ? () => onCreateTaskFromPage(currentPage) : undefined}
