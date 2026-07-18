@@ -246,6 +246,37 @@
 
 /* Visual themes are intentionally separate from color schemes. They change the
    product's shape, typography, density and surface treatment. */
+.dark.visual-studio.scheme-default {
+  --background: 220 71% 4%;
+  --foreground: 214 36% 96%;
+  --card: 215 59% 8%;
+  --card-foreground: 214 36% 96%;
+  --popover: 216 57% 7%;
+  --popover-foreground: 214 36% 96%;
+  --primary: 198 100% 52%;
+  --primary-foreground: 220 71% 4%;
+  --secondary: 218 40% 14%;
+  --muted: 218 34% 12%;
+  --muted-foreground: 215 17% 66%;
+  --accent: 270 88% 65%;
+  --border: 215 33% 18%;
+  --input: 215 33% 20%;
+  --ring: 198 100% 52%;
+  --sidebar-background: 220 67% 5%;
+  --sidebar-foreground: 214 30% 90%;
+  --sidebar-border: 215 34% 17%;
+  --sidebar-primary: 198 100% 52%;
+  --glow: 198 100% 52%;
+}
+.enhanced-effects.dark.visual-studio.scheme-default body::before {
+  opacity: 0.8;
+  background:
+    linear-gradient(125deg, hsl(198 100% 52% / 0.07), transparent 36%),
+    linear-gradient(305deg, hsl(270 88% 65% / 0.055), transparent 34%);
+}
+.dark.visual-studio.scheme-default main :where(section, article) {
+  box-shadow: 0 12px 28px hsl(220 80% 2% / 0.2);
+}
 html.visual-journal {
   --radius: 0.125rem;
 }

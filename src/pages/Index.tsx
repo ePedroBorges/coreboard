@@ -16,6 +16,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { PageEditor } from "@/components/editor/PageEditor";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { WeeklyTaskManager } from "@/components/tasks/WeeklyTaskManager";
+import { TaskDetail } from "@/components/tasks/TaskDetail";
 import { TodayView } from "@/components/today/TodayView";
 import { OnboardingDialog } from "@/components/onboarding/OnboardingDialog";
 import { SettingsView } from "@/components/settings/SettingsView";
@@ -59,6 +60,7 @@ type AppNavigationState = {
   activeView: AppView;
   selectedNotebookId: string | null;
   selectedPageId: string | null;
+  selectedTaskId: string | null;
   notesFilter: NotesFilter;
   searchQuery: string;
 };
@@ -85,6 +87,7 @@ const sameNavigationState = (a?: AppNavigationState, b?: AppNavigationState) => 
   a.activeView === b.activeView &&
   a.selectedNotebookId === b.selectedNotebookId &&
   a.selectedPageId === b.selectedPageId &&
+  a.selectedTaskId === b.selectedTaskId &&
   a.notesFilter === b.notesFilter &&
   a.searchQuery === b.searchQuery
 );
@@ -222,9 +225,10 @@ const Index = () => {
     activeView,
     selectedNotebookId,
     selectedPageId,
+    selectedTaskId,
     notesFilter,
     searchQuery,
-  }), [activeView, notesFilter, searchQuery, selectedNotebookId, selectedPageId]);
+  }), [activeView, notesFilter, searchQuery, selectedNotebookId, selectedPageId, selectedTaskId]);
 
   const pushNavigationState = useCallback((state: AppNavigationState = currentNavigationState) => {
     setNavigationStack((current) => {
@@ -237,6 +241,7 @@ const Index = () => {
     setActiveView(state.activeView);
     setSelectedNotebookId(state.selectedNotebookId);
     setSelectedPageId(state.selectedPageId);
+    setSelectedTaskId(state.selectedTaskId);
     setNotesFilter(state.notesFilter);
     setSearchQuery(state.searchQuery);
   }, []);
@@ -295,6 +300,7 @@ const Index = () => {
     setActiveView("today");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
+    setSelectedTaskId(null);
     setSearchQuery("");
   }, [pushNavigationState]);
 
@@ -303,6 +309,7 @@ const Index = () => {
     setActiveView("tasks");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
+    setSelectedTaskId(null);
     setSearchQuery("");
   }, [pushNavigationState]);
 
@@ -311,6 +318,7 @@ const Index = () => {
     setActiveView("calendar");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
+    setSelectedTaskId(null);
     setSearchQuery("");
   }, [pushNavigationState]);
 
@@ -319,6 +327,7 @@ const Index = () => {
     setActiveView("notes");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
+    setSelectedTaskId(null);
     setSearchQuery("");
   }, [pushNavigationState]);
 
@@ -327,6 +336,7 @@ const Index = () => {
     setActiveView("settings");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
+    setSelectedTaskId(null);
     setSearchQuery("");
   }, [pushNavigationState]);
 
@@ -358,6 +368,7 @@ const Index = () => {
     setActiveView("notes");
     setSelectedNotebookId(null);
     setSelectedPageId(null);
+    setSelectedTaskId(null);
     setNotesFilter(id);
   }, [pushNavigationState]);
 
@@ -542,6 +553,7 @@ const Index = () => {
   }, [defaultNotebookId, notebookTitleForPage, tasks.createTask]);
 
   const normalizedSearch = searchQuery.trim().toLowerCase();
+  const selectedTask = selectedTaskId ? normalizedTasks.find((task) => task.id === selectedTaskId) : undefined;
   const notebookResults = normalizedSearch
     ? (notebooks.data || []).filter((notebook) => notebook.title.toLowerCase().includes(normalizedSearch)).slice(0, 8)
     : [];
@@ -583,6 +595,8 @@ const Index = () => {
           selectedPageId={selectedPageId}
           onOpenNotebook={handleOpenNotebook}
           onOpenPage={openPage}
+          onOpenTask={openTask}
+          onOpenSearch={() => setCommandPaletteOpen(true)}
           onSelectTasks={handleSelectTasks}
           onOpenSettings={handleSelectSettings}
         />}
@@ -593,11 +607,10 @@ const Index = () => {
             showSearch={!selectedPageId && ["today", "notes", "tasks", "calendar"].includes(activeView)}
             onBack={handleGoBack}
             onOpenSearch={() => setCommandPaletteOpen(true)}
-            onOpenSettings={handleSelectSettings}
           />}
 
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(6.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] lg:pb-0">
+            <div data-note-scroll className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[calc(6.5rem+env(safe-area-inset-bottom))] [-webkit-overflow-scrolling:touch] lg:pb-0">
             {normalizedSearch ? (
               <GlobalSearchResults
                 query={searchQuery}
@@ -607,6 +620,7 @@ const Index = () => {
                 notebookTitleById={notebookTitleById}
                 onOpenNotebook={handleOpenNotebook}
                 onOpenNote={openPage}
+                onOpenTask={openTask}
                 onCreateTaskFromPage={createTaskFromPage}
               />
             ) : activeView === "today" ? (
@@ -627,13 +641,27 @@ const Index = () => {
                 })}
                 gamification={gamification}
               />
+            ) : (activeView === "tasks" || activeView === "calendar") && selectedTask ? (
+              <TaskDetail
+                task={selectedTask}
+                pinned={pinnedTaskIds.includes(selectedTask.id)}
+                onTogglePinned={() => togglePinnedTask(selectedTask.id)}
+                onUpdate={(updates) => tasks.updateTask.mutate({ id: selectedTask.id, ...updates })}
+                onDelete={() => tasks.deleteTask.mutate(selectedTask.id, { onSuccess: () => {
+                  setSelectedTaskId(null);
+                  if (navigationStack.length > 0) handleGoBack();
+                } })}
+                onAddSubtask={(title) => tasks.addPendingReason.mutate({ taskId: selectedTask.id, reason: title })}
+                onUpdateSubtask={(id, updates) => tasks.updatePendingReason.mutate({ id, ...updates })}
+                onDeleteSubtask={(id) => tasks.deletePendingReason.mutate(id)}
+              />
             ) : activeView === "tasks" || activeView === "calendar" ? (
               <WeeklyTaskManager
                 notebooks={notebooks.data || []}
                 defaultNotebookId={defaultNotebookId}
                 pinnedTaskIds={pinnedTaskIds}
                 onTogglePinnedTask={togglePinnedTask}
-                selectedTaskId={selectedTaskId}
+                onOpenTask={openTask}
               />
             ) : activeView === "notes" ? (
               <FolderLibrary
@@ -696,6 +724,7 @@ const Index = () => {
                 onExitFocus={() => setFocusMode(false)}
                 onCreateTaskFromPage={createTaskFromPage}
                 linkedTasks={normalizedTasks.filter((task) => task.source_note_id === selectedPage.id)}
+                onOpenTask={openTask}
                 onUpdateTask={(id, updates) => tasks.updateTask.mutate({ id, ...updates })}
                 onDeleteTask={(id) => tasks.deleteTask.mutate(id)}
                 onAddSubtask={(taskId, title) => tasks.addPendingReason.mutate({ taskId, reason: title })}
@@ -872,7 +901,7 @@ function CreateTaskFromNoteDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="task-from-note-target">Meta</Label>
+              <Label htmlFor="task-from-note-target">Quantidade</Label>
               <Input
                 id="task-from-note-target"
                 type="number"

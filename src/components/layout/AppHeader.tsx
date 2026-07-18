@@ -1,4 +1,3 @@
-import { ProfileMenu } from "@/components/layout/ProfileMenu";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArrowLeft, ClipboardList, Search } from "lucide-react";
@@ -8,13 +7,13 @@ interface AppHeaderProps {
   showSearch?: boolean;
   onBack: () => void;
   onOpenSearch?: () => void;
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
 }
 
-export function AppHeader({ canGoBack, showSearch = true, onBack, onOpenSearch, onOpenSettings }: AppHeaderProps) {
+export function AppHeader({ canGoBack, showSearch = true, onBack, onOpenSearch }: AppHeaderProps) {
   return (
     <header
-      className="z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-2 backdrop-blur"
+      className={`z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 px-2 backdrop-blur ${canGoBack ? "lg:min-h-12" : "lg:hidden"}`}
       style={{
         minHeight: "calc(3.5rem + env(safe-area-inset-top, 0px))",
         paddingTop: "env(safe-area-inset-top, 0px)",
@@ -35,12 +34,12 @@ export function AppHeader({ canGoBack, showSearch = true, onBack, onOpenSearch, 
         {canGoBack && (
           <Button
             variant="ghost"
-            className="h-10 shrink-0 gap-2 px-2 lg:h-8"
+            size="icon"
+            className="hidden h-9 w-9 shrink-0 lg:inline-flex"
             onClick={onBack}
             title="Voltar"
           >
-            <ArrowLeft className="h-5 w-5 lg:h-4 lg:w-4" />
-            <span className="hidden text-sm sm:inline">Voltar</span>
+            <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -49,16 +48,13 @@ export function AppHeader({ canGoBack, showSearch = true, onBack, onOpenSearch, 
         {showSearch && onOpenSearch && <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10"
+          className="h-10 w-10 lg:hidden"
           onClick={onOpenSearch}
           title="Busca global"
           aria-label="Abrir busca global"
         >
           <Search className="h-4 w-4" />
         </Button>}
-        <div className="hidden lg:block">
-          <ProfileMenu onOpenSettings={onOpenSettings} />
-        </div>
       </div>
     </header>
   );

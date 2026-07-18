@@ -57,6 +57,7 @@ interface PageEditorProps {
   onExitFocus: () => void;
   onCreateTaskFromPage?: (page: Page) => void;
   linkedTasks?: WeeklyTask[];
+  onOpenTask?: (task: WeeklyTask) => void;
   onUpdateTask?: (id: string, updates: Partial<WeeklyTask>) => void;
   onDeleteTask?: (id: string) => void;
   onAddSubtask?: (taskId: string, title: string) => void;
@@ -67,7 +68,7 @@ interface PageEditorProps {
   onNotebookChange?: (notebookId: string) => void;
 }
 
-export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocus, onCreateTaskFromPage, linkedTasks = [], onUpdateTask, onDeleteTask, onAddSubtask, onUpdateSubtask, onDeleteSubtask, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
+export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocus, onCreateTaskFromPage, linkedTasks = [], onOpenTask, onUpdateTask, onDeleteTask, onAddSubtask, onUpdateSubtask, onDeleteSubtask, onDelete, notebooks = [], onNotebookChange }: PageEditorProps) {
   const { isPro } = useSubscription();
   const [title, setTitle] = useState(page.title);
   const [blocks, setBlocks] = useState<Block[]>(page.content || []);
@@ -335,6 +336,7 @@ export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocu
       <div className="mx-auto w-full max-w-5xl px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-8 lg:pb-16">
         <LinkedTasksPanel
           tasks={linkedTasks}
+          onOpen={onOpenTask}
           onCreate={onCreateTaskFromPage ? () => onCreateTaskFromPage(currentPage) : undefined}
           onUpdate={onUpdateTask}
           onDelete={onDeleteTask}
@@ -349,6 +351,7 @@ export function PageEditor({ page, onUpdate, focusMode, onEnterFocus, onExitFocu
 
 function LinkedTasksPanel({
   tasks,
+  onOpen,
   onCreate,
   onUpdate,
   onDelete,
@@ -357,6 +360,7 @@ function LinkedTasksPanel({
   onDeleteSubtask,
 }: {
   tasks: WeeklyTask[];
+  onOpen?: (task: WeeklyTask) => void;
   onCreate?: () => void;
   onUpdate?: (id: string, updates: Partial<WeeklyTask>) => void;
   onDelete?: (id: string) => void;
@@ -391,7 +395,7 @@ function LinkedTasksPanel({
               key={task.id}
               task={task}
               onToggle={() => onUpdate?.(task.id, { status: task.status === "completed" ? "pending" : "completed" })}
-              onEdit={() => setEditingTask(task)}
+              onEdit={() => onOpen?.(task)}
               onDelete={() => {
                 if (window.confirm(`Excluir a tarefa "${task.title}"?`)) onDelete?.(task.id);
               }}
@@ -449,7 +453,8 @@ function LinkedTaskRow({
           {task.status === "completed" ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Check className="h-4 w-4" />}
         </button>
         <div className="min-w-0 flex-1">
-          <h3 className={cn("break-words text-sm font-semibold", task.status === "completed" && "text-muted-foreground line-through")}>{task.title}</h3>
+          <button type="button" className="block w-full text-left" onClick={onEdit} aria-label={`Abrir tarefa ${task.title}`}>
+            <h3 className={cn("break-words text-sm font-semibold", task.status === "completed" && "text-muted-foreground line-through")}>{task.title}</h3>
           <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span>{format(parseISO(task.task_date), "dd/MM/yyyy")}</span>
             <span>{task.priority === "high" ? "Alta" : task.priority === "low" ? "Baixa" : "Média"}</span>
@@ -459,7 +464,7 @@ function LinkedTaskRow({
           {task.progress_target !== null && (
             <div className="mt-3 max-w-sm space-y-1.5">
               <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-primary" />Meta</span>
+                <span className="flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-primary" />Quantidade</span>
                 <span className="font-medium text-foreground">{task.progress_current}/{task.progress_target}</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -467,11 +472,11 @@ function LinkedTaskRow({
               </div>
             </div>
           )}
+          </button>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2 border-t border-border/50 pt-3 sm:ml-12">
-        <Button variant="outline" size="sm" className="h-9 gap-2" onClick={onEdit}><Pencil className="h-4 w-4" />Editar</Button>
         <Button variant="ghost" size="sm" className="h-9 gap-2 text-destructive hover:text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4" />Excluir</Button>
       </div>
 
@@ -537,7 +542,7 @@ function TaskEditDialog({ task, open, onOpenChange, onSave }: { task: WeeklyTask
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-2"><Label>Status</Label><Select value={status} onValueChange={(value) => setStatus(value as WeeklyTask["status"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="pending">Pendente</SelectItem><SelectItem value="completed">Concluída</SelectItem></SelectContent></Select></div>
             <div className="space-y-2"><Label htmlFor="linked-task-progress">Progresso</Label><Input id="linked-task-progress" type="number" min={0} value={progressCurrent} onChange={(event) => setProgressCurrent(event.target.value)} /></div>
-            <div className="space-y-2"><Label htmlFor="linked-task-target">Meta</Label><Input id="linked-task-target" type="number" min={1} value={progressTarget} onChange={(event) => setProgressTarget(event.target.value)} placeholder="Opcional" /></div>
+            <div className="space-y-2"><Label htmlFor="linked-task-target">Quantidade</Label><Input id="linked-task-target" type="number" min={1} value={progressTarget} onChange={(event) => setProgressTarget(event.target.value)} placeholder="Opcional" /></div>
           </div>
         </div>
         <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button disabled={!title.trim() || !taskDate} onClick={() => onSave({ title: title.trim(), description: description.trim() || null, task_date: taskDate, priority, assignee: assignee.trim() || null, status, progress_current: Math.max(0, Number(progressCurrent) || 0), progress_target: progressTarget ? Math.max(1, Number(progressTarget) || 1) : null })}>Salvar alterações</Button></DialogFooter>

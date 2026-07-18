@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowLeft, FileText, Folder, FolderOpen, FolderPlus, Loader2, Pencil, Pin, Plus, Star, Trash2 } from "lucide-react";
+import { FileText, Folder, FolderOpen, FolderPlus, Loader2, Pin, Plus, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,18 +106,12 @@ export function FolderLibrary({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-3 sm:p-6">
       <header className="flex flex-col gap-3 border-b border-border/60 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          {activeFolder ? (
-            <Button variant="ghost" size="sm" className="mb-2 h-8 gap-2 px-1 text-muted-foreground" onClick={() => activeFolder.parent_id ? onOpenFolder(activeFolder.parent_id) : onOpenRoot()}>
-              <ArrowLeft className="h-4 w-4" />{activeFolder.parent_id ? "Voltar para a pasta" : "Todas as pastas"}
-            </Button>
-          ) : null}
           <div className="flex items-center gap-1">
-            <h1 className="truncate text-2xl font-semibold tracking-tight">{activeFolder?.title || "Pastas"}</h1>
+            {activeFolder && activeFolder.title.trim().toLowerCase() !== DEFAULT_NOTEBOOK_NAME.toLowerCase() ? (
+              <button type="button" className="truncate text-left text-2xl font-semibold tracking-tight hover:text-primary" onClick={() => { setRenameFolder(activeFolder); setRenameValue(activeFolder.title); }} title="Clique para alterar o título">{activeFolder.title}</button>
+            ) : <h1 className="truncate text-2xl font-semibold tracking-tight">{activeFolder?.title || "Pastas"}</h1>}
             <ContextHelp text={activeFolder ? "As anotações sempre ficam dentro desta pasta ou subpasta." : "Use pastas para separar áreas da sua vida e subpastas para projetos ou assuntos."} />
           </div>
-          <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            {activeFolder ? (activeFolder.parent_id ? "Anotações desta subpasta." : "Subpastas e anotações desta pasta.") : "Escolha uma pasta para acessar seu conteúdo."}
-          </p>
         </div>
 
         <div className="grid gap-2 sm:flex">
@@ -194,13 +188,16 @@ function FolderCard({ folder, noteCount, childCount, pinned, onOpen, onPin, onRe
   const locked = folder.title.trim().toLowerCase() === DEFAULT_NOTEBOOK_NAME.toLowerCase();
   return (
     <article className="rounded-md border border-border/60 bg-card/55 p-3 transition-colors hover:border-primary/40 hover:bg-card/80">
-      <button type="button" className="flex w-full items-center gap-3 text-left" onClick={onOpen}>
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"><FolderOpen className="h-5 w-5" /></span>
-        <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{folder.title}</span><span className="mt-1 block text-xs text-muted-foreground">{childCount > 0 ? `${childCount} subpasta${childCount === 1 ? "" : "s"} · ` : ""}{noteCount} anotaç{noteCount === 1 ? "ão" : "ões"}</span></span>
-      </button>
+      <div className="flex w-full items-center gap-3 text-left">
+        <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary" onClick={onOpen} title="Abrir pasta"><FolderOpen className="h-5 w-5" /></button>
+        <span className="min-w-0 flex-1">
+          <button type="button" className="block max-w-full truncate font-semibold hover:text-primary" onClick={locked ? onOpen : onRename} title={locked ? "Abrir pasta" : "Clique para alterar o título"}>{folder.title}</button>
+          <button type="button" className="mt-1 block text-xs text-muted-foreground hover:text-foreground" onClick={onOpen}>{childCount > 0 ? `${childCount} subpasta${childCount === 1 ? "" : "s"} · ` : ""}{noteCount} anotaç{noteCount === 1 ? "ão" : "ões"}</button>
+        </span>
+      </div>
       <div className="mt-3 flex justify-end gap-1 border-t border-border/50 pt-2">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPin} title={pinned ? "Desafixar pasta" : "Fixar pasta"}><Pin className={cn("h-4 w-4", pinned && "fill-primary text-primary")} /></Button>
-        {!locked && <><Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRename} title="Renomear pasta"><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir pasta"><Trash2 className="h-4 w-4" /></Button></>}
+        {!locked && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete} title="Excluir pasta"><Trash2 className="h-4 w-4" /></Button>}
       </div>
     </article>
   );

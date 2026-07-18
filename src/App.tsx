@@ -8,7 +8,7 @@ import { App as CapacitorApp } from "@capacitor/app";
 import { BrowserRouter, HashRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
-import { PRO_COLOR_SCHEMES, PRO_VISUAL_THEMES } from "@/lib/appearance";
+import { canEnforceFreeAppearance, PRO_COLOR_SCHEMES, PRO_VISUAL_THEMES } from "@/lib/appearance";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -30,8 +30,9 @@ const RouteLoader = () => (
 );
 
 function ProThemeGuard() {
-  const { isPro, loading } = useSubscription();
+  const { isPro, loading, verified } = useSubscription();
   const {
+    storageHydrated,
     colorScheme,
     setColorScheme,
     visualTheme,
@@ -41,7 +42,7 @@ function ProThemeGuard() {
   } = useTheme();
 
   useEffect(() => {
-    if (loading || isPro) return;
+    if (!canEnforceFreeAppearance({ storageHydrated, subscriptionLoading: loading, subscriptionVerified: verified, isPro })) return;
     if (PRO_COLOR_SCHEMES.includes(colorScheme)) setColorScheme("default");
     if (PRO_VISUAL_THEMES.includes(visualTheme)) setVisualTheme("studio");
     if (enhancedEffects) setEnhancedEffects(false);
@@ -50,10 +51,12 @@ function ProThemeGuard() {
     enhancedEffects,
     isPro,
     loading,
+    storageHydrated,
     setColorScheme,
     setEnhancedEffects,
     setVisualTheme,
     visualTheme,
+    verified,
   ]);
 
   return null;

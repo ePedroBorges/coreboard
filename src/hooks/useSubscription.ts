@@ -32,15 +32,19 @@ function useSubscriptionState() {
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [hasEntitlement, setHasEntitlement] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [verified, setVerified] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!user) {
       setSubscription(null);
       setHasEntitlement(false);
       setLoading(false);
+      setVerified(true);
       return;
     }
 
+    setLoading(true);
+    setVerified(false);
     const env = isPaymentsConfigured() ? getStripeEnvironment() : "sandbox";
     try {
       const [subscriptionResult, entitlementResult] = await Promise.all([
@@ -59,6 +63,7 @@ function useSubscriptionState() {
       if (entitlementResult.error) throw entitlementResult.error;
       setSubscription((subscriptionResult.data as SubscriptionRow | null) ?? null);
       setHasEntitlement(!!entitlementResult.data);
+      setVerified(true);
     } catch (error) {
       console.error("Failed to refresh subscription:", error);
     } finally {
@@ -89,7 +94,7 @@ function useSubscriptionState() {
   const isLifetime = isPro && (!subscription || subscription.price_id === "pro_lifetime");
   const plan: "free" | "pro" = isPro ? "pro" : "free";
 
-  return { subscription, loading, isActive, isPro, isLifetime, plan, refresh };
+  return { subscription, loading, verified, isActive, isPro, isLifetime, plan, refresh };
 }
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {

@@ -26,6 +26,7 @@ import {
   Trash2,
   Upload,
   UserRound,
+  Volume2,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -56,6 +57,7 @@ import { Notebook, Page } from "@/types/notes";
 import { supabase } from "@/integrations/supabase/client";
 import { getPaymentsReturnBaseUrl, getStripeEnvironment } from "@/lib/stripe";
 import { cn } from "@/lib/utils";
+import { playAppSound } from "@/lib/soundEffects";
 import {
   collectUserBackup,
   downloadBackup,
@@ -428,6 +430,37 @@ export function SettingsView({
                 pro
                 locked={!isPro}
               />
+            </div>
+          </SettingsCard>
+
+          <SettingsCard title="Sons da interface" icon={Volume2}>
+            <div className="space-y-3">
+              <PreferenceToggle
+                title="Feedback sonoro"
+                description="Confirma ações importantes com sons curtos e discretos."
+                checked={settings.soundEnabled}
+                onCheckedChange={(checked) => {
+                  onSettingsImported({ ...settings, soundEnabled: checked });
+                  playAppSound("preview", checked, settings.soundStyle);
+                }}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={settings.soundStyle === "soft" ? "secondary" : "outline"}
+                  onClick={() => {
+                    onSettingsImported({ ...settings, soundStyle: "soft" });
+                    playAppSound("preview", true, "soft");
+                  }}
+                >Sutil</Button>
+                <Button
+                  variant={settings.soundStyle === "arcade" ? "secondary" : "outline"}
+                  onClick={() => {
+                    if (!isPro) { toast.error("O perfil Arcade faz parte do Pro."); navigate("/planos"); return; }
+                    onSettingsImported({ ...settings, soundStyle: "arcade" });
+                    playAppSound("preview", true, "arcade");
+                  }}
+                >Arcade {!isPro && <Lock className="ml-2 h-3.5 w-3.5" />}</Button>
+              </div>
             </div>
           </SettingsCard>
 

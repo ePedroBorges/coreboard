@@ -57,7 +57,7 @@ export const APPEARANCE_THEME_CATEGORIES: Array<{
 ];
 
 export const APPEARANCE_THEME_PRESETS: AppearanceThemePreset[] = [
-  { id: "anchorlab", label: "AnchorLab Studio", description: "Escuro preciso com ciano e violeta.", category: "essential", mode: "dark", colorScheme: "default", visualTheme: "studio", pro: false, preview: ["#07111f", "#0f1d2e", "#00aaff"] },
+  { id: "anchorlab", label: "AnchorLab Studio", description: "Marinho profundo, ciano elétrico e violeta da marca.", category: "essential", mode: "dark", colorScheme: "default", visualTheme: "studio", pro: false, enhancedEffects: true, preview: ["#020817", "#07172b", "#08b8ff"] },
   { id: "ocean", label: "Oceano", description: "Azuis serenos para leitura e planejamento.", category: "essential", mode: "dark", colorScheme: "ocean", visualTheme: "studio", pro: false, preview: ["#071426", "#102a43", "#38bdf8"] },
   { id: "journal", label: "Papel aberto", description: "Leitura clara, tipografia editorial e mais respiro.", category: "essential", mode: "light", colorScheme: "ocean", visualTheme: "journal", pro: false, preview: ["#f7f7f5", "#ffffff", "#2563eb"] },
   { id: "focus", label: "Foco", description: "Verde equilibrado com hierarquia discreta.", category: "productivity", mode: "dark", colorScheme: "focus", visualTheme: "studio", pro: false, preview: ["#07140e", "#102219", "#22c55e"] },
@@ -86,6 +86,15 @@ export function findAppearanceThemePreset(input: {
     && preset.colorScheme === input.colorScheme
     && preset.visualTheme === input.visualTheme
   );
+}
+
+export function canEnforceFreeAppearance(input: {
+  storageHydrated: boolean;
+  subscriptionLoading: boolean;
+  subscriptionVerified: boolean;
+  isPro: boolean;
+}) {
+  return input.storageHydrated && !input.subscriptionLoading && input.subscriptionVerified && !input.isPro;
 }
 
 export const COLOR_SCHEME_META: Record<

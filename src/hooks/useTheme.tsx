@@ -16,6 +16,7 @@ const ENHANCED_EFFECTS_STORAGE_KEY = "vista_tasks_enhanced_effects";
 const LEGACY_THEME_STORAGE_KEY = "smartnotes-theme";
 
 interface ThemeContextType {
+  storageHydrated: boolean;
   theme: Mode;
   setTheme: (mode: Mode) => void;
   toggleTheme: () => void;
@@ -66,11 +67,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       nativeStorage.getItem(ENHANCED_EFFECTS_STORAGE_KEY),
     ]).then(([storedMode, storedScheme, storedVisualTheme, storedReducedMotion, storedEnhancedEffects]) => {
       if (!active) return;
-      if (storedMode === "light" || storedMode === "dark") setTheme(storedMode);
-      if (COLOR_SCHEMES.includes(storedScheme as ColorScheme)) setColorScheme(storedScheme as ColorScheme);
-      if (VISUAL_THEMES.includes(storedVisualTheme as VisualTheme)) setVisualTheme(storedVisualTheme as VisualTheme);
-      if (storedReducedMotion !== null) setReducedMotion(storedReducedMotion === "true");
-      if (storedEnhancedEffects !== null) setEnhancedEffects(storedEnhancedEffects === "true");
+      const localMode = localStorage.getItem(MODE_STORAGE_KEY);
+      const localScheme = localStorage.getItem(SCHEME_STORAGE_KEY);
+      const localVisualTheme = localStorage.getItem(VISUAL_THEME_STORAGE_KEY);
+      const localReducedMotion = localStorage.getItem(REDUCED_MOTION_STORAGE_KEY);
+      const localEnhancedEffects = localStorage.getItem(ENHANCED_EFFECTS_STORAGE_KEY);
+      if (localMode !== "light" && localMode !== "dark" && (storedMode === "light" || storedMode === "dark")) setTheme(storedMode);
+      if (!COLOR_SCHEMES.includes(localScheme as ColorScheme) && COLOR_SCHEMES.includes(storedScheme as ColorScheme)) setColorScheme(storedScheme as ColorScheme);
+      if (!VISUAL_THEMES.includes(localVisualTheme as VisualTheme) && VISUAL_THEMES.includes(storedVisualTheme as VisualTheme)) setVisualTheme(storedVisualTheme as VisualTheme);
+      if (localReducedMotion === null && storedReducedMotion !== null) setReducedMotion(storedReducedMotion === "true");
+      if (localEnhancedEffects === null && storedEnhancedEffects !== null) setEnhancedEffects(storedEnhancedEffects === "true");
       setStorageHydrated(true);
     }).catch(() => setStorageHydrated(true));
 
@@ -100,12 +106,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       [REDUCED_MOTION_STORAGE_KEY, String(reducedMotion)],
       [ENHANCED_EFFECTS_STORAGE_KEY, String(enhancedEffects)],
     ];
-    entries.forEach(([key, value]) => void nativeStorage.setItem(key, value));
+    entries.forEach(([key, value]) => {
+      localStorage.setItem(key, value);
+      void nativeStorage.setItem(key, value);
+    });
     localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
   }, [colorScheme, enhancedEffects, reducedMotion, storageHydrated, theme, visualTheme]);
 
   const value = useMemo(
     () => ({
+      storageHydrated,
       theme,
       setTheme,
       toggleTheme: () => setTheme((current) => (current === "dark" ? "light" : "dark")),
@@ -118,7 +128,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       enhancedEffects,
       setEnhancedEffects,
     }),
-    [colorScheme, enhancedEffects, reducedMotion, theme, visualTheme],
+    [colorScheme, enhancedEffects, reducedMotion, storageHydrated, theme, visualTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

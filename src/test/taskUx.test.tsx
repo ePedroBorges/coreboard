@@ -76,6 +76,7 @@ describe("task experience simplification", () => {
         onOpenTasks={vi.fn()}
         onOpenNotes={vi.fn()}
         onOpenNote={vi.fn()}
+        onOpenTask={vi.fn()}
         onToggleTaskStatus={vi.fn()}
         gamification={{ level: 1, levelName: "Iniciante", tier: "Bronze", xp: 0, levelStartXp: 0, nextLevelXp: 100, xpToNextLevel: 100, progressPercent: 0, completedTasks: 0, notesCreated: 0, rewards: [] }}
       />,
@@ -88,15 +89,13 @@ describe("task experience simplification", () => {
     expect(screen.queryByText("Planejamento")).not.toBeInTheDocument();
   });
 
-  it("abre edição e subtarefas ao clicar na própria tarefa", () => {
-    const { container } = renderWithProviders(<WeeklyTaskManager />);
-    const taskButton = container.querySelector<HTMLButtonElement>('[aria-label="Abrir detalhes da tarefa Preparar relatório"]');
+  it("abre a tela dedicada ao clicar na própria tarefa", () => {
+    const onOpenTask = vi.fn();
+    const { container } = renderWithProviders(<WeeklyTaskManager onOpenTask={onOpenTask} />);
+    const taskButton = container.querySelector<HTMLButtonElement>('[aria-label="Abrir tarefa Preparar relatório"]');
     expect(taskButton).not.toBeNull();
     fireEvent.click(taskButton!);
-
-    expect(container.querySelector('[aria-label="Fechar detalhes da tarefa Preparar relatório"]')).not.toBeNull();
-    expect(screen.getByText("Editar título")).toBeInTheDocument();
-    expect(screen.getByText("Subtarefas")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Quantidade (opcional)")).toBeInTheDocument();
+    expect(onOpenTask).toHaveBeenCalledWith(expect.objectContaining({ title: "Preparar relatório" }));
+    expect(screen.queryByText("Editar título")).not.toBeInTheDocument();
   });
 });

@@ -43,6 +43,7 @@ interface TodayViewProps {
   onOpenTasks: () => void;
   onOpenNotes: () => void;
   onOpenNote: (page: Page) => void;
+  onOpenTask: (task: WeeklyTask) => void;
   onToggleTaskStatus: (task: WeeklyTask) => void;
   gamification: GamificationStats;
 }
@@ -70,6 +71,7 @@ export function TodayView({
   onOpenTasks,
   onOpenNotes,
   onOpenNote,
+  onOpenTask,
   onToggleTaskStatus,
   gamification,
 }: TodayViewProps) {
@@ -115,15 +117,12 @@ export function TodayView({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-3 py-3 sm:gap-4 sm:p-6 lg:gap-5">
       <section className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div className="space-y-2">
+        <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Hoje</h1>
-          <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-            Capture ideias, organize anotações e execute suas prioridades.
-          </p>
         </div>
-        <Link to="/conquistas" className="rounded-lg border border-primary/20 bg-primary/10 px-4 py-3 text-sm transition-colors hover:border-primary/40 hover:bg-primary/15" title="Ver níveis, conquistas e formas de ganhar XP">
-          <div className="font-semibold text-primary">{gamification.levelName}</div>
-          <div className="text-xs text-muted-foreground">{gamification.xpToNextLevel} XP para subir</div>
+        <Link to="/conquistas" className="flex h-9 items-center gap-2 rounded-md border border-primary/20 bg-primary/10 px-3 text-xs transition-colors hover:border-primary/40 hover:bg-primary/15" title="Ver níveis, conquistas e formas de ganhar XP">
+          <span className="font-semibold text-primary">{gamification.levelName}</span>
+          <span className="text-muted-foreground">{gamification.xpToNextLevel} XP</span>
         </Link>
       </section>
 
@@ -144,6 +143,7 @@ export function TodayView({
           tasks={todayTasks}
           loading={tasksLoading}
           onOpenTasks={onOpenTasks}
+          onOpenTask={onOpenTask}
           onToggleTaskStatus={onToggleTaskStatus}
         />
         <RecentNotes
@@ -260,11 +260,13 @@ function TodayPriorities({
   tasks,
   loading,
   onOpenTasks,
+  onOpenTask,
   onToggleTaskStatus,
 }: {
   tasks: WeeklyTask[];
   loading: boolean;
   onOpenTasks: () => void;
+  onOpenTask: (task: WeeklyTask) => void;
   onToggleTaskStatus: (task: WeeklyTask) => void;
 }) {
   return (
@@ -290,9 +292,9 @@ function TodayPriorities({
           {tasks.map((task) => {
             const openReasons = task.pending_reasons.filter((reason) => !reason.completed_at).length;
             return (
-              <article key={task.id} className="rounded-md border border-border/60 bg-background/40 p-3">
+              <article key={task.id} className="rounded-md border border-border/60 bg-background/40 p-3 transition-colors hover:border-primary/35 hover:bg-background/65">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
+                  <button type="button" className="min-w-0 flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/50" onClick={() => onOpenTask(task)} aria-label={`Abrir tarefa ${task.title}`}>
                     <h3
                       className={cn(
                         "break-words text-sm font-semibold leading-snug",
@@ -327,7 +329,7 @@ function TodayPriorities({
                         </Badge>
                       )}
                     </div>
-                  </div>
+                  </button>
                   <Button
                     variant={task.status === "completed" ? "outline" : "secondary"}
                     size="sm"

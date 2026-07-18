@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { nativeStorage } from "@/lib/nativeStorage";
+import { AppSoundStyle } from "@/lib/soundEffects";
 
 export type ValidationChecklist = Record<string, boolean>;
 
 export interface UserSettings {
   hasSeenOnboarding: boolean;
   validationChecklist: ValidationChecklist;
+  soundEnabled: boolean;
+  soundStyle: AppSoundStyle;
 }
 
 const defaultSettings: UserSettings = {
   hasSeenOnboarding: false,
   validationChecklist: {},
+  soundEnabled: false,
+  soundStyle: "soft",
 };
 
 const settingsKey = (userId: string) => `vistaUserSettings:${userId}`;
@@ -56,7 +61,13 @@ export function useUserSettings(userId?: string) {
     if (!userId) return;
     let active = true;
     nativeStorage.getItem(settingsKey(userId)).then((raw) => {
-      if (!active || !raw) return;
+      if (!active) return;
+      const localRaw = window.localStorage.getItem(settingsKey(userId));
+      if (localRaw) {
+        void nativeStorage.setItem(settingsKey(userId), localRaw);
+        return;
+      }
+      if (!raw) return;
       try {
         const stored = { ...defaultSettings, ...JSON.parse(raw) } as UserSettings;
         window.localStorage.setItem(settingsKey(userId), JSON.stringify(stored));

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { Database } from "@/integrations/supabase/types";
 import { hasNetworkConnection, isNetworkError, queueOfflineOperation } from "@/lib/offlineData";
+import { playStoredUserSound } from "@/lib/soundEffects";
 
 export type TaskStatus = "pending" | "completed";
 export type Priority = "low" | "medium" | "high";
@@ -304,6 +305,7 @@ export function useWeeklyTasks() {
         return;
       }
       invalidateTasks();
+      playStoredUserSound("create", user?.id);
       toast.success(variables.source_note_id ? "Tarefa criada a partir da anotação." : "Tarefa criada.");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -387,6 +389,7 @@ export function useWeeklyTasks() {
       queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
         current?.map((task) => task.id === id ? { ...task, ...payload } as WeeklyTask : task));
       if (hasNetworkConnection()) invalidateTasks();
+      if (payload.status === "completed") playStoredUserSound("complete", user?.id);
     },
     onError: (e: Error) => toast.error(e.message),
   });

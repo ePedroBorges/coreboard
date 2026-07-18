@@ -15,9 +15,11 @@ import { useLocation, useNavigate } from "react-router-dom";
 interface ProfileMenuProps {
   onOpenSettings: () => void;
   mobileNav?: boolean;
+  sidebar?: boolean;
+  collapsed?: boolean;
 }
 
-export function ProfileMenu({ onOpenSettings, mobileNav = false }: ProfileMenuProps) {
+export function ProfileMenu({ onOpenSettings, mobileNav = false, sidebar = false, collapsed = false }: ProfileMenuProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,6 +45,13 @@ export function ProfileMenu({ onOpenSettings, mobileNav = false }: ProfileMenuPr
             <UserRound className={cn("h-4 w-4 shrink-0", profileSectionActive && "text-primary")} />
             <span className="max-w-full truncate">Perfil</span>
           </button>
+        ) : sidebar ? (
+          <button type="button" className={cn("flex h-10 w-full items-center gap-2 rounded px-2 text-left text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent", collapsed && "w-10 justify-center px-0")} title="Perfil e configurações" aria-label="Abrir perfil e configurações">
+            <Avatar className="h-7 w-7 shrink-0 rounded-md">
+              <AvatarFallback className="rounded-md bg-primary/10 text-xs text-primary">{initials}</AvatarFallback>
+            </Avatar>
+            {!collapsed && <span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">Perfil</span><span className="block truncate text-[10px] text-muted-foreground">{user?.email}</span></span>}
+          </button>
         ) : (
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" title="Perfil" aria-label="Abrir perfil">
             <Avatar className="h-6 w-6">
@@ -51,7 +60,7 @@ export function ProfileMenu({ onOpenSettings, mobileNav = false }: ProfileMenuPr
           </Button>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side={mobileNav ? "top" : "bottom"} sideOffset={8} className="w-60">
+      <DropdownMenuContent align={sidebar ? "start" : "end"} side={mobileNav ? "top" : sidebar ? "right" : "bottom"} sideOffset={8} className="w-60">
         <DropdownMenuItem className="font-mono-accent text-xs text-muted-foreground" disabled>
           <span className="truncate">{user?.email}</span>
         </DropdownMenuItem>

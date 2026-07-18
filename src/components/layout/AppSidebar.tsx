@@ -12,7 +12,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, ClipboardList, FileText, Home, ListChecks, NotebookPen, Sparkles, Star } from "lucide-react";
+import { BookOpen, ClipboardList, FileText, Home, ListChecks, NotebookPen, Search, Sparkles, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Notebook, Page } from "@/types/notes";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
@@ -35,6 +35,8 @@ interface AppSidebarProps {
   onSelectNotes?: () => void;
   onOpenNotebook: (id: string) => void;
   onOpenPage: (page: Page) => void;
+  onOpenTask?: (task: WeeklyTask) => void;
+  onOpenSearch?: () => void;
   onSelectTasks: () => void;
   onOpenSettings: () => void;
 }
@@ -52,6 +54,8 @@ export function AppSidebar({
   onSelectNotes,
   onOpenNotebook,
   onOpenPage,
+  onOpenTask,
+  onOpenSearch,
   onSelectTasks,
   onOpenSettings,
 }: AppSidebarProps) {
@@ -105,6 +109,7 @@ export function AppSidebar({
                 <NavItem active={activeView === "today"} icon={Home} label="Hoje" onClick={() => runAndClose(onSelectToday)} collapsed={collapsed} />
                 <NavItem active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Pastas" onClick={() => runAndClose(onSelectNotes)} collapsed={collapsed} />
                 <NavItem active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={() => runAndClose(onSelectTasks)} collapsed={collapsed} />
+                {onOpenSearch && <NavItem active={false} icon={Search} label="Buscar" onClick={() => runAndClose(onOpenSearch)} collapsed={collapsed} />}
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild className="min-h-[44px] text-sm sm:min-h-0 sm:text-xs">
                     <Link to="/planos" onClick={() => isMobile && setOpenMobile(false)}>
@@ -149,7 +154,7 @@ export function AppSidebar({
                   {pinnedTasks.map((task) => (
                     <SidebarMenuItem key={`task-${task.id}`}>
                       <SidebarMenuButton
-                        onClick={() => runAndClose(onSelectTasks)}
+                        onClick={() => runAndClose(() => onOpenTask ? onOpenTask(task) : onSelectTasks())}
                         className={cn(
                           "min-h-[44px] items-start gap-2 text-sm sm:min-h-0 sm:text-xs",
                           activeView === "tasks" && "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -207,6 +212,9 @@ export function AppSidebar({
         </SidebarContent>
 
         <SidebarFooter className="p-2">
+          <div className={cn("rounded-md border border-sidebar-border/70 bg-sidebar-accent/35", collapsed ? "p-0" : "p-1")}>
+            <ProfileMenu onOpenSettings={onOpenSettings} sidebar collapsed={collapsed} />
+          </div>
           {!collapsed && (
             <div className="text-center font-mono-accent text-[9px] text-muted-foreground/50">
               VISTA Tasks Control v1.0

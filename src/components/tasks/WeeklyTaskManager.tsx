@@ -69,7 +69,7 @@ interface WeeklyTaskManagerProps {
   defaultNotebookId?: string;
   pinnedTaskIds?: string[];
   onTogglePinnedTask?: (taskId: string) => void;
-  selectedTaskId?: string | null;
+  onOpenTask?: (task: WeeklyTask) => void;
 }
 
 export function WeeklyTaskManager({
@@ -77,7 +77,7 @@ export function WeeklyTaskManager({
   defaultNotebookId,
   pinnedTaskIds = [],
   onTogglePinnedTask,
-  selectedTaskId,
+  onOpenTask,
 }: WeeklyTaskManagerProps) {
   const today = new Date();
   const [view, setView] = useState<"day" | "pending" | "completed" | "all">("day");
@@ -105,10 +105,6 @@ export function WeeklyTaskManager({
     deletePendingReason,
     completePendingReason,
   } = useWeeklyTasks();
-
-  useEffect(() => {
-    if (selectedTaskId && tasks.some((task) => task.id === selectedTaskId)) setView("all");
-  }, [selectedTaskId, tasks]);
 
   const stats = useMemo(() => {
     const pending = tasks.filter((task) => task.status === "pending").length;
@@ -281,9 +277,6 @@ export function WeeklyTaskManager({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <div className="flex items-center gap-1"><h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">Tarefas</h1><ContextHelp text="Organize o que precisa ser feito. Use subtarefas quando uma tarefa tiver etapas menores." /></div>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">
-                Planeje ações por data, organize subtarefas e conclua prioridades.
-              </p>
             </div>
             <Button className="h-11 shrink-0 gap-2" onClick={() => setTaskDialogOpen(true)}>
               <Plus className="h-4 w-4" />
@@ -301,9 +294,6 @@ export function WeeklyTaskManager({
                   Foco do dia
                 </div>
                 <p className="text-sm leading-6 text-muted-foreground">{focusSummary}</p>
-              </div>
-              <div className="rounded-md border border-border/60 bg-background/45 px-3 py-2 text-xs text-muted-foreground">
-                Organize o que precisa ser feito agora.
               </div>
             </div>
           </div>
@@ -451,9 +441,6 @@ export function WeeklyTaskManager({
             <h2 className="text-base font-semibold text-foreground">
               {listTitle}
             </h2>
-            <p className="text-xs text-muted-foreground">
-              {listDescription}
-            </p>
           </div>
         </div>
 
@@ -481,7 +468,7 @@ export function WeeklyTaskManager({
                   source_notebook_title: task.source_notebook_title || (task.notebook_id ? notebookTitleById.get(task.notebook_id) : undefined),
                 }}
                 pinned={pinnedTaskIds.includes(task.id)}
-                initiallyOpen={selectedTaskId === task.id}
+                onOpen={() => onOpenTask?.(task)}
                 onTogglePinned={() => onTogglePinnedTask?.(task.id)}
                 onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
                 onDelete={() => deleteTask.mutate(task.id)}
@@ -577,7 +564,7 @@ export function WeeklyTaskManager({
 const TaskCard = memo(function TaskCard({
   task,
   pinned,
-  initiallyOpen,
+  onOpen,
   onTogglePinned,
   onUpdate,
   onDelete,
@@ -588,7 +575,7 @@ const TaskCard = memo(function TaskCard({
 }: {
   task: WeeklyTask;
   pinned: boolean;
-  initiallyOpen?: boolean;
+  onOpen: () => void;
   onTogglePinned?: () => void;
   onUpdate: (updates: Partial<WeeklyTask>) => void;
   onDelete: () => void;
@@ -597,7 +584,7 @@ const TaskCard = memo(function TaskCard({
   onDeleteReason: (id: string) => void;
   onCompleteReason: (id: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(initiallyOpen);
+  const [expanded] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(task.title);
   const [descriptionDraft, setDescriptionDraft] = useState(task.description || "");
@@ -614,14 +601,6 @@ const TaskCard = memo(function TaskCard({
     setTitleDraft(task.title);
     setDescriptionDraft(task.description || "");
   }, [task.description, task.title]);
-
-  useEffect(() => {
-    if (!initiallyOpen) return;
-    setExpanded(true);
-    window.requestAnimationFrame(() => {
-      document.getElementById(`task-${task.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }, [initiallyOpen, task.id]);
 
   const handleSaveTitle = () => {
     const title = titleDraft.trim();
@@ -662,10 +641,9 @@ const TaskCard = memo(function TaskCard({
       <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:p-4">
         <button
           type="button"
-          onClick={() => setExpanded((current) => !current)}
+          onClick={onOpen}
           className="min-w-0 flex-1 rounded-md text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/60"
-          aria-expanded={expanded}
-          aria-label={`${expanded ? "Fechar" : "Abrir"} detalhes da tarefa ${task.title}`}
+          aria-label={`Abrir tarefa ${task.title}`}
         >
           <div className="flex min-w-0 flex-wrap items-start gap-2">
             <h2 className={cn(

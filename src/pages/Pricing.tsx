@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, Loader2, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -21,11 +21,12 @@ const FREE_FEATURES = [
 ];
 
 const PRO_FEATURES = [
-  "4 temas premium",
+  "Biblioteca completa de temas premium",
+  "RGB dinâmico, efeitos luminosos e sons Arcade",
   "Lembretes locais de tarefas",
   "Anexos de PDF e imagem",
   "Exportação e compartilhamento em PDF",
-  "Acesso aos próximos recursos Pro",
+  "Todos os próximos recursos Pro",
 ];
 
 const PLANS: { id: PaymentPlanId; label: string; price: string; period: string; badge?: string }[] = [
@@ -40,6 +41,7 @@ const Pricing = () => {
   const { isPro, subscription } = useSubscription();
   const [checkoutPriceId, setCheckoutPriceId] = useState<PaymentPlanId | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const activePlanId = subscription?.price_id || (isPro && !subscription ? "pro_lifetime" : null);
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!user) return <Navigate to="/auth" replace />;
@@ -74,9 +76,9 @@ const Pricing = () => {
     <div className="h-[100dvh] overflow-y-auto overscroll-y-contain bg-background">
       <PaymentTestModeBanner />
       <div className="mx-auto w-full max-w-7xl px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-1">
-            <ArrowLeft className="h-4 w-4" /> Voltar
+        <div className="mb-4 flex min-h-9 items-center justify-end gap-3 lg:justify-between">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="hidden h-9 w-9 lg:inline-flex" title="Voltar" aria-label="Voltar">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           {isPro && subscription?.price_id !== "pro_lifetime" && subscription && (
             <Button variant="outline" size="sm" onClick={openPortal} disabled={portalLoading}>
@@ -91,9 +93,6 @@ const Pricing = () => {
             <Sparkles className="h-4 w-4" /> Planos VISTA Tasks Control
           </div>
           <h1 className="text-2xl font-bold sm:text-3xl">Escolha como quer evoluir</h1>
-          <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground">
-            O plano gratuito mantém sua rotina essencial. O Pro libera personalização, anexos, lembretes e exportações avançadas.
-          </p>
           {isPro && (
             <Badge variant="outline" className="mt-4 border-success/40 bg-success/10 text-success">
               <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Seu acesso Pro está ativo
@@ -111,11 +110,7 @@ const Pricing = () => {
           </div>
         )}
 
-        <div className="grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <PlanCard title="Free" price="R$ 0" period="/sempre" features={FREE_FEATURES}>
-            <Button variant="outline" className="w-full" disabled>Plano inicial</Button>
-          </PlanCard>
-
+        <div className="grid items-stretch gap-3 md:grid-cols-3">
           {PLANS.map((plan) => (
             <PlanCard
               key={plan.id}
@@ -123,7 +118,7 @@ const Pricing = () => {
               price={plan.price}
               period={plan.period}
               badge={plan.badge}
-              featured={plan.id === "pro_lifetime"}
+              featured={plan.id === "pro_yearly"}
               features={PRO_FEATURES}
             >
               <Button
@@ -139,7 +134,7 @@ const Pricing = () => {
                   <Zap className="h-4 w-4" />
                 )}
                 {isPro
-                  ? "Pro ativo"
+                  ? activePlanId === plan.id ? "Seu plano" : "Incluído no seu Pro"
                   : checkoutPriceId === plan.id
                     ? "Abrindo pagamento..."
                     : plan.id === "pro_lifetime"
@@ -150,9 +145,17 @@ const Pricing = () => {
           ))}
         </div>
 
-        <p className="mt-5 text-center text-xs text-muted-foreground">
-          Pagamento seguro pelo Stripe. <Link to="/" className="text-primary hover:underline">Voltar ao app</Link>
-        </p>
+        <section className="mt-4 grid gap-4 rounded-lg border border-border/60 bg-card/45 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div>
+            <div className="flex items-baseline gap-2"><h2 className="text-sm font-semibold">Plano Free</h2><span className="text-sm text-muted-foreground">R$ 0 para sempre</span></div>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {FREE_FEATURES.map((feature) => <span key={feature} className="flex items-center gap-1.5"><Check className="h-3 w-3 text-success" />{feature}</span>)}
+            </div>
+          </div>
+          <Badge variant="outline" className="w-fit">Essencial completo</Badge>
+        </section>
+
+        <p className="mt-5 text-center text-xs text-muted-foreground">Pagamento seguro pelo Stripe e vinculado ao e-mail da sua conta.</p>
       </div>
 
     </div>
