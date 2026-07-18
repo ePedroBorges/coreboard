@@ -64,6 +64,7 @@ describe("task experience simplification", () => {
 
   it("mantém a Home focada em tarefas pendentes e anotações recentes", () => {
     const completedTask = makeTask({ id: "completed", title: "Tarefa concluída", status: "completed" });
+    const onOpenTask = vi.fn();
     renderWithProviders(
       <TodayView
         tasks={[tasks[0], completedTask]}
@@ -76,7 +77,7 @@ describe("task experience simplification", () => {
         onOpenTasks={vi.fn()}
         onOpenNotes={vi.fn()}
         onOpenNote={vi.fn()}
-        onOpenTask={vi.fn()}
+        onOpenTask={onOpenTask}
         onToggleTaskStatus={vi.fn()}
         gamification={{ level: 1, levelName: "Iniciante", tier: "Bronze", xp: 0, levelStartXp: 0, nextLevelXp: 100, xpToNextLevel: 100, progressPercent: 0, completedTasks: 0, notesCreated: 0, rewards: [] }}
       />,
@@ -87,6 +88,8 @@ describe("task experience simplification", () => {
     expect(screen.queryByText("Tarefa concluída")).not.toBeInTheDocument();
     expect(screen.queryByText("Resumo")).not.toBeInTheDocument();
     expect(screen.queryByText("Planejamento")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Abrir tarefa Preparar relatório" }));
+    expect(onOpenTask).toHaveBeenCalledWith(expect.objectContaining({ title: "Preparar relatório" }));
   });
 
   it("abre a tela dedicada ao clicar na própria tarefa", () => {

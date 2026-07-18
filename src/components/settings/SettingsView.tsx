@@ -1,9 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  CheckCircle2,
   ClipboardCopy,
   Bell,
   CreditCard,
@@ -32,7 +31,6 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -71,22 +69,12 @@ import {
 
 const appSummary = "Estou usando o VISTA Tasks Control, um app para transformar anotacoes em tarefas executaveis. Feedback desejado: clareza, organizacao, velocidade e utilidade no dia a dia.";
 
-const checklistItems = [
-  { id: "first-note", label: "Criei minha primeira anotação" },
-  { id: "organized-note", label: "Organizei uma anotação em uma pasta" },
-  { id: "note-to-task", label: "Criei uma tarefa a partir de uma anotação" },
-  { id: "calendar-task", label: "Planejei uma tarefa no Calendário" },
-  { id: "exported-backup", label: "Exportei meu backup" },
-  { id: "day-without-keep", label: "Usei o app por um dia sem abrir o Google Keep" },
-];
-
 interface SettingsViewProps {
   user: User;
   notebooks: Notebook[];
   notes: Page[];
   tasks: WeeklyTask[];
   settings: UserSettings;
-  onChecklistChange: (itemId: string, checked: boolean) => void;
   onSettingsImported: (settings: UserSettings) => void;
   onOpenOnboarding: () => void;
   onGoToday: () => void;
@@ -99,7 +87,6 @@ export function SettingsView({
   notes,
   tasks,
   settings,
-  onChecklistChange,
   onSettingsImported,
   onOpenOnboarding,
   onGoToday,
@@ -131,6 +118,22 @@ export function SettingsView({
   const [resetText, setResetText] = useState("");
   const [portalLoading, setPortalLoading] = useState(false);
   const [notificationBusy, setNotificationBusy] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileDraft, setProfileDraft] = useState(() => ({
+    fullName: settings.profile.fullName || user.user_metadata?.full_name || user.user_metadata?.name || "",
+    cpf: settings.profile.cpf || user.user_metadata?.cpf || "",
+    phone: settings.profile.phone || user.user_metadata?.phone || "",
+    birthDate: settings.profile.birthDate || user.user_metadata?.birth_date || "",
+  }));
+
+  useEffect(() => {
+    setProfileDraft({
+      fullName: settings.profile.fullName || user.user_metadata?.full_name || user.user_metadata?.name || "",
+      cpf: settings.profile.cpf || user.user_metadata?.cpf || "",
+      phone: settings.profile.phone || user.user_metadata?.phone || "",
+      birthDate: settings.profile.birthDate || user.user_metadata?.birth_date || "",
+    });
+  }, [settings.profile, user.user_metadata]);
 
   const invalidateUserData = async () => {
     await Promise.all([
@@ -156,8 +159,34 @@ export function SettingsView({
     const backup = await collectUserBackup(user.id, settings);
     downloadBackup(backup);
     toast.success("Backup exportado com sucesso.");
-    onChecklistChange("exported-backup", true);
   });
+
+  const handleProfileSave = async () => {
+    setProfileSaving(true);
+    const pendingSettings: UserSettings = { ...settings, profile: profileDraft, profileSyncPending: true };
+    onSettingsImported(pendingSettings);
+    try {
+      if (navigator.onLine === false) {
+        toast.success("Dados salvos no dispositivo. A nuvem será atualizada quando a internet voltar.");
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: profileDraft.fullName,
+          cpf: profileDraft.cpf,
+          phone: profileDraft.phone,
+          birth_date: profileDraft.birthDate,
+        },
+      });
+      if (error) throw error;
+      onSettingsImported({ ...pendingSettings, profileSyncPending: false });
+      toast.success("Dados da conta atualizados.");
+    } catch {
+      toast.info("Dados salvos no dispositivo e aguardando sincronização.");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const handleImportFile = async (file?: File) => {
     if (!file) return;
@@ -282,8 +311,7 @@ export function SettingsView({
     }
   };
 
-  const completedChecklist = checklistItems.filter((item) => settings.validationChecklist[item.id]).length;
-  const userName = user.user_metadata?.username || user.user_metadata?.name || "Nao informado";
+  const userName = profileDraft.fullName || user.user_metadata?.username || user.user_metadata?.name || "Nao informado";
   const emailVerified = user.email_confirmed_at ? "Confirmado" : "Pendente";
   const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "N?o informado";
   const periodEnd = subscription?.current_period_end
@@ -316,12 +344,21 @@ export function SettingsView({
 
         <TabsContent value="perfil" className="space-y-4">
           <SettingsCard title="Sua conta" icon={UserRound}>
-            <div className="grid gap-2 text-sm text-muted-foreground">
-              <InfoRow label="Nome" value={userName} />
+            <div className="grid gap-4 text-sm text-muted-foreground">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ProfileField label="Nome completo" value={profileDraft.fullName} onChange={(fullName) => setProfileDraft((current) => ({ ...current, fullName }))} />
+                <ProfileField label="CPF" value={profileDraft.cpf} onChange={(cpf) => setProfileDraft((current) => ({ ...current, cpf }))} inputMode="numeric" />
+                <ProfileField label="Celular" value={profileDraft.phone} onChange={(phone) => setProfileDraft((current) => ({ ...current, phone }))} inputMode="tel" />
+                <ProfileField label="Data de nascimento" value={profileDraft.birthDate} onChange={(birthDate) => setProfileDraft((current) => ({ ...current, birthDate }))} type="date" />
+              </div>
               <InfoRow label="Email" value={user.email || "Nao informado"} />
               <InfoRow label="Confirmação de email" value={emailVerified} />
               <InfoRow label="Criado em" value={createdAt} />
-              <div className="grid gap-2 pt-2 sm:grid-cols-2">
+              <Button className="h-10 w-full sm:w-auto" onClick={handleProfileSave} disabled={profileSaving}>
+                {profileSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar dados pessoais
+              </Button>
+              <div className="grid gap-2 sm:grid-cols-2">
                 <Button variant="outline" className="h-10 gap-2" onClick={handlePasswordReset}>
                   <ShieldCheck className="h-4 w-4" />
                   Redefinir senha
@@ -331,24 +368,6 @@ export function SettingsView({
                   Sair da conta
                 </Button>
               </div>
-            </div>
-          </SettingsCard>
-
-          <SettingsCard title="Checklist de validação" icon={CheckCircle2}>
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <span className="text-sm text-muted-foreground">Progresso do perfil</span>
-              <Badge variant="secondary" className="rounded-full">{completedChecklist}/{checklistItems.length}</Badge>
-            </div>
-            <div className="space-y-2">
-              {checklistItems.map((item) => (
-                <label key={item.id} className="flex min-h-10 items-center gap-3 rounded-md border border-border/50 bg-background/35 px-3 py-2 text-sm">
-                  <Checkbox
-                    checked={!!settings.validationChecklist[item.id]}
-                    onCheckedChange={(checked) => onChecklistChange(item.id, !!checked)}
-                  />
-                  <span className="leading-5">{item.label}</span>
-                </label>
-              ))}
             </div>
           </SettingsCard>
         </TabsContent>
@@ -453,6 +472,13 @@ export function SettingsView({
                   }}
                 >Sutil</Button>
                 <Button
+                  variant={settings.soundStyle === "zen" ? "secondary" : "outline"}
+                  onClick={() => {
+                    onSettingsImported({ ...settings, soundStyle: "zen" });
+                    playAppSound("preview", true, "zen");
+                  }}
+                >Zen</Button>
+                <Button
                   variant={settings.soundStyle === "arcade" ? "secondary" : "outline"}
                   onClick={() => {
                     if (!isPro) { toast.error("O perfil Arcade faz parte do Pro."); navigate("/planos"); return; }
@@ -460,6 +486,14 @@ export function SettingsView({
                     playAppSound("preview", true, "arcade");
                   }}
                 >Arcade {!isPro && <Lock className="ml-2 h-3.5 w-3.5" />}</Button>
+                <Button
+                  variant={settings.soundStyle === "digital" ? "secondary" : "outline"}
+                  onClick={() => {
+                    if (!isPro) { toast.error("O perfil Digital faz parte do Pro."); navigate("/planos"); return; }
+                    onSettingsImported({ ...settings, soundStyle: "digital" });
+                    playAppSound("preview", true, "digital");
+                  }}
+                >Digital {!isPro && <Lock className="ml-2 h-3.5 w-3.5" />}</Button>
               </div>
             </div>
           </SettingsCard>
@@ -717,6 +751,27 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <span className="min-w-0 break-all text-left font-medium text-foreground sm:text-right">{value}</span>
     </div>
+  );
+}
+
+function ProfileField({
+  label,
+  value,
+  onChange,
+  type = "text",
+  inputMode,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+}) {
+  return (
+    <Label className="grid gap-1.5 text-xs text-muted-foreground">
+      {label}
+      <Input type={type} inputMode={inputMode} value={value} onChange={(event) => onChange(event.target.value)} className="h-10 text-foreground" />
+    </Label>
   );
 }
 

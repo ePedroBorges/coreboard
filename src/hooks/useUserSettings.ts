@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { nativeStorage } from "@/lib/nativeStorage";
 import { AppSoundStyle } from "@/lib/soundEffects";
+import { supabase } from "@/integrations/supabase/client";
 
 export type ValidationChecklist = Record<string, boolean>;
+
+export interface UserProfile {
+  fullName: string;
+  cpf: string;
+  phone: string;
+  birthDate: string;
+}
 
 export interface UserSettings {
   hasSeenOnboarding: boolean;
   validationChecklist: ValidationChecklist;
   soundEnabled: boolean;
   soundStyle: AppSoundStyle;
+  profile: UserProfile;
+  profileSyncPending: boolean;
 }
 
 const defaultSettings: UserSettings = {
@@ -16,9 +26,12 @@ const defaultSettings: UserSettings = {
   validationChecklist: {},
   soundEnabled: false,
   soundStyle: "soft",
+  profile: { fullName: "", cpf: "", phone: "", birthDate: "" },
+  profileSyncPending: false,
 };
 
-const settingsKey = (userId: string) => `vistaUserSettings:${userId}`;
+export const getUserSettingsKey = (userId: string) => `vistaUserSettings:${userId}`;
+const settingsKey = getUserSettingsKey;
 const onboardingMarkerKey = (userId: string) => `vistaShowOnboarding:${userId}`;
 
 export const markOnboardingForNewUser = (userId?: string) => {
@@ -40,7 +53,9 @@ const readLocalSettings = (userId?: string): UserSettings => {
   if (!userId || typeof window === "undefined") return defaultSettings;
   try {
     const raw = window.localStorage.getItem(settingsKey(userId));
-    return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
+    if (!raw) return defaultSettings;
+    const parsed = JSON.parse(raw) as Partial<UserSettings>;
+    return { ...defaultSettings, ...parsed, profile: { ...defaultSettings.profile, ...parsed.profile } };
   } catch {
     return defaultSettings;
   }
@@ -69,7 +84,8 @@ export function useUserSettings(userId?: string) {
       }
       if (!raw) return;
       try {
-        const stored = { ...defaultSettings, ...JSON.parse(raw) } as UserSettings;
+        const parsed = JSON.parse(raw) as Partial<UserSettings>;
+        const stored = { ...defaultSettings, ...parsed, profile: { ...defaultSettings.profile, ...parsed.profile } } as UserSettings;
         window.localStorage.setItem(settingsKey(userId), JSON.stringify(stored));
         setSettings(stored);
       } catch {
@@ -88,6 +104,7 @@ export function useUserSettings(userId?: string) {
         ...current,
         ...updates,
         validationChecklist: updates.validationChecklist || current.validationChecklist,
+        profile: updates.profile ? { ...current.profile, ...updates.profile } : current.profile,
       };
       writeLocalSettings(userId, next);
       return next;
@@ -119,4 +136,27 @@ export function useUserSettings(userId?: string) {
     setChecklistItem,
     updateSettings,
   }), [settings, setChecklistItem, setHasSeenOnboarding, updateSettings]);
+}
+
+export async function syncPendingUserProfile(userId: string) {
+  const raw = await nativeStorage.getItem(settingsKey(userId))
+    || (typeof window !== "undefined" ? window.localStorage.getItem(settingsKey(userId)) : null);
+  if (!raw) return false;
+  try {
+    const settings = JSON.parse(raw) as UserSettings;
+    if (!settings.profileSyncPending || !settings.profile) return false;
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        full_name: settings.profile.fullName,
+        cpf: settings.profile.cpf,
+        phone: settings.profile.phone,
+        birth_date: settings.profile.birthDate,
+      },
+    });
+    if (error) throw error;
+    writeLocalSettings(userId, { ...settings, profileSyncPending: false });
+    return true;
+  } catch {
+    return false;
+  }
 }

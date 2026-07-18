@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotebooks } from "@/hooks/useNotebooks";
 import { useAllPages } from "@/hooks/usePages";
-import { useUserSettings } from "@/hooks/useUserSettings";
 import { useWeeklyTasks } from "@/hooks/useWeeklyTasks";
 import { calculateGamificationStats } from "@/lib/gamification";
 import { ArrowLeft, CheckCircle2, CircleHelp, NotebookPen, Trophy } from "lucide-react";
@@ -16,14 +15,12 @@ export default function Achievements() {
   const notebooks = useNotebooks();
   const notes = useAllPages();
   const tasks = useWeeklyTasks();
-  const settings = useUserSettings(user?.id);
-  const completedChecklist = Object.values(settings.settings.validationChecklist).filter(Boolean).length;
   const stats = useMemo(() => calculateGamificationStats({
     tasks: tasks.data || [],
     notes: notes.data || [],
     notebookCount: notebooks.data?.length || 0,
-    completedChecklist,
-  }), [completedChecklist, notebooks.data?.length, notes.data, tasks.data]);
+    completedChecklist: 0,
+  }), [notebooks.data?.length, notes.data, tasks.data]);
 
   if (!loading && !user) return <Navigate to="/auth" replace />;
 
@@ -43,7 +40,7 @@ export default function Achievements() {
         <section className="grid gap-3 md:grid-cols-3">
           <ProgressCard icon={CheckCircle2} title="Executar" text="Conclua tarefas e subtarefas para ganhar mais XP." />
           <ProgressCard icon={NotebookPen} title="Registrar" text="Crie anotações úteis e mantenha suas pastas organizadas." />
-          <ProgressCard icon={Trophy} title="Consolidar" text="Complete marcos do perfil e mantenha uma rotina consistente." />
+          <ProgressCard icon={Trophy} title="Consolidar" text="Mantenha uma rotina consistente e avance nos cursos da Central de treinamento." />
         </section>
 
         <details className="group rounded-md border border-border/60 bg-card/60 p-4">
@@ -53,7 +50,7 @@ export default function Achievements() {
           <div className="mt-3 grid gap-2 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
             <p>+60 XP por tarefa concluída</p><p>+25 XP por subtarefa concluída</p>
             <p>+15 XP por anotação criada</p><p>+10 XP por anotação fixada</p>
-            <p>+20 XP por pasta criada</p><p>+40 XP por marco do perfil</p>
+            <p>+20 XP por pasta criada</p><p>Novas recompensas são liberadas conforme sua rotina evolui</p>
           </div>
         </details>
       </div>

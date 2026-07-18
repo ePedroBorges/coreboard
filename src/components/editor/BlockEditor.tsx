@@ -130,25 +130,6 @@ function AutoResizeTextarea({
     element.style.height = `${Math.max(element.scrollHeight, 320)}px`;
   };
 
-  const keepCaretVisible = () => {
-    const element = ref.current;
-    if (!element || document.activeElement !== element) return;
-    const scrollContainer = element.closest<HTMLElement>("[data-note-scroll]");
-    if (!scrollContainer) return;
-    const style = window.getComputedStyle(element);
-    const lineHeight = Number.parseFloat(style.lineHeight) || 32;
-    const fontSize = Number.parseFloat(style.fontSize) || 16;
-    const charsPerLine = Math.max(12, Math.floor(element.clientWidth / (fontSize * 0.56)));
-    const beforeCaret = element.value.slice(0, element.selectionStart || 0);
-    const visualLines = beforeCaret.split("\n").reduce((total, line) => total + Math.max(1, Math.ceil(line.length / charsPerLine)), 0);
-    const caretTop = element.getBoundingClientRect().top + visualLines * lineHeight;
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const bottomLimit = containerRect.bottom - Math.min(160, containerRect.height * 0.25);
-    const topLimit = containerRect.top + 72;
-    if (caretTop > bottomLimit) scrollContainer.scrollBy({ top: caretTop - bottomLimit, behavior: "auto" });
-    else if (caretTop < topLimit) scrollContainer.scrollBy({ top: caretTop - topLimit, behavior: "auto" });
-  };
-
   useLayoutEffect(() => {
     resize();
   }, [value]);
@@ -163,13 +144,11 @@ function AutoResizeTextarea({
         value={value}
         onChange={(event) => {
           onChange(event.target.value);
-          requestAnimationFrame(() => { resize(); keepCaretVisible(); });
+          requestAnimationFrame(resize);
         }}
-        onKeyUp={() => requestAnimationFrame(keepCaretVisible)}
-        onClick={() => requestAnimationFrame(keepCaretVisible)}
         onFocus={() => {
           onFocus();
-          requestAnimationFrame(() => { resize(); keepCaretVisible(); });
+          requestAnimationFrame(resize);
         }}
         onBlur={onBlur}
         placeholder={placeholder}

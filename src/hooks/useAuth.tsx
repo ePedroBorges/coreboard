@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { markOnboardingForNewUser } from "./useUserSettings";
+import { nativeStorage } from "@/lib/nativeStorage";
+
+const OFFLINE_USER_KEY = "vistaOfflineUser";
 
 interface AuthContextType {
   user: User | null;
@@ -21,19 +24,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    let active = true;
+
+    const restoreOfflineUser = async () => {
+      if (navigator.onLine !== false) return false;
+      const raw = await nativeStorage.getItem(OFFLINE_USER_KEY);
+      if (!active || !raw) return false;
+      try {
+        setUser(JSON.parse(raw) as User);
+        setSession(null);
+        return true;
+      } catch {
+        await nativeStorage.removeItem(OFFLINE_USER_KEY);
+        return false;
+      }
+    };
+
+    const rememberUser = (nextUser: User) => {
+      void nativeStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(nextUser));
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!active) return;
+      if (nextSession?.user) {
+        setSession(nextSession);
+        setUser(nextSession.user);
+        rememberUser(nextSession.user);
+        setLoading(false);
+        return;
+      }
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        setUser(null);
+        void nativeStorage.removeItem(OFFLINE_USER_KEY);
+        setLoading(false);
+      }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const restoreSession = async () => {
+      try {
+        const { data: { session: storedSession }, error } = await supabase.auth.getSession();
+        if (!active) return;
+        if (storedSession?.user) {
+          setSession(storedSession);
+          setUser(storedSession.user);
+          rememberUser(storedSession.user);
+        } else if (error || navigator.onLine === false) {
+          await restoreOfflineUser();
+        } else {
+          setSession(null);
+          setUser(null);
+        }
+      } catch {
+        await restoreOfflineUser();
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    const handleOnline = () => void restoreSession();
+    window.addEventListener("online", handleOnline);
+    void restoreSession();
+
+    return () => {
+      active = false;
+      window.removeEventListener("online", handleOnline);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {
@@ -57,7 +114,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await nativeStorage.removeItem(OFFLINE_USER_KEY);
+    setSession(null);
+    setUser(null);
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // O logout local continua válido quando o dispositivo está offline.
+    }
   };
 
   const resetPassword = async (email: string) => {

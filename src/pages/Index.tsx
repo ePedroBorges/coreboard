@@ -179,16 +179,12 @@ const Index = () => {
       source_notebook_title: task.source_notebook_title || getTaskNotebookTitle(task),
     };
   }), [getTaskNotebookId, getTaskNotebookTitle, pageById, tasks.data]);
-  const completedChecklist = useMemo(
-    () => Object.values(userSettings.settings.validationChecklist).filter(Boolean).length,
-    [userSettings.settings.validationChecklist]
-  );
   const gamification = useMemo(() => calculateGamificationStats({
     tasks: normalizedTasks,
     notes: allPages.data || [],
     notebookCount: notebooks.data?.length || 0,
-    completedChecklist,
-  }), [allPages.data, completedChecklist, notebooks.data?.length, normalizedTasks]);
+    completedChecklist: 0,
+  }), [allPages.data, notebooks.data?.length, normalizedTasks]);
   const notifications = useNotifications(user?.id, normalizedTasks);
 
   useEffect(() => {
@@ -635,6 +631,7 @@ const Index = () => {
                 onOpenTasks={handleSelectTasks}
                 onOpenNotes={handleSelectNotes}
                 onOpenNote={openPage}
+                onOpenTask={openTask}
                 onToggleTaskStatus={(task) => tasks.updateTask.mutate({
                   id: task.id,
                   status: task.status === "completed" ? "pending" : "completed",
@@ -693,7 +690,6 @@ const Index = () => {
                 notes={allPages.data || []}
                 tasks={normalizedTasks}
                 settings={userSettings.settings}
-                onChecklistChange={userSettings.setChecklistItem}
                 onSettingsImported={userSettings.updateSettings}
                 onOpenOnboarding={() => setOnboardingOpen(true)}
                 onGoToday={handleSelectToday}

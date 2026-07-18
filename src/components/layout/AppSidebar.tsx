@@ -75,6 +75,7 @@ export function AppSidebar({
         activeView={activeView}
         onSelectToday={() => runAndClose(onSelectToday)}
         onSelectNotes={() => runAndClose(onSelectNotes)}
+        onOpenSearch={() => runAndClose(onOpenSearch)}
         onSelectTasks={() => runAndClose(onSelectTasks)}
         onOpenSettings={onOpenSettings}
       />
@@ -230,21 +231,24 @@ function MobileBottomNavigation({
   activeView,
   onSelectToday,
   onSelectNotes,
+  onOpenSearch,
   onSelectTasks,
   onOpenSettings,
 }: {
   activeView: AppView;
   onSelectToday?: () => void;
   onSelectNotes?: () => void;
+  onOpenSearch?: () => void;
   onSelectTasks: () => void;
   onOpenSettings: () => void;
 }) {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-sidebar-border bg-sidebar/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 text-sidebar-foreground shadow-[0_-12px_30px_-24px_rgba(0,0,0,0.8)] backdrop-blur lg:hidden">
       <div className="mx-auto max-w-md">
-        <div className="grid min-w-0 grid-cols-4 gap-1 rounded-md border border-sidebar-border bg-background/25 p-1">
+        <div className="grid min-w-0 grid-cols-5 gap-1 rounded-md border border-sidebar-border bg-background/25 p-1">
           <MobileBottomNavButton active={activeView === "today"} icon={Home} label="Hoje" onClick={onSelectToday} />
           <MobileBottomNavButton active={activeView === "notes" || activeView === "diary"} icon={BookOpen} label="Pastas" onClick={onSelectNotes} />
+          <MobileBottomNavButton active={false} icon={Search} label="Buscar" onClick={onOpenSearch} />
           <MobileBottomNavButton active={activeView === "calendar" || activeView === "tasks"} icon={ListChecks} label="Tarefas" onClick={onSelectTasks} />
           <ProfileMenu mobileNav onOpenSettings={onOpenSettings} />
         </div>
@@ -304,11 +308,15 @@ function NavItem({
         onClick={onClick}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "relative min-h-[44px] justify-center text-sm group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!p-0 sm:text-xs",
-          active && "bg-primary/15 text-primary font-semibold hover:bg-primary/20 hover:text-primary before:absolute before:left-0 before:top-1 before:bottom-1 before:w-0.5 before:rounded-r before:bg-primary"
+          "relative min-h-[44px] gap-3 rounded-md border border-transparent px-2.5 text-sm transition-all group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!p-0 sm:text-xs",
+          active
+            ? "border-primary/25 bg-primary/12 text-primary font-semibold shadow-[inset_3px_0_0_hsl(var(--primary))] hover:bg-primary/16 hover:text-primary"
+            : "text-sidebar-foreground/75 hover:border-sidebar-border hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
         )}
       >
-        <Icon className={cn("h-4 w-4 sm:h-3.5 sm:w-3.5", active && "text-primary")} />
+        <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded bg-sidebar-accent/70 transition-colors", active && "bg-primary/15")}>
+          <Icon className={cn("h-4 w-4 sm:h-3.5 sm:w-3.5", active && "text-primary")} />
+        </span>
         {!collapsed && <span>{label}</span>}
       </SidebarMenuButton>
     </SidebarMenuItem>

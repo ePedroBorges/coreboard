@@ -152,7 +152,14 @@ export function validateBackup(input: unknown): VistaBackup {
       pageTags: Array.isArray(backup.data?.pageTags) ? backup.data?.pageTags : [],
       pageVersions: Array.isArray(backup.data?.pageVersions) ? backup.data?.pageVersions : [],
       taskOrigins: backup.data?.taskOrigins || {},
-      settings: backup.data?.settings || { hasSeenOnboarding: true, validationChecklist: {} },
+      settings: backup.data?.settings || {
+        hasSeenOnboarding: true,
+        validationChecklist: {},
+        soundEnabled: false,
+        soundStyle: "soft",
+        profile: { fullName: "", cpf: "", phone: "", birthDate: "" },
+        profileSyncPending: false,
+      },
     },
   };
 }

@@ -74,6 +74,7 @@ export const APPEARANCE_THEME_PRESETS: AppearanceThemePreset[] = [
   { id: "blockcraft", label: "Mundo de Blocos", description: "Geometria pixelada e superfícies inspiradas em blocos.", category: "signature", mode: "dark", colorScheme: "focus", visualTheme: "blockcraft", pro: true, preview: ["#18221a", "#293b29", "#71b84b"] },
   { id: "rgb-flow", label: "RGB Flow", description: "Espectro contínuo percorrendo realces e superfícies.", category: "dynamic", mode: "dark", colorScheme: "rgb", visualTheme: "studio", pro: true, animated: true, enhancedEffects: true, preview: ["#07111f", "#22d3ee", "#ec4899"] },
   { id: "aurora", label: "Aurora Pulse", description: "Luz polar em movimento com contornos neon.", category: "dynamic", mode: "dark", colorScheme: "rgb", visualTheme: "anime", pro: true, animated: true, enhancedEffects: true, preview: ["#080b18", "#22d3ee", "#a855f7"] },
+  { id: "pixel-neon", label: "Pixel Neon", description: "Blocos, contraste e espectro contínuo para uma interface gamer.", category: "dynamic", mode: "dark", colorScheme: "rgb", visualTheme: "blockcraft", pro: true, animated: true, enhancedEffects: true, preview: ["#050b12", "#192b23", "#39ff88"] },
 ];
 
 export function findAppearanceThemePreset(input: {

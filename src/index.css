@@ -4,6 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@property --primary {
+  syntax: "<number> <percentage> <percentage>";
+  inherits: true;
+  initial-value: 210 100% 50%;
+}
+@property --ring {
+  syntax: "<number> <percentage> <percentage>";
+  inherits: true;
+  initial-value: 210 100% 50%;
+}
+@property --glow {
+  syntax: "<number> <percentage> <percentage>";
+  inherits: true;
+  initial-value: 275 92% 62%;
+}
+@property --sidebar-primary {
+  syntax: "<number> <percentage> <percentage>";
+  inherits: true;
+  initial-value: 210 100% 50%;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -494,6 +515,9 @@ body::before {
   background-size: 280% 280%, 240% 240%;
   animation: vista-rgb-flow 14s ease-in-out infinite alternate;
 }
+.enhanced-effects.scheme-rgb {
+  animation: vista-rgb-tokens 14s linear infinite;
+}
 .enhanced-effects.scheme-rgb main :where(section, article) {
   border-color: hsl(var(--primary) / 0.3);
   box-shadow: 0 0 0 1px hsl(var(--primary) / 0.08), 0 0 28px hsl(var(--glow) / 0.09);
@@ -512,6 +536,13 @@ body::before {
 
 @keyframes vista-rgb-button {
   to { background-position: 300% 0; }
+}
+
+@keyframes vista-rgb-tokens {
+  0%, 100% { --primary: 188 95% 54%; --ring: 188 95% 54%; --glow: 282 90% 62%; --sidebar-primary: 188 95% 54%; }
+  25% { --primary: 263 90% 66%; --ring: 263 90% 66%; --glow: 330 90% 60%; --sidebar-primary: 263 90% 66%; }
+  50% { --primary: 330 88% 60%; --ring: 330 88% 60%; --glow: 38 95% 56%; --sidebar-primary: 330 88% 60%; }
+  75% { --primary: 145 80% 48%; --ring: 145 80% 48%; --glow: 188 95% 54%; --sidebar-primary: 145 80% 48%; }
 }
 
 @keyframes vista-gold-sweep {
@@ -557,6 +588,7 @@ body::before {
 
 @media (prefers-reduced-motion: reduce) {
   .enhanced-effects.scheme-rgb body::before,
+  .enhanced-effects.scheme-rgb,
   .enhanced-effects.scheme-rgb :where(.bg-primary),
   .enhanced-effects.visual-noir-gold body::before,
   .appearance-theme-preview.is-animated { animation: none; }

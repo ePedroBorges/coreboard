@@ -99,6 +99,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
+      networkMode: "offlineFirst",
       staleTime: 60_000,
       gcTime: 5 * 60_000,
       refetchOnWindowFocus: false,

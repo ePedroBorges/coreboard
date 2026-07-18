@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { flushOfflineOperations } from "@/lib/offlineData";
 import { nativeStorage } from "@/lib/nativeStorage";
+import { syncPendingUserProfile } from "@/hooks/useUserSettings";
 
 const CACHE_PREFIXES = new Set(["notebooks", "pages", "favorite-pages", "all-pages", "tasks"]);
 const cacheKey = (userId: string) => `vistaQueryCache:${userId}`;
@@ -18,6 +19,7 @@ export function useOfflineDataSync(userId?: string) {
   useEffect(() => {
     if (!userId) return;
     let active = true;
+    let syncing = false;
     let persistTimer: number | undefined;
 
     nativeStorage.getItem(cacheKey(userId)).then((raw) => {
@@ -51,19 +53,33 @@ export function useOfflineDataSync(userId?: string) {
     });
 
     const sync = async () => {
-      const synced = await flushOfflineOperations(userId);
-      if (!active || synced === 0) return;
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["notebooks"] }),
-        queryClient.invalidateQueries({ queryKey: ["pages"] }),
-        queryClient.invalidateQueries({ queryKey: ["favorite-pages"] }),
-        queryClient.invalidateQueries({ queryKey: ["all-pages"] }),
-        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-      ]);
-      toast.success(`${synced} ${synced === 1 ? "alteração sincronizada" : "alterações sincronizadas"}.`);
+      if (navigator.onLine === false || syncing) return;
+      syncing = true;
+      try {
+        const synced = await flushOfflineOperations(userId);
+        await syncPendingUserProfile(userId);
+        if (!active) return;
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["notebooks"] }),
+          queryClient.invalidateQueries({ queryKey: ["pages"] }),
+          queryClient.invalidateQueries({ queryKey: ["favorite-pages"] }),
+          queryClient.invalidateQueries({ queryKey: ["all-pages"] }),
+          queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+        ]);
+        if (synced > 0) {
+          toast.success(`${synced} ${synced === 1 ? "alteração sincronizada" : "alterações sincronizadas"}.`);
+        }
+      } finally {
+        syncing = false;
+      }
     };
 
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") void sync();
+    };
+    const interval = window.setInterval(() => void sync(), 5 * 60_000);
     window.addEventListener("online", sync);
+    document.addEventListener("visibilitychange", handleVisibility);
     void sync();
 
     return () => {
@@ -71,6 +87,8 @@ export function useOfflineDataSync(userId?: string) {
       window.clearTimeout(persistTimer);
       unsubscribe();
       window.removeEventListener("online", sync);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.clearInterval(interval);
       persist();
     };
   }, [queryClient, userId]);

@@ -82,7 +82,7 @@ export function ProfileMenu({ onOpenSettings, mobileNav = false, sidebar = false
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/curso")}>
           <GraduationCap className="mr-2 h-4 w-4" />
-          Aprenda a usar
+          Central de treinamento
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/planos")}>
           <Sparkles className="mr-2 h-4 w-4 text-primary" />
