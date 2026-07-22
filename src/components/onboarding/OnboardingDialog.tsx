@@ -75,7 +75,7 @@ export function OnboardingDialog({ open, onFinish }: OnboardingDialogProps) {
         <div className="rounded-md border border-border/60 bg-background/35 p-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2 text-foreground">
             <CheckCircle2 className="h-4 w-4 text-primary" />
-            VISTA Tasks Control
+            CoreBoard
           </div>
           <p className="mt-1 leading-6">Um fluxo simples para capturar, organizar e executar.</p>
         </div>

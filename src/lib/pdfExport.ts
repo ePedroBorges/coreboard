@@ -97,7 +97,7 @@ export function generatePagePdf(
     doc.setFontSize(7);
     doc.setTextColor(160);
     doc.text(
-      `VISTA Tasks Control — Anotação ${i} de ${totalPages}`,
+      `CoreBoard — Anotação ${i} de ${totalPages}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 8,
       { align: "center" }
@@ -190,7 +190,7 @@ export function generateNotebookPdf(
     doc.setFontSize(7);
     doc.setTextColor(160);
     doc.text(
-      `${notebookTitle} — VISTA Tasks Control — Anotação ${i} de ${totalPages}`,
+      `${notebookTitle} — CoreBoard — Anotação ${i} de ${totalPages}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 8,
       { align: "center" }

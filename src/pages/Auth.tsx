@@ -73,9 +73,9 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center gap-3 text-center">
-          <img src="/vista-icon.svg" alt="VISTA Tasks Control" className="h-14 w-14 rounded-lg glow-sm" />
+          <img src="/icon.jpg" alt="CoreBoard" className="h-14 w-14 rounded-lg glow-sm" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">VISTA Tasks Control</h1>
+            <h1 className="text-2xl font-bold tracking-tight">CoreBoard</h1>
             <p className="font-mono-accent text-xs text-muted-foreground">Controle total em suas atividades e ideias</p>
           </div>
         </div>

@@ -15,7 +15,7 @@ type PageVersionRow = Database["public"]["Tables"]["page_versions"]["Row"];
 type TaskStatus = Database["public"]["Enums"]["task_status"];
 
 export interface VistaBackup {
-  app: "VISTA Tasks Control";
+  app: "CoreBoard";
   backupVersion: "1.0";
   exportedAt: string;
   userId: string;
@@ -107,7 +107,7 @@ export async function collectUserBackup(userId: string, settings: UserSettings):
   if (versionsResult.error) throw versionsResult.error;
 
   return {
-    app: "VISTA Tasks Control",
+    app: "CoreBoard",
     backupVersion: "1.0",
     exportedAt: new Date().toISOString(),
     userId,
@@ -130,16 +130,16 @@ export function downloadBackup(backup: VistaBackup) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `vista-tasks-control-backup-${format(new Date(), "yyyy-MM-dd")}.json`;
+  anchor.download = `coreboard-backup-${format(new Date(), "yyyy-MM-dd")}.json`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
 
 export function validateBackup(input: unknown): VistaBackup {
-  if (!input || typeof input !== "object") throw new Error("Arquivo inválido. Selecione um backup JSON do VISTA Tasks Control.");
+  if (!input || typeof input !== "object") throw new Error("Arquivo inválido. Selecione um backup JSON do CoreBoard.");
   const backup = input as VistaBackup;
-  if (backup.app !== "VISTA Tasks Control" || backup.backupVersion !== "1.0" || !backup.data) {
-    throw new Error("Este arquivo não parece ser um backup válido do VISTA Tasks Control.");
+  if (backup.app !== "CoreBoard" || backup.backupVersion !== "1.0" || !backup.data) {
+    throw new Error("Este arquivo não parece ser um backup válido do CoreBoard.");
   }
   return {
     ...backup,
