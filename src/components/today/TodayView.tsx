@@ -166,7 +166,7 @@ function ProPromotion() {
           <Sparkles className="size-4" aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Leve sua rotina mais longe com o VISTA Pro</p>
+          <p className="text-sm font-semibold text-foreground">Leve sua rotina mais longe com o CoreBoard Pro</p>
           <p className="mt-0.5 text-sm leading-5 text-muted-foreground">
             Temas premium, lembretes, anexos e PDF. Assine ou garanta acesso vitalício.
           </p>

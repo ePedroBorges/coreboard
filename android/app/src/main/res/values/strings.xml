@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">VISTA Task Control</string>
-    <string name="title_activity_main">VISTA Task Control</string>
-    <string name="package_name">br.com.anchorlab.vistataskscontrol</string>
-    <string name="custom_url_scheme">br.com.anchorlab.vistataskscontrol</string>
+    <string name="app_name">CoreBoard</string>
+    <string name="title_activity_main">CoreBoard</string>
+    <string name="package_name">br.com.anchorlab.coreboard</string>
+    <string name="custom_url_scheme">br.com.anchorlab.coreboard</string>
 </resources>

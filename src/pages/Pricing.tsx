@@ -90,7 +90,7 @@ const Pricing = () => {
 
         <div className="mb-5 max-w-2xl">
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-primary">
-            <Sparkles className="h-4 w-4" /> Planos VISTA Tasks Control
+            <Sparkles className="h-4 w-4" /> Planos CoreBoard
           </div>
           <h1 className="text-2xl font-bold sm:text-3xl">Escolha como quer evoluir</h1>
           {isPro && (

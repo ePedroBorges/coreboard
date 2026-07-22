@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, KeyboardEvent } from "react";
+import { useEffect, useRef, useState, KeyboardEvent, useCallback } from "react";
 import { Block, BlockType } from "@/types/notes";
 import { cn } from "@/lib/utils";
 import {
+  Bold,
   CheckSquare,
   Download,
   FileText,
@@ -9,10 +10,13 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Highlighter,
   Image as ImageIcon,
+  Indent,
   List,
   ListOrdered,
   Loader2,
+  Minus,
   Paperclip,
   Plus,
   Trash2,
@@ -25,6 +29,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Toggle } from "@/components/ui/toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -46,9 +59,310 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ElementType }[]
   { type: "heading3", label: "Título 3", icon: Heading3 },
   { type: "bullet-list", label: "Lista", icon: List },
   { type: "numbered-list", label: "Lista numerada", icon: ListOrdered },
-  { type: "checklist", label: "Checklist", icon: CheckSquare },
+  // Checklist block type removed — checkboxes are available inline in the text editor
   { type: "attachment", label: "Imagem ou arquivo", icon: Paperclip },
 ];
+
+const FONT_SIZES = [
+  { value: "12px", label: "12" },
+  { value: "14px", label: "14" },
+  { value: "16px", label: "16" },
+  { value: "18px", label: "18" },
+  { value: "20px", label: "20" },
+  { value: "24px", label: "24" },
+  { value: "28px", label: "28" },
+  { value: "32px", label: "32" },
+  { value: "36px", label: "36" },
+  { value: "42px", label: "42" },
+  { value: "48px", label: "48" },
+];
+
+const HIGHLIGHT_COLORS = [
+  { color: "#fef08a", label: "Amarelo" },
+  { color: "#bbf7d0", label: "Verde" },
+  { color: "#bfdbfe", label: "Azul" },
+  { color: "#fecaca", label: "Vermelho" },
+  { color: "#e9d5ff", label: "Roxo" },
+  { color: "#fed7aa", label: "Laranja" },
+];
+
+// ─── Rich text formatting toolbar ───────────────────────────────────────────
+
+function sanitizeHtml(html: string): string {
+  // Strip script tags and event handlers while keeping safe HTML
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "")
+    .replace(/\son\w+='[^']*'/gi, "");
+}
+
+function FormattingToolbar({
+  editorRef,
+}: {
+  editorRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [currentFontSize, setCurrentFontSize] = useState("16");
+
+  const exec = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+  };
+
+  const handleFontSizeChange = (sizeValue: string) => {
+    setCurrentFontSize(sizeValue);
+    document.execCommand("styleWithCSS", false);
+    const pxSize = parseInt(sizeValue, 10);
+    const selection = window.getSelection();
+    const hasSelection = selection && !selection.isCollapsed && selection.toString().trim().length > 0;
+    if (hasSelection) {
+      // Wrap selected text with a styled span
+      document.execCommand("insertHTML", false, `<span style="font-size: ${pxSize}px">${selection!.toString()}</span>`);
+    } else {
+      // No selection — apply font-size to the next typed characters via the execCommand fontSize
+      // (emits <font> tags but ensures the next keystrokes get the chosen size)
+      const sizeMap: Record<string, string> = {
+        "12": "1", "14": "2", "16": "3", "18": "3",
+        "20": "4", "24": "4", "28": "5", "32": "5",
+        "36": "6", "42": "6", "48": "7",
+      };
+      document.execCommand("fontSize", false, sizeMap[sizeValue] || "3");
+    }
+  };
+
+  // Enable CSS styling by default
+  useEffect(() => {
+    document.execCommand("styleWithCSS", false);
+  }, []);
+
+  return (
+    <div className="sticky top-0 z-30 flex flex-wrap items-center gap-0.5 rounded-t-lg border border-border/60 bg-card/95 px-2 py-1.5 shadow-sm backdrop-blur">
+      {/* Bold */}
+      <Toggle
+        size="sm"
+        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onClick={() => exec("bold")}
+        title="Negrito (Ctrl+B)"
+        aria-label="Negrito"
+      >
+        <Bold className="h-3.5 w-3.5" />
+      </Toggle>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Font Size */}
+      <Select value={currentFontSize} onValueChange={handleFontSizeChange}>
+        <SelectTrigger className="h-8 w-[68px] text-[11px]">
+          <SelectValue placeholder="16" />
+        </SelectTrigger>
+        <SelectContent className="max-h-52">
+          {FONT_SIZES.map((size) => (
+            <SelectItem key={size.value} value={size.value} className="text-xs">
+              {size.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Highlight / Text Marker */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Toggle
+            size="sm"
+            className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            title="Marcador de texto"
+            aria-label="Marcador de texto"
+          >
+            <Highlighter className="h-3.5 w-3.5" />
+          </Toggle>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-0 p-1.5">
+          <div className="mb-1 text-[10px] font-medium text-muted-foreground">
+            Cor do marcador
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {HIGHLIGHT_COLORS.map(({ color, label }) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => {
+                  document.execCommand("styleWithCSS", false);
+                  exec("backColor", color);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded border border-border/50 transition-transform hover:scale-110"
+                style={{ backgroundColor: color }}
+                title={label}
+                aria-label={`Marcar com ${label}`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => exec("removeFormat")}
+            className="mt-1 w-full rounded px-2 py-1 text-[10px] text-muted-foreground hover:bg-accent"
+          >
+            Remover marcação
+          </button>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Lists */}
+      <Toggle
+        size="sm"
+        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onClick={() => exec("insertUnorderedList")}
+        title="Lista não numerada"
+        aria-label="Lista não numerada"
+      >
+        <List className="h-3.5 w-3.5" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onClick={() => exec("insertOrderedList")}
+        title="Lista numerada"
+        aria-label="Lista numerada"
+      >
+        <ListOrdered className="h-3.5 w-3.5" />
+      </Toggle>
+
+      {/* Checklist inline — inserts a ballot-box symbol (U+2610) */}
+      <Toggle
+        size="sm"
+        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onClick={() => exec("insertHTML", "☐ ")}
+        title="Caixa de seleção"
+        aria-label="Caixa de seleção"
+      >
+        <CheckSquare className="h-3.5 w-3.5" />
+      </Toggle>
+
+      <Separator orientation="vertical" className="mx-1 h-6" />
+
+      {/* Indentation */}
+      <Toggle
+        size="sm"
+        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onClick={() => exec("indent")}
+        title="Aumentar recuo"
+        aria-label="Aumentar recuo"
+      >
+        <Indent className="h-3.5 w-3.5" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onClick={() => exec("outdent")}
+        title="Diminuir recuo"
+        aria-label="Diminuir recuo"
+      >
+        <Minus className="h-3.5 w-3.5" />
+      </Toggle>
+    </div>
+  );
+}
+
+// ─── Rich text editor that replaces AutoResizeTextarea ──────────────────────
+
+function RichTextEditor({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  placeholder,
+  blockId,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  placeholder?: string;
+  blockId: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [showToolbar, setShowToolbar] = useState(false);
+  const isInternalUpdate = useRef(false);
+  const imageUrls = getImageUrls(value);
+
+  // Sync content when switching between blocks (notes)
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
+    const normalizedValue = value || "";
+    const currentHtml = el.innerHTML;
+    if (currentHtml !== normalizedValue) {
+      el.innerHTML = normalizedValue;
+    }
+    // When switching notes, reset scroll position
+    el.scrollTop = 0;
+  }, [blockId, value]);
+
+  const handleInput = useCallback(() => {
+    if (!ref.current) return;
+    isInternalUpdate.current = true;
+    onChange(ref.current.innerHTML);
+  }, [onChange]);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Bold with Ctrl+B
+    if ((event.ctrlKey || event.metaKey) && event.key === "b") {
+      event.preventDefault();
+      document.execCommand("bold");
+      return;
+    }
+    // Allow Shift+Enter for line break, Enter for new paragraph
+    if (event.key === "Enter" && event.shiftKey) {
+      document.execCommand("insertLineBreak");
+      event.preventDefault();
+    }
+  }, []);
+
+  const handleFocus = useCallback(() => {
+    setShowToolbar(true);
+    onFocus();
+  }, [onFocus]);
+
+  const handleBlur = useCallback(() => {
+    setShowToolbar(false);
+    onBlur();
+  }, [onBlur]);
+
+  return (
+    <div className="min-w-0">
+      {showToolbar && <FormattingToolbar editorRef={ref} />}
+
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        data-placeholder={placeholder}
+        className="min-h-[42svh] w-full overflow-y-auto border-0 bg-transparent px-0 py-3 text-[1.05rem] leading-8 outline-none placeholder:text-muted-foreground/45 focus:ring-0 sm:min-h-[46svh] sm:text-base [&:empty:before]:text-muted-foreground/45 [&:empty:before]:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_input[type=checkbox]]:mr-1.5 [&_input[type=checkbox]]:inline [&_input[type=checkbox]]:h-4 [&_input[type=checkbox]]:w-4 [&_input[type=checkbox]]:align-middle [&_mark]:rounded [&_mark]:px-0.5"
+        dangerouslySetInnerHTML={{ __html: value }}
+      />
+
+      {imageUrls.length > 0 && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {imageUrls.map((url) => (
+            <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md border border-border/60 bg-background/35">
+              <img src={url} alt="Imagem da anotacao" className="max-h-80 w-full object-contain" loading="lazy" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const imageUrlRegex = /https?:\/\/(?:(?!https?:\/\/)[^\s])+\.(?:png|jpe?g|gif|webp|svg)(?:\?[^\s]*)?/gi;
 
@@ -83,7 +397,6 @@ function EditableContent({
     if (ref.current && ref.current.textContent !== initialContent) {
       ref.current.textContent = initialContent;
     }
-    // Preserve cursor while typing; only refresh when the block identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockId]);
 
@@ -102,68 +415,6 @@ function EditableContent({
       className={className}
       data-placeholder={placeholder}
     />
-  );
-}
-
-function AutoResizeTextarea({
-  value,
-  onChange,
-  onFocus,
-  onBlur,
-  placeholder,
-  refCallback,
-}: {
-  value: string;
-  onChange: (text: string) => void;
-  onFocus: () => void;
-  onBlur: () => void;
-  placeholder?: string;
-  refCallback?: (el: HTMLTextAreaElement | null) => void;
-}) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  const imageUrls = getImageUrls(value);
-
-  const resize = () => {
-    const element = ref.current;
-    if (!element) return;
-    element.style.height = "auto";
-    element.style.height = `${Math.max(element.scrollHeight, 320)}px`;
-  };
-
-  useLayoutEffect(() => {
-    resize();
-  }, [value]);
-
-  return (
-    <div className="min-w-0">
-      <textarea
-        ref={(el) => {
-          ref.current = el;
-          refCallback?.(el);
-        }}
-        value={value}
-        onChange={(event) => {
-          onChange(event.target.value);
-          requestAnimationFrame(resize);
-        }}
-        onFocus={() => {
-          onFocus();
-          requestAnimationFrame(resize);
-        }}
-        onBlur={onBlur}
-        placeholder={placeholder}
-        className="min-h-[42svh] w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-1 text-[1.05rem] leading-8 outline-none placeholder:text-muted-foreground/45 focus:ring-0 sm:min-h-[46svh] sm:text-base"
-      />
-      {imageUrls.length > 0 && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {imageUrls.map((url) => (
-            <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md border border-border/60 bg-background/35">
-              <img src={url} alt="Imagem da anotacao" className="max-h-80 w-full object-contain" loading="lazy" />
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -348,10 +599,10 @@ export function BlockEditor({ blocks, onChange, canUseAttachments = false }: Blo
                   )}
                 </div>
               ) : block.type === "freeform" ? (
-                <AutoResizeTextarea
-                  refCallback={(el) => { blockRefs.current[index] = el; }}
+                <RichTextEditor
+                  blockId={block.id}
                   value={block.content}
-                  onChange={(text) => updateBlock(index, { content: text })}
+                  onChange={(html) => updateBlock(index, { content: html })}
                   onFocus={() => setEditingBlockId(block.id)}
                   onBlur={() => setEditingBlockId(null)}
                   placeholder="Comece a escrever. Suas ideias ficam salvas automaticamente..."
@@ -508,6 +759,7 @@ function RichTextBlock({
   onEdit: () => void;
 }) {
   const imageUrls = getImageUrls(text);
+  const isHtml = /<[a-z][\s\S]*>/i.test(text);
 
   return (
     <div
@@ -518,7 +770,11 @@ function RichTextBlock({
         onEdit();
       }}
     >
-      <LinkifiedText text={text} />
+      {isHtml ? (
+        <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }} />
+      ) : (
+        <LinkifiedText text={text} />
+      )}
       {imageUrls.length > 0 && (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {imageUrls.map((url) => (

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "br.com.anchorlab.vistataskscontrol"
+    namespace = "br.com.anchorlab.coreboard"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "br.com.anchorlab.vistataskscontrol"
+        applicationId "br.com.anchorlab.coreboard"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

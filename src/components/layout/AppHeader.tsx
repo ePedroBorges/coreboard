@@ -22,13 +22,13 @@ export function AppHeader({ canGoBack, showSearch = true, onBack, onOpenSearch }
       <div className="flex min-w-0 items-center gap-1">
         <SidebarTrigger
           className="h-10 w-auto max-w-[14rem] shrink-0 gap-2 px-2 md:hidden"
-          title="Abrir menu do VISTA"
-          aria-label="Abrir menu do VISTA"
+          title="Abrir menu do CoreBoard"
+          aria-label="Abrir menu do CoreBoard"
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary/10 text-primary">
             <ClipboardList className="h-4 w-4" />
           </span>
-          <span className="truncate text-sm font-semibold text-foreground">VISTA Tasks Control</span>
+          <span className="truncate text-sm font-semibold text-foreground">CoreBoard</span>
         </SidebarTrigger>
 
         {canGoBack && (
@@ -45,16 +45,7 @@ export function AppHeader({ canGoBack, showSearch = true, onBack, onOpenSearch }
       </div>
 
       <div className="flex items-center gap-1">
-        {showSearch && onOpenSearch && <Button
-          variant="ghost"
-          size="icon"
-          className="h-10 w-10 lg:hidden"
-          onClick={onOpenSearch}
-          title="Busca global"
-          aria-label="Abrir busca global"
-        >
-          <Search className="h-4 w-4" />
-        </Button>}
+        {/* Search removed from mobile header — only available in bottom navigation bar */}
       </div>
     </header>
   );

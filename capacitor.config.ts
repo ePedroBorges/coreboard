@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "br.com.anchorlab.vistataskscontrol",
-  appName: "VISTA Tasks Control",
+  appId: "br.com.anchorlab.coreboard",
+  appName: "CoreBoard",
   webDir: "dist",
   server: {
     androidScheme: "https",

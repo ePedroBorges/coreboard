@@ -1,8 +1,8 @@
 {
-  "name": "vista-task-control",
+  "name": "coreboard",
   "private": true,
   "version": "1.0.0",
-  "description": "VISTA Tasks Control by AnchorLab Studio",
+  "description": "CoreBoard by AnchorLab Studio",
   "author": {
     "name": "AnchorLab Studio",
     "url": "https://anchorlabstudio.com.br/"
@@ -125,8 +125,8 @@
     "vitest": "^3.2.4"
   },
   "build": {
-    "appId": "studio.anchorlab.vistataskcontrol",
-    "productName": "VISTA Tasks Control",
+    "appId": "studio.anchorlab.coreboard",
+    "productName": "CoreBoard",
     "asar": true,
     "compression": "normal",
     "directories": {
@@ -148,7 +148,7 @@
         }
       ],
       "icon": "favicon.ico",
-      "artifactName": "VISTA-Tasks-Control-Setup-${version}.${ext}",
+    "artifactName": "CoreBoard-Setup-${version}.${ext}",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
@@ -156,7 +156,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "VISTA Tasks Control"
+      "shortcutName": "CoreBoard"
     }
   }
 }

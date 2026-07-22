@@ -94,7 +94,7 @@ export function AppSidebar({
             </button>
             {!collapsed && (
               <span className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight sm:text-sm">
-                VISTA Tasks Control
+                CoreBoard
               </span>
             )}
           </div>
@@ -218,7 +218,7 @@ export function AppSidebar({
           </div>
           {!collapsed && (
             <div className="text-center font-mono-accent text-[9px] text-muted-foreground/50">
-              VISTA Tasks Control v1.0
+              CoreBoard v1.0
             </div>
           )}
         </SidebarFooter>

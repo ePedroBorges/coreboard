@@ -48,7 +48,7 @@ export const FONT_CATEGORIES: Array<{ id: FontCategory; label: string; descripti
 ];
 
 export const FONT_PRESETS: FontPreset[] = [
-  { id: "inter", label: "Inter", description: "A fonte original do VISTA, equilibrada e precisa.", category: "essential", pro: false, sampleStyle: "Inter, system-ui, sans-serif" },
+  { id: "inter", label: "Inter", description: "A fonte original do CoreBoard, equilibrada e precisa.", category: "essential", pro: false, sampleStyle: "Inter, system-ui, sans-serif" },
   { id: "system", label: "Sistema", description: "Usa a fonte nativa do dispositivo para máxima familiaridade.", category: "essential", pro: false, sampleStyle: "system-ui, sans-serif" },
   { id: "rounded", label: "Amigável", description: "Formas suaves para uma experiência mais leve.", category: "essential", pro: false, sampleStyle: "Trebuchet MS, Arial, sans-serif" },
   { id: "editorial", label: "Editorial", description: "Serifas confortáveis para anotações longas.", category: "reading", pro: false, sampleStyle: "Georgia, Times New Roman, serif" },

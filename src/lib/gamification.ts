@@ -47,7 +47,7 @@ export const GAMIFICATION_REWARDS: GamificationReward[] = [
   },
   {
     level: 30,
-    title: "Status Mestre VISTA",
+    title: "Status Mestre CoreBoard",
     description: "Nivel de dominio para usuarios com rotina consolidada de captura, organizacao e execucao.",
   },
 ];
