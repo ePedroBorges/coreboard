@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { format, isBefore, parseISO, startOfDay } from "date-fns";
 import { WeeklyTask } from "@/hooks/useWeeklyTasks";
+import { nativeStorage } from "@/lib/nativeStorage";
 
 const enabledKey = (userId: string) => `vistaNotificationsEnabled:${userId}`;
 const baseNotificationId = 120000;
@@ -10,14 +11,14 @@ export function areNotificationsSupported() {
   return Capacitor.isNativePlatform() || (typeof window !== "undefined" && "Notification" in window);
 }
 
-export function readNotificationsEnabled(userId?: string) {
-  if (!userId || typeof window === "undefined") return false;
-  return window.localStorage.getItem(enabledKey(userId)) === "true";
+export async function readNotificationsEnabled(userId?: string) {
+  if (!userId) return false;
+  return (await nativeStorage.getItem(enabledKey(userId))) === "true";
 }
 
-export function writeNotificationsEnabled(userId: string | undefined, enabled: boolean) {
-  if (!userId || typeof window === "undefined") return;
-  window.localStorage.setItem(enabledKey(userId), String(enabled));
+export async function writeNotificationsEnabled(userId: string | undefined, enabled: boolean) {
+  if (!userId) return;
+  await nativeStorage.setItem(enabledKey(userId), String(enabled));
 }
 
 export async function requestNotificationPermission() {
@@ -38,7 +39,7 @@ export async function requestNotificationPermission() {
 }
 
 export async function scheduleTaskNotifications(tasks: WeeklyTask[], userId?: string) {
-  if (!userId || !readNotificationsEnabled(userId)) return;
+  if (!userId || !(await readNotificationsEnabled(userId))) return;
 
   const pendingTasks = tasks
     .filter((task) => task.status === "pending" && !!task.task_date)

@@ -71,7 +71,7 @@ import {
   VistaBackup,
 } from "@/lib/userData";
 
-const appSummary = "Estou usando o VISTA Tasks Control, um app para transformar anotacoes em tarefas executaveis. Feedback desejado: clareza, organizacao, velocidade e utilidade no dia a dia.";
+const appSummary = "Estou usando o CoreBoard, um app para transformar anotacoes em tarefas executaveis. Feedback desejado: clareza, organizacao, velocidade e utilidade no dia a dia.";
 
 interface SettingsViewProps {
   user: User;
@@ -263,7 +263,7 @@ export function SettingsView({
   };
 
   const sendFeedback = () => {
-    window.location.href = `mailto:contato@anchorlab.com.br?subject=${encodeURIComponent("Feedback VISTA Tasks Control")}&body=${encodeURIComponent(appSummary)}`;
+    window.location.href = `mailto:contato@anchorlab.com.br?subject=${encodeURIComponent("Feedback CoreBoard")}&body=${encodeURIComponent(appSummary)}`;
   };
 
   const openBillingPortal = async () => {
@@ -610,7 +610,7 @@ export function SettingsView({
         <TabsContent value="ajuda" className="space-y-4">
           <SettingsCard title="Produto" icon={Sparkles}>
             <div className="grid gap-2 text-sm text-muted-foreground">
-              <InfoRow label="Nome" value="VISTA Tasks Control" />
+              <InfoRow label="Nome" value="CoreBoard" />
               <InfoRow label="Versão" value="1.0" />
               <InfoRow label="Desenvolvido por" value="AnchorLab Studio" />
             </div>
@@ -618,7 +618,7 @@ export function SettingsView({
 
           <SettingsCard title="Ajuda e feedback" icon={LifeBuoy}>
             <p className="text-sm leading-6 text-muted-foreground">
-              Use o VISTA Tasks Control no seu dia a dia e envie feedback sobre clareza, velocidade e utilidade.
+              Use o CoreBoard no seu dia a dia e envie feedback sobre clareza, velocidade e utilidade.
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               <Button variant="outline" className="h-10 gap-2" onClick={copySummary}>

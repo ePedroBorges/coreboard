@@ -1,3 +1,5 @@
+import { nativeStorage } from "@/lib/nativeStorage";
+
 export type AppSoundStyle = "soft" | "zen" | "click" | "minimal" | "arcade" | "digital" | "synth" | "victory";
 export type SoundCategory = "essential" | "focus" | "gaming";
 
@@ -64,10 +66,10 @@ export function playAppSound(kind: "complete" | "create" | "preview", enabled: b
   }
 }
 
-export function playStoredUserSound(kind: "complete" | "create", userId?: string) {
+export async function playStoredUserSound(kind: "complete" | "create", userId?: string) {
   if (!userId || typeof window === "undefined") return;
   try {
-    const raw = window.localStorage.getItem(`vistaUserSettings:${userId}`);
+    const raw = await nativeStorage.getItem(`vistaUserSettings:${userId}`);
     if (!raw) return;
     const settings = JSON.parse(raw) as { soundEnabled?: boolean; soundStyle?: AppSoundStyle };
     const validStyles: AppSoundStyle[] = SOUND_PRESETS.map((preset) => preset.id);

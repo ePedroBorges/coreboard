@@ -17,11 +17,15 @@ export interface NotificationControls {
 }
 
 export function useNotifications(userId: string | undefined, tasks: WeeklyTask[]): NotificationControls {
-  const [enabled, setEnabled] = useState(() => readNotificationsEnabled(userId));
+  const [enabled, setEnabled] = useState(false);
   const supported = useMemo(() => areNotificationsSupported(), []);
 
   useEffect(() => {
-    setEnabled(readNotificationsEnabled(userId));
+    let active = true;
+    void readNotificationsEnabled(userId).then((stored) => {
+      if (active) setEnabled(stored);
+    });
+    return () => { active = false; };
   }, [userId]);
 
   useEffect(() => {
@@ -33,7 +37,7 @@ export function useNotifications(userId: string | undefined, tasks: WeeklyTask[]
     if (!userId) return false;
 
     if (!nextEnabled) {
-      writeNotificationsEnabled(userId, false);
+      await writeNotificationsEnabled(userId, false);
       setEnabled(false);
       toast.success("Notificacoes desativadas.");
       return true;
@@ -50,7 +54,7 @@ export function useNotifications(userId: string | undefined, tasks: WeeklyTask[]
       return false;
     }
 
-    writeNotificationsEnabled(userId, true);
+    await writeNotificationsEnabled(userId, true);
     setEnabled(true);
     await scheduleTaskNotifications(tasks, userId);
     await showWebNotificationPreview();

@@ -22,7 +22,7 @@ run("Build Gradle", ["run", "android:apk"]);
 
 const apkSource = join(root, "android", "app", "build", "outputs", "apk", "debug", "app-debug.apk");
 const output = join(root, "artifacts", "android");
-const apkTarget = join(output, "VISTA-Tasks-Control-debug.apk");
+const apkTarget = join(output, "CoreBoard-debug.apk");
 
 if (!existsSync(apkSource)) throw new Error(`APK nao encontrado em ${apkSource}.`);
 mkdirSync(output, { recursive: true });

@@ -305,7 +305,7 @@ export function useWeeklyTasks() {
         return;
       }
       invalidateTasks();
-      playStoredUserSound("create", user?.id);
+      void playStoredUserSound("create", user?.id);
       toast.success(variables.source_note_id ? "Tarefa criada a partir da anotação." : "Tarefa criada.");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -389,7 +389,7 @@ export function useWeeklyTasks() {
       queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) =>
         current?.map((task) => task.id === id ? { ...task, ...payload } as WeeklyTask : task));
       if (hasNetworkConnection()) invalidateTasks();
-      if (payload.status === "completed") playStoredUserSound("complete", user?.id);
+      if (payload.status === "completed") void playStoredUserSound("complete", user?.id);
     },
     onError: (e: Error) => toast.error(e.message),
   });

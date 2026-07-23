@@ -58,7 +58,7 @@ function createWindow() {
   void mainWindow.loadFile(path.join(__dirname, "..", "dist", "index.html"));
 }
 
-app.setAppUserModelId("studio.anchorlab.vistataskcontrol");
+app.setAppUserModelId("studio.anchorlab.coreboard");
 
 ipcMain.handle("vista-storage:get", (_event, key) => readStorage()[key] ?? null);
 ipcMain.handle("vista-storage:set", (_event, key, value) => enqueueStorageWrite(() => writeStorage({ ...readStorage(), [key]: value })));

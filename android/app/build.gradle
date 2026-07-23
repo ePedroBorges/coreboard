@@ -16,10 +16,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    def releaseKeystorePath = System.getenv("COREBOARD_KEYSTORE_PATH") ?: project.findProperty("COREBOARD_KEYSTORE_PATH")
+    def releaseStorePassword = System.getenv("COREBOARD_KEYSTORE_PASSWORD") ?: project.findProperty("COREBOARD_KEYSTORE_PASSWORD")
+    def releaseKeyAlias = System.getenv("COREBOARD_KEY_ALIAS") ?: project.findProperty("COREBOARD_KEY_ALIAS")
+    def releaseKeyPassword = System.getenv("COREBOARD_KEY_PASSWORD") ?: project.findProperty("COREBOARD_KEY_PASSWORD")
+    signingConfigs {
+        if (releaseKeystorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword) {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (signingConfigs.findByName("release") != null) signingConfig signingConfigs.release
         }
     }
 }

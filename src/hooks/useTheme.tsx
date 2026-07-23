@@ -8,7 +8,7 @@ import {
   VISUAL_THEMES,
   VisualTheme,
 } from "@/lib/appearance";
-import { nativeStorage } from "@/lib/nativeStorage";
+import { nativeStorage, readBrowserStorage } from "@/lib/nativeStorage";
 
 const APPEARANCE_STORAGE_KEY = "vista_tasks_appearance_v2";
 const MODE_STORAGE_KEY = "vista_tasks_theme";
@@ -60,11 +60,11 @@ function parseAppearance(raw: string | null): AppearanceSnapshot | null {
 
 function readLegacyLocal(): AppearanceSnapshot {
   const fallback = defaultAppearance();
-  const mode = localStorage.getItem(MODE_STORAGE_KEY) || localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
-  const scheme = localStorage.getItem(SCHEME_STORAGE_KEY);
-  const visual = localStorage.getItem(VISUAL_THEME_STORAGE_KEY);
-  const reduced = localStorage.getItem(REDUCED_MOTION_STORAGE_KEY);
-  const enhanced = localStorage.getItem(ENHANCED_EFFECTS_STORAGE_KEY);
+  const mode = readBrowserStorage(MODE_STORAGE_KEY) || readBrowserStorage(LEGACY_THEME_STORAGE_KEY);
+  const scheme = readBrowserStorage(SCHEME_STORAGE_KEY);
+  const visual = readBrowserStorage(VISUAL_THEME_STORAGE_KEY);
+  const reduced = readBrowserStorage(REDUCED_MOTION_STORAGE_KEY);
+  const enhanced = readBrowserStorage(ENHANCED_EFFECTS_STORAGE_KEY);
   return {
     ...fallback,
     theme: mode === "light" || mode === "dark" ? mode : fallback.theme,
@@ -76,18 +76,11 @@ function readLegacyLocal(): AppearanceSnapshot {
 }
 
 function readInitialAppearance() {
-  return parseAppearance(localStorage.getItem(APPEARANCE_STORAGE_KEY)) || readLegacyLocal();
+  return parseAppearance(readBrowserStorage(APPEARANCE_STORAGE_KEY)) || readLegacyLocal();
 }
 
 async function persistAppearance(snapshot: AppearanceSnapshot) {
   const serialized = JSON.stringify(snapshot);
-  localStorage.setItem(APPEARANCE_STORAGE_KEY, serialized);
-  localStorage.setItem(MODE_STORAGE_KEY, snapshot.theme);
-  localStorage.setItem(SCHEME_STORAGE_KEY, snapshot.colorScheme);
-  localStorage.setItem(VISUAL_THEME_STORAGE_KEY, snapshot.visualTheme);
-  localStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(snapshot.reducedMotion));
-  localStorage.setItem(ENHANCED_EFFECTS_STORAGE_KEY, String(snapshot.enhancedEffects));
-  localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
   await Promise.all([
     nativeStorage.setItem(APPEARANCE_STORAGE_KEY, serialized),
     nativeStorage.setItem(MODE_STORAGE_KEY, snapshot.theme),
@@ -95,6 +88,7 @@ async function persistAppearance(snapshot: AppearanceSnapshot) {
     nativeStorage.setItem(VISUAL_THEME_STORAGE_KEY, snapshot.visualTheme),
     nativeStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(snapshot.reducedMotion)),
     nativeStorage.setItem(ENHANCED_EFFECTS_STORAGE_KEY, String(snapshot.enhancedEffects)),
+    nativeStorage.removeItem(LEGACY_THEME_STORAGE_KEY),
   ]);
 }
 
@@ -144,7 +138,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     let active = true;
     nativeStorage.getItem(APPEARANCE_STORAGE_KEY).then(async (nativeRaw) => {
       if (!active) return;
-      const local = parseAppearance(localStorage.getItem(APPEARANCE_STORAGE_KEY));
+      const local = parseAppearance(readBrowserStorage(APPEARANCE_STORAGE_KEY));
       const native = parseAppearance(nativeRaw);
       const resolved = local && native
         ? (local.updatedAt >= native.updatedAt ? local : native)

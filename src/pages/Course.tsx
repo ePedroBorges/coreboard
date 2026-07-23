@@ -98,18 +98,18 @@ export default function Course() {
     const doc = new jsPDF({ orientation: "landscape" });
     doc.setFillColor(3, 11, 25); doc.rect(0, 0, 297, 210, "F");
     doc.setDrawColor(8, 184, 255); doc.setLineWidth(1); doc.rect(11, 11, 275, 188);
-    doc.setTextColor(8, 184, 255); doc.setFontSize(17); doc.text("VISTA Tasks Control · AnchorLab Studio", 148.5, 35, { align: "center" });
+    doc.setTextColor(8, 184, 255); doc.setFontSize(17); doc.text("CoreBoard · AnchorLab Studio", 148.5, 35, { align: "center" });
     doc.setTextColor(245, 248, 252); doc.setFontSize(29); doc.text("Certificado interno de conclusão", 148.5, 63, { align: "center" });
     doc.setFontSize(14); doc.text("Certificamos que", 148.5, 82, { align: "center" });
     doc.setFontSize(21); doc.text(fullName, 148.5, 101, { align: "center" });
     doc.setFontSize(11); doc.text(`CPF: ${maskedCpf}`, 148.5, 112, { align: "center" });
-    doc.setFontSize(13); doc.text("concluiu o curso Primeiros passos no VISTA Tasks Control", 148.5, 130, { align: "center" });
+    doc.setFontSize(13); doc.text("concluiu o curso Primeiros passos no CoreBoard", 148.5, 130, { align: "center" });
     doc.setTextColor(170, 184, 202); doc.setFontSize(10);
     doc.text(`Carga horária estimada: ${estimatedHours} horas · Avaliação: ${course.score}% · Emissão: ${new Date().toLocaleDateString("pt-BR")}`, 148.5, 147, { align: "center" });
     doc.text("Grade: Fundamentos · Da ideia à execução · Rotina e continuidade", 148.5, 160, { align: "center" });
     doc.setTextColor(125, 139, 158); doc.setFontSize(8);
     doc.text("Curso livre interno, não credenciado e sem equivalência acadêmica ou profissional.", 148.5, 183, { align: "center" });
-    doc.save("certificado-interno-vista-tasks-control.pdf");
+    doc.save("certificado-interno-coreboard.pdf");
   };
 
   if (!loading && !user) return <Navigate to="/auth" replace />;
@@ -123,7 +123,7 @@ export default function Course() {
         </header>
 
         <section className="grid gap-4 border border-border/60 bg-card/55 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div><h2 className="font-semibold">Primeiros passos no VISTA Tasks Control</h2><p className="mt-1 text-sm text-muted-foreground">3 módulos · 6 aulas · {estimatedHours} horas estimadas</p><Progress value={percent} className="mt-3 h-2" /></div>
+          <div><h2 className="font-semibold">Primeiros passos no CoreBoard</h2><p className="mt-1 text-sm text-muted-foreground">3 módulos · 6 aulas · {estimatedHours} horas estimadas</p><Progress value={percent} className="mt-3 h-2" /></div>
           <span className="text-sm font-semibold text-primary">{percent}% concluído</span>
         </section>
 

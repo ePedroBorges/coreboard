@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { nativeStorage } from "@/lib/nativeStorage";
+import { nativeStorage, readBrowserStorage } from "@/lib/nativeStorage";
 import { AppSoundStyle } from "@/lib/soundEffects";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -54,7 +54,7 @@ export const clearInitialOnboardingMarker = (userId?: string) => {
 const readLocalSettings = (userId?: string): UserSettings => {
   if (!userId || typeof window === "undefined") return defaultSettings;
   try {
-    const raw = window.localStorage.getItem(settingsKey(userId));
+    const raw = readBrowserStorage(settingsKey(userId));
     if (!raw) return defaultSettings;
     const parsed = JSON.parse(raw) as Partial<UserSettings>;
     return { ...defaultSettings, ...parsed, profile: { ...defaultSettings.profile, ...parsed.profile } };
@@ -65,9 +65,7 @@ const readLocalSettings = (userId?: string): UserSettings => {
 
 const writeLocalSettings = (userId: string | undefined, settings: UserSettings) => {
   if (!userId || typeof window === "undefined") return Promise.resolve();
-  const serialized = JSON.stringify(settings);
-  window.localStorage.setItem(settingsKey(userId), serialized);
-  return nativeStorage.setItem(settingsKey(userId), serialized);
+  return nativeStorage.setItem(settingsKey(userId), JSON.stringify(settings));
 };
 
 export function useUserSettings(userId?: string) {
@@ -79,7 +77,7 @@ export function useUserSettings(userId?: string) {
     let active = true;
     nativeStorage.getItem(settingsKey(userId)).then((raw) => {
       if (!active) return;
-      const localRaw = window.localStorage.getItem(settingsKey(userId));
+      const localRaw = readBrowserStorage(settingsKey(userId));
       try {
         const localParsed = localRaw ? JSON.parse(localRaw) as Partial<UserSettings> : null;
         const nativeParsed = raw ? JSON.parse(raw) as Partial<UserSettings> : null;
@@ -88,7 +86,6 @@ export function useUserSettings(userId?: string) {
           : localParsed || nativeParsed;
         if (!parsed) return;
         const stored = { ...defaultSettings, ...parsed, profile: { ...defaultSettings.profile, ...parsed.profile } } as UserSettings;
-        window.localStorage.setItem(settingsKey(userId), JSON.stringify(stored));
         void nativeStorage.setItem(settingsKey(userId), JSON.stringify(stored));
         setSettings(stored);
       } catch {
