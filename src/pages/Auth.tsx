@@ -70,8 +70,9 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
+    <main className="h-[100dvh] overflow-y-auto overscroll-contain bg-background [-webkit-overflow-scrolling:touch]">
+      <div className="flex min-h-full items-center justify-center p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))]">
+      <div className="w-full max-w-md space-y-8 py-4">
         <div className="flex flex-col items-center gap-3 text-center">
           <img src="/icon.jpg" alt="CoreBoard" className="h-14 w-14 rounded-lg glow-sm" />
           <div>
@@ -142,7 +143,8 @@ const Auth = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </main>
   );
 };
 

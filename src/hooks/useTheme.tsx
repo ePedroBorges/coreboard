@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import {
   COLOR_SCHEMES,
   ColorScheme,
@@ -9,6 +9,8 @@ import {
   VisualTheme,
 } from "@/lib/appearance";
 import { nativeStorage, readBrowserStorage } from "@/lib/nativeStorage";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const APPEARANCE_STORAGE_KEY = "vista_tasks_appearance_v2";
 const MODE_STORAGE_KEY = "vista_tasks_theme";
@@ -79,6 +81,11 @@ function readInitialAppearance() {
   return parseAppearance(readBrowserStorage(APPEARANCE_STORAGE_KEY)) || readLegacyLocal();
 }
 
+function parseCloudAppearance(value: unknown): AppearanceSnapshot | null {
+  if (!value) return null;
+  return parseAppearance(typeof value === "string" ? value : JSON.stringify(value));
+}
+
 async function persistAppearance(snapshot: AppearanceSnapshot) {
   const serialized = JSON.stringify(snapshot);
   await Promise.all([
@@ -108,8 +115,10 @@ interface ThemeContextType {
   setReducedMotion: (reduced: boolean) => void;
   enhancedEffects: boolean;
   setEnhancedEffects: (enabled: boolean) => void;
+  savedAppearance: AppearanceSnapshot;
   saveAppearance: (overrides?: Partial<AppearanceSnapshot>) => Promise<void>;
   restoreSavedAppearance: () => void;
+  applyCloudAppearance: (snapshot: AppearanceSnapshot) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -193,6 +202,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const restoreSavedAppearance = useCallback(() => apply(savedAppearance), [apply, savedAppearance]);
 
+  const applyCloudAppearance = useCallback(async (snapshot: AppearanceSnapshot) => {
+    apply(snapshot);
+    setSavedAppearance(snapshot);
+    await persistAppearance(snapshot);
+  }, [apply]);
+
   const value = useMemo<ThemeContextType>(() => ({
     storageHydrated,
     hasUnsavedAppearance,
@@ -209,9 +224,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setReducedMotion,
     enhancedEffects,
     setEnhancedEffects,
+    savedAppearance,
     saveAppearance,
     restoreSavedAppearance,
-  }), [colorScheme, enhancedEffects, fontFamily, hasUnsavedAppearance, reducedMotion, restoreSavedAppearance, saveAppearance, storageHydrated, theme, visualTheme]);
+    applyCloudAppearance,
+  }), [applyCloudAppearance, colorScheme, enhancedEffects, fontFamily, hasUnsavedAppearance, reducedMotion, restoreSavedAppearance, saveAppearance, savedAppearance, storageHydrated, theme, visualTheme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
@@ -220,4 +237,69 @@ export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) throw new Error("useTheme must be used within ThemeProvider");
   return context;
+}
+
+export function ThemeCloudSync() {
+  const { user, loading: authLoading } = useAuth();
+  const { storageHydrated, savedAppearance, applyCloudAppearance } = useTheme();
+  const [cloudHydratedFor, setCloudHydratedFor] = useState<string | null>(null);
+  const latestAppearance = useRef(savedAppearance);
+  const lastCloudWrite = useRef<string | null>(null);
+
+  useEffect(() => {
+    latestAppearance.current = savedAppearance;
+  }, [savedAppearance]);
+
+  useEffect(() => {
+    let active = true;
+    if (!storageHydrated || authLoading) return;
+    if (!user) {
+      setCloudHydratedFor(null);
+      lastCloudWrite.current = null;
+      return;
+    }
+
+    const hydrateCloudAppearance = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("appearance")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!active) return;
+
+      const remote = error ? null : parseCloudAppearance(data?.appearance);
+      const local = latestAppearance.current;
+      const resolved = remote && remote.updatedAt > local.updatedAt ? remote : local;
+      if (remote && remote.updatedAt > local.updatedAt) await applyCloudAppearance(remote);
+
+      const snapshotToPersist = resolved.updatedAt > 0 ? resolved : { ...resolved, updatedAt: Date.now() };
+      if (!remote || snapshotToPersist.updatedAt > remote.updatedAt) {
+        const { error: writeError } = await supabase
+          .from("profiles")
+          .upsert({ user_id: user.id, appearance: snapshotToPersist }, { onConflict: "user_id" });
+        if (!writeError) lastCloudWrite.current = JSON.stringify(snapshotToPersist);
+      } else {
+        lastCloudWrite.current = JSON.stringify(remote);
+      }
+      if (active) setCloudHydratedFor(user.id);
+    };
+
+    void hydrateCloudAppearance();
+    return () => { active = false; };
+  }, [applyCloudAppearance, authLoading, storageHydrated, user]);
+
+  useEffect(() => {
+    if (!user || cloudHydratedFor !== user.id) return;
+    const serialized = JSON.stringify(savedAppearance);
+    if (lastCloudWrite.current === serialized) return;
+    lastCloudWrite.current = serialized;
+    void supabase
+      .from("profiles")
+      .upsert({ user_id: user.id, appearance: savedAppearance }, { onConflict: "user_id" })
+      .then(({ error }) => {
+        if (error && lastCloudWrite.current === serialized) lastCloudWrite.current = null;
+      });
+  }, [cloudHydratedFor, savedAppearance, user]);
+
+  return null;
 }

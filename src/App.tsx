@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { BrowserRouter, HashRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { ThemeProvider, useTheme } from "@/hooks/useTheme";
+import { ThemeCloudSync, ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { canEnforceFreeAppearance, PRO_COLOR_SCHEMES, PRO_FONT_FAMILIES, PRO_VISUAL_THEMES } from "@/lib/appearance";
 import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
@@ -132,6 +132,7 @@ const App = () => {
       <ThemeProvider>
         <AuthProvider>
           <SubscriptionProvider>
+            <ThemeCloudSync />
             <ProThemeGuard />
             <TooltipProvider>
             <Toaster />

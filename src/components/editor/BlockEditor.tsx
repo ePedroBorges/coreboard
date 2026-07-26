@@ -286,6 +286,7 @@ function RichTextEditor({
   const ref = useRef<HTMLDivElement>(null);
   const [showToolbar, setShowToolbar] = useState(false);
   const isInternalUpdate = useRef(false);
+  const previousBlockId = useRef(blockId);
   const imageUrls = getImageUrls(value);
 
   // Sync content when switching between blocks (notes)
@@ -296,12 +297,11 @@ function RichTextEditor({
       return;
     }
     const normalizedValue = value || "";
-    const currentHtml = el.innerHTML;
-    if (currentHtml !== normalizedValue) {
+    const switchedBlock = previousBlockId.current !== blockId;
+    previousBlockId.current = blockId;
+    if ((switchedBlock || document.activeElement !== el) && el.innerHTML !== normalizedValue) {
       el.innerHTML = normalizedValue;
     }
-    // When switching notes, reset scroll position
-    el.scrollTop = 0;
   }, [blockId, value]);
 
   const handleInput = useCallback(() => {
@@ -336,7 +336,9 @@ function RichTextEditor({
 
   return (
     <div className="min-w-0">
-      {showToolbar && <FormattingToolbar editorRef={ref} />}
+      <div className={showToolbar ? undefined : "pointer-events-none invisible"} aria-hidden={!showToolbar}>
+        <FormattingToolbar editorRef={ref} />
+      </div>
 
       <div
         ref={ref}
