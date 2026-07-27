@@ -384,7 +384,6 @@ function RichTextEditor({
         onKeyDown={handleKeyDown}
         data-placeholder={placeholder}
         className="min-h-[42svh] w-full overflow-y-auto border-0 bg-transparent px-0 py-3 text-[1.05rem] leading-8 outline-none placeholder:text-muted-foreground/45 focus:ring-0 sm:min-h-[46svh] sm:text-base [&:empty:before]:text-muted-foreground/45 [&:empty:before]:content-[attr(data-placeholder)] [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_input[type=checkbox]]:mr-1.5 [&_input[type=checkbox]]:inline [&_input[type=checkbox]]:h-4 [&_input[type=checkbox]]:w-4 [&_input[type=checkbox]]:align-middle [&_mark]:rounded [&_mark]:px-0.5"
-        dangerouslySetInnerHTML={{ __html: value }}
       />
 
       {imageUrls.length > 0 && (
