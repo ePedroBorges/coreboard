@@ -682,6 +682,8 @@ const Index = () => {
                 onOpenNote={openPage}
                 onMoveNote={handleMovePage}
                 onCreateTaskFromPage={createTaskFromPage}
+                onDeleteNote={(page) => pages.deletePage.mutate(page.id)}
+                onToggleNoteFavorite={(page, favorite) => pages.updatePage.mutate({ id: page.id, is_favorite: favorite })}
               />
             ) : activeView === "settings" ? (
               <SettingsView
