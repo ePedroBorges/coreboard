@@ -16,26 +16,6 @@ export type Database = {
     Tables: {
       email_send_log: {
         Row: {
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          message_id?: string | null
-          metadata?: Json | null
-          recipient_email: string
-          status: string
-          template_name: string
-        }
-        Insert: {
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          message_id?: string | null
-          metadata?: Json | null
-          recipient_email?: string
-          status?: string
-          template_name?: string
-        }
-        Update: {
           created_at: string
           error_message: string | null
           id: string
@@ -45,28 +25,30 @@ export type Database = {
           status: string
           template_name: string
         }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+        }
         Relationships: []
       }
       email_send_state: {
         Row: {
-          auth_email_ttl_minutes?: number
-          batch_size?: number
-          id?: number
-          retry_after_until?: string | null
-          send_delay_ms?: number
-          transactional_email_ttl_minutes?: number
-          updated_at?: string
-        }
-        Insert: {
-          auth_email_ttl_minutes?: number
-          batch_size?: number
-          id?: number
-          retry_after_until?: string | null
-          send_delay_ms?: number
-          transactional_email_ttl_minutes?: number
-          updated_at?: string
-        }
-        Update: {
           auth_email_ttl_minutes: number
           batch_size: number
           id: number
@@ -75,41 +57,58 @@ export type Database = {
           transactional_email_ttl_minutes: number
           updated_at: string
         }
+        Insert: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
         Relationships: []
       }
       email_unsubscribe_tokens: {
         Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
           created_at?: string
           email: string
           id?: string
           token: string
           used_at?: string | null
         }
-        Insert: {
+        Update: {
           created_at?: string
           email?: string
           id?: string
           token?: string
           used_at?: string | null
         }
-        Update: {
-          created_at?: string
-          email: string
-          id: string
-          token: string
-          used_at: string | null
-        }
         Relationships: []
       }
       notebooks: {
         Row: {
           created_at: string
-          description?: string | null
-          id?: string
-          position?: number
-          parent_id?: string | null
-          title?: string
-          updated_at?: string
+          description: string | null
+          id: string
+          position: number
+          title: string
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -117,38 +116,36 @@ export type Database = {
           description?: string | null
           id?: string
           position?: number
-          parent_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          position?: number
           title?: string
           updated_at?: string
           user_id?: string
-        }
-        Update: {
-          created_at: string
-          description: string | null
-          id?: string
-          position: number
-          parent_id?: string | null
-          title: string
-          updated_at: string
-          user_id: string
         }
         Relationships: []
       }
       page_tags: {
         Row: {
-          id?: string
-          page_id?: string
-          tag_id?: string
+          id: string
+          page_id: string
+          tag_id: string
         }
         Insert: {
-          id: string
+          id?: string
           page_id: string
           tag_id: string
         }
         Update: {
-          id: string
-          page_id: string
-          tag_id: string
+          id?: string
+          page_id?: string
+          tag_id?: string
         }
         Relationships: [
           {
@@ -169,25 +166,25 @@ export type Database = {
       }
       page_versions: {
         Row: {
-          content?: Json
-          created_at?: string
-          id?: string
+          content: Json
+          created_at: string
+          id: string
           page_id: string
-          title?: string | null
+          title: string | null
         }
         Insert: {
           content?: Json
           created_at?: string
           id?: string
-          page_id?: string
+          page_id: string
           title?: string | null
         }
         Update: {
           content?: Json
           created_at?: string
           id?: string
-          page_id: string
-          title: string | null
+          page_id?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -204,6 +201,17 @@ export type Database = {
           content: Json
           created_at: string
           id: string
+          is_favorite: boolean
+          notebook_id: string
+          position: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
           is_favorite?: boolean
           notebook_id: string
           position?: number
@@ -211,7 +219,7 @@ export type Database = {
           updated_at?: string
           user_id: string
         }
-        Insert: {
+        Update: {
           content?: Json
           created_at?: string
           id?: string
@@ -221,17 +229,6 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
-        }
-        Update: {
-          content: Json
-          created_at: string
-          id: string
-          is_favorite: boolean
-          notebook_id: string
-          position: number
-          title: string
-          updated_at: string
-          user_id: string
         }
         Relationships: [
           {
@@ -243,29 +240,36 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+      plan_entitlements: {
         Row: {
-          appearance?: Json | null
-          avatar_url?: string | null
-          created_at?: string
-          id?: string
-          theme?: string
-          updated_at?: string
+          created_at: string
+          expires_at: string | null
+          plan: string
+          source: string
+          updated_at: string
           user_id: string
-          username?: string | null
         }
         Insert: {
-          appearance?: Json | null
-          avatar_url?: string | null
           created_at?: string
-          id?: string
-          theme?: string
+          expires_at?: string | null
+          plan?: string
+          source?: string
           updated_at?: string
-          user_id?: string
-          username?: string | null
+          user_id: string
         }
         Update: {
-          appearance?: Json | null
+          created_at?: string
+          expires_at?: string | null
+          plan?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          appearance: Json | null
           avatar_url: string | null
           created_at: string
           id: string
@@ -274,40 +278,30 @@ export type Database = {
           user_id: string
           username: string | null
         }
+        Insert: {
+          appearance?: Json | null
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          theme?: string
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          appearance?: Json | null
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
         Relationships: []
       }
       subscriptions: {
         Row: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          price_id: string
-          product_id: string
-          status?: string
-          stripe_customer_id: string
-          stripe_subscription_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Insert: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          price_id?: string
-          product_id?: string
-          status?: string
-          stripe_customer_id?: string
-          stripe_subscription_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Update: {
           cancel_at_period_end: boolean | null
           created_at: string | null
           current_period_end: string | null
@@ -322,50 +316,64 @@ export type Database = {
           updated_at: string | null
           user_id: string
         }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id: string
+          product_id: string
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id?: string
+          product_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
         Relationships: []
       }
       suppressed_emails: {
         Row: {
-          created_at?: string
-          email: string
-          id?: string
-          metadata?: Json | null
-          reason: string
-        }
-        Insert: {
-          created_at?: string
-          email?: string
-          id?: string
-          metadata?: Json | null
-          reason?: string
-        }
-        Update: {
           created_at: string
           email: string
           id: string
           metadata: Json | null
           reason: string
         }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+        }
         Relationships: []
       }
       tags: {
         Row: {
-          color?: string
-          created_at?: string
-          id?: string
-          name: string
-          usage_count?: number
-          user_id: string
-        }
-        Insert: {
-          color?: string
-          created_at?: string
-          id?: string
-          name?: string
-          usage_count?: number
-          user_id?: string
-        }
-        Update: {
           color: string
           created_at: string
           id: string
@@ -373,36 +381,26 @@ export type Database = {
           usage_count: number
           user_id: string
         }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          usage_count?: number
+          user_id?: string
+        }
         Relationships: []
       }
       task_pending_reasons: {
         Row: {
-          completed_at?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          priority?: string
-          progress_current?: number
-          progress_target?: number | null
-          reason: string
-          responsible?: string | null
-          task_id: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          priority?: string
-          progress_current?: number
-          progress_target?: number | null
-          reason?: string
-          responsible?: string | null
-          task_id?: string
-          user_id?: string
-        }
-        Update: {
           completed_at: string | null
           created_at: string
           description: string | null
@@ -414,6 +412,32 @@ export type Database = {
           responsible: string | null
           task_id: string
           user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
+          reason: string
+          responsible?: string | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: string
+          progress_current?: number
+          progress_target?: number | null
+          reason?: string
+          responsible?: string | null
+          task_id?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -427,6 +451,26 @@ export type Database = {
       }
       weekly_tasks: {
         Row: {
+          assignee: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          notebook_id: string | null
+          priority: string
+          progress_current: number
+          progress_target: number | null
+          source_note_id: string | null
+          source_note_title: string | null
+          source_notebook_title: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          task_date: string
+          title: string
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
           assignee?: string | null
           completed_at?: string | null
           created_at?: string
@@ -446,7 +490,7 @@ export type Database = {
           user_id: string
           week_start: string
         }
-        Insert: {
+        Update: {
           assignee?: string | null
           completed_at?: string | null
           created_at?: string
@@ -465,26 +509,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           week_start?: string
-        }
-        Update: {
-          assignee: string | null
-          completed_at: string | null
-          created_at: string
-          description: string | null
-          id: string
-          notebook_id: string | null
-          priority: string
-          progress_current: number
-          progress_target: number | null
-          source_note_id?: string | null
-          source_note_title?: string | null
-          source_notebook_title?: string | null
-          status: Database["public"]["Enums"]["task_status"]
-          task_date: string
-          title: string
-          updated_at: string
-          user_id: string
-          week_start: string
         }
         Relationships: [
           {

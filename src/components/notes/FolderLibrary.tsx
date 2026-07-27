@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FileText, Folder, FolderOpen, FolderPlus, Loader2, Pin, Plus, Star, Trash2 } from "lucide-react";
+import { FileText, Folder, FolderOpen, FolderPlus, FolderInput, Loader2, Pin, Plus, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,8 @@ import { ContextHelp } from "@/components/ui/context-help";
 import { Notebook, Page } from "@/types/notes";
 import { DEFAULT_NOTEBOOK_NAME, getNotePreview, getNoteTitle } from "@/lib/noteUtils";
 import { cn } from "@/lib/utils";
+import { useLongPress } from "@/hooks/useLongPress";
+import { BulkActionBar } from "@/components/common/BulkActionBar";
 
 interface FolderLibraryProps {
   notes: Page[];
@@ -28,6 +30,8 @@ interface FolderLibraryProps {
   onOpenNote: (page: Page) => void;
   onMoveNote: (page: Page, folderId: string) => void;
   onCreateTaskFromPage: (page: Page) => void;
+  onDeleteNote: (page: Page) => void;
+  onToggleNoteFavorite: (page: Page, favorite: boolean) => void;
 }
 
 export function FolderLibrary({
@@ -46,6 +50,8 @@ export function FolderLibrary({
   onOpenNote,
   onMoveNote,
   onCreateTaskFromPage,
+  onDeleteNote,
+  onToggleNoteFavorite,
 }: FolderLibraryProps) {
   const activeFolder = folders.find((folder) => folder.id === activeFolderId);
   const rootFolders = folders.filter((folder) => !folder.parent_id);
@@ -58,6 +64,18 @@ export function FolderLibrary({
   const [renameValue, setRenameValue] = useState("");
   const [deleteFolder, setDeleteFolder] = useState<Notebook | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState("");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedNoteIds([]);
+  };
+
+  const toggleNoteSelection = (id: string) => {
+    setSelectedNoteIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  };
 
   const noteCountByFolder = useMemo(() => {
     const counts = new Map<string, number>();
@@ -153,25 +171,97 @@ export function FolderLibrary({
             {sortedNotes.length === 0 ? <EmptyFolderState title="Nenhuma anotação aqui" text="Crie uma anotação e comece a registrar suas ideias." /> : (
               <div className="grid gap-3 lg:grid-cols-2">
                 {sortedNotes.map((note) => (
-                  <article key={note.id} className="group rounded-md border border-border/60 bg-card/55 p-4 transition-colors hover:border-primary/35 hover:bg-card/80">
-                    <button type="button" className="block w-full text-left" onClick={() => onOpenNote(note)}>
-                      <div className="flex items-start gap-2"><h3 className="min-w-0 flex-1 break-words font-semibold">{getNoteTitle(note)}</h3>{note.is_favorite && <Star className="h-4 w-4 shrink-0 fill-warning text-warning" />}</div>
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{getNotePreview(note) || "Anotação sem conteúdo."}</p>
-                    </button>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
-                      <Select value={note.notebook_id} onValueChange={(folderId) => onMoveNote(note, folderId)}>
-                        <SelectTrigger className="h-8 min-w-36 flex-1 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>{folders.map((folder) => <SelectItem key={folder.id} value={folder.id}>{folder.parent_id ? `↳ ${folder.title}` : folder.title}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <Button variant="outline" size="sm" className="h-8" onClick={() => onCreateTaskFromPage(note)}>Criar tarefa</Button>
-                    </div>
-                  </article>
+                  <NoteCard
+                    key={note.id}
+                    note={note}
+                    folders={folders}
+                    selectionMode={selectionMode}
+                    selected={selectedNoteIds.includes(note.id)}
+                    onStartSelection={() => { setSelectionMode(true); setSelectedNoteIds([note.id]); }}
+                    onToggleSelection={() => toggleNoteSelection(note.id)}
+                    onOpenNote={onOpenNote}
+                    onMoveNote={onMoveNote}
+                    onCreateTaskFromPage={onCreateTaskFromPage}
+                  />
                 ))}
               </div>
             )}
           </section>
         </div>
       )}
+
+      {selectionMode && (
+        <BulkActionBar
+          count={selectedNoteIds.length}
+          total={sortedNotes.length}
+          allSelected={selectedNoteIds.length === sortedNotes.length && sortedNotes.length > 0}
+          onSelectAll={() => setSelectedNoteIds(selectedNoteIds.length === sortedNotes.length ? [] : sortedNotes.map((note) => note.id))}
+          onClear={exitSelection}
+        >
+          <Select
+            value=""
+            onValueChange={(folderId) => {
+              sortedNotes.filter((note) => selectedNoteIds.includes(note.id)).forEach((note) => onMoveNote(note, folderId));
+              toast.success("Anotações movidas.");
+              exitSelection();
+            }}
+          >
+            <SelectTrigger className="h-9 w-40 text-xs" disabled={selectedNoteIds.length === 0}>
+              <FolderInput className="mr-1 h-4 w-4" />
+              <SelectValue placeholder="Mover para" />
+            </SelectTrigger>
+            <SelectContent>{folders.map((folder) => <SelectItem key={folder.id} value={folder.id}>{folder.parent_id ? `↳ ${folder.title}` : folder.title}</SelectItem>)}</SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5"
+            disabled={selectedNoteIds.length === 0}
+            onClick={() => {
+              const selected = sortedNotes.filter((note) => selectedNoteIds.includes(note.id));
+              const shouldPin = selected.some((note) => !note.is_favorite);
+              selected.forEach((note) => onToggleNoteFavorite(note, shouldPin));
+              toast.success(shouldPin ? "Anotações fixadas." : "Anotações desafixadas.");
+              exitSelection();
+            }}
+          >
+            <Pin className="h-4 w-4" />
+            Fixar
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-9 gap-1.5"
+            disabled={selectedNoteIds.length === 0}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            Excluir
+          </Button>
+        </BulkActionBar>
+      )}
+
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir anotações?</DialogTitle>
+            <DialogDescription>{selectedNoteIds.length} anotação(ões) serão excluídas permanentemente.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                sortedNotes.filter((note) => selectedNoteIds.includes(note.id)).forEach((note) => onDeleteNote(note));
+                setBulkDeleteOpen(false);
+                exitSelection();
+              }}
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!renameFolder} onOpenChange={(open) => !open && setRenameFolder(null)}>
         <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-md"><DialogHeader><DialogTitle>Renomear pasta</DialogTitle><DialogDescription>Escolha um nome simples e fácil de reconhecer.</DialogDescription></DialogHeader><div className="space-y-2"><Label htmlFor="rename-folder">Nome da pasta</Label><Input id="rename-folder" value={renameValue} onChange={(event) => setRenameValue(event.target.value)} autoFocus /></div><DialogFooter><Button variant="outline" onClick={() => setRenameFolder(null)}>Cancelar</Button><Button disabled={!renameValue.trim()} onClick={() => { if (renameFolder) onRenameFolder(renameFolder.id, renameValue.trim()); setRenameFolder(null); }}>Salvar</Button></DialogFooter></DialogContent>
@@ -181,6 +271,69 @@ export function FolderLibrary({
         <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-md"><DialogHeader><DialogTitle>Excluir pasta?</DialogTitle><DialogDescription>{folderDirectNotes > 0 ? `As ${folderDirectNotes} anotações serão movidas antes da exclusão.` : "Esta pasta está vazia e pode ser excluída com segurança."}</DialogDescription></DialogHeader>{folderDirectNotes > 0 && <div className="space-y-2"><Label>Mover anotações para</Label><Select value={deleteTargetId} onValueChange={setDeleteTargetId}><SelectTrigger><SelectValue placeholder="Escolha uma pasta" /></SelectTrigger><SelectContent>{deleteTargets.map((folder) => <SelectItem key={folder.id} value={folder.id}>{folder.title}</SelectItem>)}</SelectContent></Select></div>}<DialogFooter><Button variant="outline" onClick={() => setDeleteFolder(null)}>Cancelar</Button><Button variant="destructive" disabled={folderDirectNotes > 0 && !deleteTargetId} onClick={() => { if (deleteFolder) onDeleteFolder(deleteFolder.id, folderDirectNotes > 0 ? deleteTargetId : undefined); setDeleteFolder(null); }}>Excluir pasta</Button></DialogFooter></DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function NoteCard({
+  note,
+  folders,
+  selectionMode,
+  selected,
+  onStartSelection,
+  onToggleSelection,
+  onOpenNote,
+  onMoveNote,
+  onCreateTaskFromPage,
+}: {
+  note: Page;
+  folders: Notebook[];
+  selectionMode: boolean;
+  selected: boolean;
+  onStartSelection: () => void;
+  onToggleSelection: () => void;
+  onOpenNote: (page: Page) => void;
+  onMoveNote: (page: Page, folderId: string) => void;
+  onCreateTaskFromPage: (page: Page) => void;
+}) {
+  const { handlers, consumeLongPress } = useLongPress(() => {
+    if (selectionMode) onToggleSelection();
+    else onStartSelection();
+  });
+
+  return (
+    <article
+      {...handlers}
+      className={cn(
+        "group rounded-md border bg-card/55 p-4 transition-colors hover:border-primary/35 hover:bg-card/80",
+        selected ? "border-primary bg-primary/10 ring-1 ring-primary/40" : "border-border/60",
+      )}
+    >
+      <button
+        type="button"
+        className="block w-full text-left"
+        onClick={() => {
+          if (consumeLongPress()) return;
+          if (selectionMode) onToggleSelection();
+          else onOpenNote(note);
+        }}
+      >
+        <div className="flex items-start gap-2">
+          <h3 className="min-w-0 flex-1 break-words font-semibold">{getNoteTitle(note)}</h3>
+          {selectionMode && <span className={cn("mt-0.5 h-4 w-4 shrink-0 rounded border", selected ? "border-primary bg-primary" : "border-border")} />}
+          {note.is_favorite && <Star className="h-4 w-4 shrink-0 fill-warning text-warning" />}
+        </div>
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground">{getNotePreview(note) || "Anotação sem conteúdo."}</p>
+      </button>
+      {!selectionMode && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/50 pt-3">
+          <Select value={note.notebook_id} onValueChange={(folderId) => onMoveNote(note, folderId)}>
+            <SelectTrigger className="h-8 min-w-36 flex-1 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{folders.map((folder) => <SelectItem key={folder.id} value={folder.id}>{folder.parent_id ? `↳ ${folder.title}` : folder.title}</SelectItem>)}</SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" className="h-8" onClick={() => onCreateTaskFromPage(note)}>Criar tarefa</Button>
+        </div>
+      )}
+    </article>
   );
 }
 

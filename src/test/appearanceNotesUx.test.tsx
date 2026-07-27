@@ -32,7 +32,7 @@ describe("appearance and notes experience", () => {
         open
         onOpenChange={vi.fn()}
         mode="note"
-        notebooks={[{ id: "folder-1", title: "Pessoal", user_id: "user-1", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), parent_id: null }]}
+        notebooks={[{ id: "folder-1", title: "Pessoal", user_id: "user-1", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), parent_id: null, description: null, position: 0 }]}
         defaultNotebookId="folder-1"
         onSave={vi.fn()}
         onSaveTask={vi.fn()}

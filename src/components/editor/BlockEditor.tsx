@@ -103,24 +103,53 @@ function FormattingToolbar({
   editorRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const [currentFontSize, setCurrentFontSize] = useState("16");
+  const savedRange = useRef<Range | null>(null);
+
+  // Keep track of the last caret/selection inside this editor so toolbar clicks
+  // (which move focus away) still apply the command to the right text.
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const editor = editorRef.current;
+      const selection = window.getSelection();
+      if (!editor || !selection || selection.rangeCount === 0) return;
+      const range = selection.getRangeAt(0);
+      if (editor.contains(range.commonAncestorContainer)) savedRange.current = range.cloneRange();
+    };
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => document.removeEventListener("selectionchange", handleSelectionChange);
+  }, [editorRef]);
+
+  const restoreSelection = () => {
+    const editor = editorRef.current;
+    if (!editor) return null;
+    editor.focus();
+    const selection = window.getSelection();
+    if (!selection) return null;
+    const insideEditor = selection.rangeCount > 0 && editor.contains(selection.getRangeAt(0).commonAncestorContainer);
+    if (!insideEditor && savedRange.current) {
+      selection.removeAllRanges();
+      selection.addRange(savedRange.current);
+    }
+    return selection;
+  };
 
   const exec = (command: string, value?: string) => {
+    restoreSelection();
+    document.execCommand("styleWithCSS", false, "true");
     document.execCommand(command, false, value);
-    editorRef.current?.focus();
+    // Notify React of the DOM mutation so the block content is persisted.
+    editorRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
   const handleFontSizeChange = (sizeValue: string) => {
     setCurrentFontSize(sizeValue);
-    document.execCommand("styleWithCSS", false);
+    const selection = restoreSelection();
+    document.execCommand("styleWithCSS", false, "true");
     const pxSize = parseInt(sizeValue, 10);
-    const selection = window.getSelection();
-    const hasSelection = selection && !selection.isCollapsed && selection.toString().trim().length > 0;
-    if (hasSelection) {
-      // Wrap selected text with a styled span
-      document.execCommand("insertHTML", false, `<span style="font-size: ${pxSize}px">${selection!.toString()}</span>`);
+    const text = selection?.toString() || "";
+    if (text.trim().length > 0) {
+      document.execCommand("insertHTML", false, `<span style="font-size: ${pxSize}px">${text}</span>`);
     } else {
-      // No selection — apply font-size to the next typed characters via the execCommand fontSize
-      // (emits <font> tags but ensures the next keystrokes get the chosen size)
       const sizeMap: Record<string, string> = {
         "12": "1", "14": "2", "16": "3", "18": "3",
         "20": "4", "24": "4", "28": "5", "32": "5",
@@ -128,15 +157,15 @@ function FormattingToolbar({
       };
       document.execCommand("fontSize", false, sizeMap[sizeValue] || "3");
     }
+    editorRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
-  // Enable CSS styling by default
-  useEffect(() => {
-    document.execCommand("styleWithCSS", false);
-  }, []);
-
   return (
-    <div className="sticky top-0 z-30 flex flex-wrap items-center gap-0.5 rounded-t-lg border border-border/60 bg-card/95 px-2 py-1.5 shadow-sm backdrop-blur">
+    <div
+      onMouseDown={(event) => event.preventDefault()}
+      onPointerDown={(event) => event.preventDefault()}
+      className="sticky top-0 z-30 flex flex-wrap items-center gap-0.5 rounded-t-lg border border-border/60 bg-card/95 px-2 py-1.5 shadow-sm backdrop-blur"
+    >
       {/* Bold */}
       <Toggle
         size="sm"
@@ -324,13 +353,18 @@ function RichTextEditor({
     }
   }, []);
 
+  const hideToolbarTimer = useRef<number | null>(null);
+
   const handleFocus = useCallback(() => {
+    if (hideToolbarTimer.current !== null) window.clearTimeout(hideToolbarTimer.current);
     setShowToolbar(true);
     onFocus();
   }, [onFocus]);
 
   const handleBlur = useCallback(() => {
-    setShowToolbar(false);
+    // Keep the toolbar reachable for a moment: dropdowns/selects steal focus briefly.
+    if (hideToolbarTimer.current !== null) window.clearTimeout(hideToolbarTimer.current);
+    hideToolbarTimer.current = window.setTimeout(() => setShowToolbar(false), 250);
     onBlur();
   }, [onBlur]);
 
