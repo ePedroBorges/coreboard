@@ -682,6 +682,8 @@ const Index = () => {
                 onOpenNote={openPage}
                 onMoveNote={handleMovePage}
                 onCreateTaskFromPage={createTaskFromPage}
+                onDeleteNote={(page) => pages.deletePage.mutate(page.id)}
+                onToggleNoteFavorite={(page, favorite) => pages.updatePage.mutate({ id: page.id, is_favorite: favorite })}
               />
             ) : activeView === "settings" ? (
               <SettingsView
@@ -1763,6 +1765,7 @@ function GlobalSearchResults({
   notebookTitleById,
   onOpenNotebook,
   onOpenNote,
+  onOpenTask,
   onCreateTaskFromPage,
 }: {
   query: string;
@@ -1772,6 +1775,7 @@ function GlobalSearchResults({
   notebookTitleById: Map<string, string>;
   onOpenNotebook: (notebookId: string) => void;
   onOpenNote: (page: Page) => void;
+  onOpenTask: (task: WeeklyTask) => void;
   onCreateTaskFromPage: (page: Page) => void;
 }) {
   const hasResults = notebooks.length > 0 || notes.length > 0 || tasks.length > 0;
@@ -1866,7 +1870,7 @@ function GlobalSearchResults({
             ) : (
               <div className="grid gap-2">
                 {tasks.map((task) => (
-                  <div key={task.id} className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <button key={task.id} type="button" onClick={() => onOpenTask(task)} className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card/70 p-4 text-left transition-colors hover:border-primary/45 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="font-medium">{task.title}</div>
                       <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -1880,7 +1884,7 @@ function GlobalSearchResults({
                       {task.status === "completed" ? <CheckCircle2 className="h-3 w-3 text-success" /> : <Clock3 className="h-3 w-3 text-warning" />}
                       {task.status === "completed" ? "Concluída" : "Pendente"}
                     </Badge>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

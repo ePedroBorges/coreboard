@@ -16,6 +16,8 @@ import {
   UserRound,
 } from "lucide-react";
 import { useWeeklyTasks, TaskStatus, WeeklyTask, Priority, TaskPendingReason } from "@/hooks/useWeeklyTasks";
+import { useLongPress } from "@/hooks/useLongPress";
+import { BulkActionBar } from "@/components/common/BulkActionBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -105,6 +107,11 @@ export function WeeklyTaskManager({
     deletePendingReason,
     completePendingReason,
   } = useWeeklyTasks();
+
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const exitSelection = () => { setSelectionMode(false); setSelectedTaskIds([]); };
+  const toggleTaskSelection = (id: string) => setSelectedTaskIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
 
   const stats = useMemo(() => {
     const pending = tasks.filter((task) => task.status === "pending").length;
@@ -468,6 +475,10 @@ export function WeeklyTaskManager({
                   source_notebook_title: task.source_notebook_title || (task.notebook_id ? notebookTitleById.get(task.notebook_id) : undefined),
                 }}
                 pinned={pinnedTaskIds.includes(task.id)}
+                selectionMode={selectionMode}
+                selected={selectedTaskIds.includes(task.id)}
+                onStartSelection={() => { setSelectionMode(true); setSelectedTaskIds([task.id]); }}
+                onToggleSelection={() => toggleTaskSelection(task.id)}
                 onOpen={() => onOpenTask?.(task)}
                 onTogglePinned={() => onTogglePinnedTask?.(task.id)}
                 onUpdate={(updates) => updateTask.mutate({ id: task.id, ...updates })}
@@ -479,6 +490,49 @@ export function WeeklyTaskManager({
               />
             ))}
           </div>
+        )}
+
+        {selectionMode && (
+          <BulkActionBar
+            count={selectedTaskIds.length}
+            total={displayedTasks.length}
+            allSelected={selectedTaskIds.length === displayedTasks.length && displayedTasks.length > 0}
+            onSelectAll={() => setSelectedTaskIds(selectedTaskIds.length === displayedTasks.length ? [] : displayedTasks.map((task) => task.id))}
+            onClear={exitSelection}
+          >
+            <Select
+              value=""
+              onValueChange={(notebookId) => {
+                selectedTaskIds.forEach((id) => updateTask.mutate({ id, notebook_id: notebookId }));
+                exitSelection();
+              }}
+            >
+              <SelectTrigger className="h-9 w-40 text-xs" disabled={selectedTaskIds.length === 0}>
+                <SelectValue placeholder="Mover para pasta" />
+              </SelectTrigger>
+              <SelectContent>{notebooks.map((notebook) => <SelectItem key={notebook.id} value={notebook.id}>{notebook.title}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1.5"
+              disabled={selectedTaskIds.length === 0}
+              onClick={() => { selectedTaskIds.forEach((id) => onTogglePinnedTask?.(id)); exitSelection(); }}
+            >
+              <Pin className="h-4 w-4" />
+              Fixar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-9 gap-1.5"
+              disabled={selectedTaskIds.length === 0}
+              onClick={() => { selectedTaskIds.forEach((id) => deleteTask.mutate(id)); exitSelection(); }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir
+            </Button>
+          </BulkActionBar>
         )}
       </section>
 
@@ -564,6 +618,10 @@ export function WeeklyTaskManager({
 const TaskCard = memo(function TaskCard({
   task,
   pinned,
+  selectionMode = false,
+  selected = false,
+  onStartSelection,
+  onToggleSelection,
   onOpen,
   onTogglePinned,
   onUpdate,
@@ -575,6 +633,10 @@ const TaskCard = memo(function TaskCard({
 }: {
   task: WeeklyTask;
   pinned: boolean;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onStartSelection?: () => void;
+  onToggleSelection?: () => void;
   onOpen: () => void;
   onTogglePinned?: () => void;
   onUpdate: (updates: Partial<WeeklyTask>) => void;
@@ -585,6 +647,10 @@ const TaskCard = memo(function TaskCard({
   onCompleteReason: (id: string) => void;
 }) {
   const [expanded] = useState(false);
+  const { handlers: longPressHandlers, consumeLongPress } = useLongPress(() => {
+    if (selectionMode) onToggleSelection?.();
+    else onStartSelection?.();
+  });
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(task.title);
   const [descriptionDraft, setDescriptionDraft] = useState(task.description || "");
@@ -636,12 +702,23 @@ const TaskCard = memo(function TaskCard({
   };
 
   return (
-    <article id={`task-${task.id}`} className="group overflow-hidden rounded-lg border border-border/60 bg-card/80 shadow-sm transition-colors [content-visibility:auto] [contain-intrinsic-size:240px] hover:border-primary/35 hover:bg-card">
+    <article
+      id={`task-${task.id}`}
+      {...longPressHandlers}
+      className={cn(
+        "group overflow-hidden rounded-lg border bg-card/80 shadow-sm transition-colors [content-visibility:auto] [contain-intrinsic-size:240px] hover:border-primary/35 hover:bg-card",
+        selected ? "border-primary ring-1 ring-primary/40" : "border-border/60",
+      )}
+    >
       <div className={cn("h-1 w-full", statusColor)} />
       <div className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:p-4">
         <button
           type="button"
-          onClick={onOpen}
+          onClick={() => {
+            if (consumeLongPress()) return;
+            if (selectionMode) onToggleSelection?.();
+            else onOpen();
+          }}
           className="min-w-0 flex-1 rounded-md text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary/60"
           aria-label={`Abrir tarefa ${task.title}`}
         >

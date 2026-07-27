@@ -10,6 +10,7 @@ import {
 } from "@/lib/appearance";
 import { nativeStorage, readBrowserStorage } from "@/lib/nativeStorage";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 
 const APPEARANCE_STORAGE_KEY = "vista_tasks_appearance_v2";
@@ -276,7 +277,7 @@ export function ThemeCloudSync() {
       if (!remote || snapshotToPersist.updatedAt > remote.updatedAt) {
         const { error: writeError } = await supabase
           .from("profiles")
-          .upsert({ user_id: user.id, appearance: snapshotToPersist }, { onConflict: "user_id" });
+          .upsert({ user_id: user.id, appearance: snapshotToPersist as unknown as Json }, { onConflict: "user_id" });
         if (!writeError) lastCloudWrite.current = JSON.stringify(snapshotToPersist);
       } else {
         lastCloudWrite.current = JSON.stringify(remote);
@@ -295,7 +296,7 @@ export function ThemeCloudSync() {
     lastCloudWrite.current = serialized;
     void supabase
       .from("profiles")
-      .upsert({ user_id: user.id, appearance: savedAppearance }, { onConflict: "user_id" })
+      .upsert({ user_id: user.id, appearance: savedAppearance as unknown as Json }, { onConflict: "user_id" })
       .then(({ error }) => {
         if (error && lastCloudWrite.current === serialized) lastCloudWrite.current = null;
       });

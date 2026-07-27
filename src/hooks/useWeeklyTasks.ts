@@ -672,7 +672,7 @@ export function useWeeklyTasks() {
     onSuccess: ({ id, payload }) => {
       queryClient.setQueriesData<WeeklyTask[]>({ queryKey: ["tasks", user!.id] }, (current) => current?.map((task) => ({
         ...task,
-        pending_reasons: task.pending_reasons.map((reason) => reason.id === id ? { ...reason, ...payload } : reason),
+        pending_reasons: task.pending_reasons.map((reason) => reason.id === id ? ({ ...reason, ...payload } as TaskPendingReason) : reason),
       })));
       if (hasNetworkConnection()) invalidateTasks();
     },
