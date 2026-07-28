@@ -13,14 +13,19 @@ import {
   Highlighter,
   Image as ImageIcon,
   Indent,
+  Italic,
   List,
   ListOrdered,
   Loader2,
   Minus,
   Paperclip,
+  Pilcrow,
   Plus,
+  RemoveFormatting,
+  Strikethrough,
   Trash2,
   Type,
+  Underline,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -64,17 +69,17 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ElementType }[]
 ];
 
 const FONT_SIZES = [
-  { value: "12px", label: "12" },
-  { value: "14px", label: "14" },
-  { value: "16px", label: "16" },
-  { value: "18px", label: "18" },
-  { value: "20px", label: "20" },
-  { value: "24px", label: "24" },
-  { value: "28px", label: "28" },
-  { value: "32px", label: "32" },
-  { value: "36px", label: "36" },
-  { value: "42px", label: "42" },
-  { value: "48px", label: "48" },
+  { value: "12", label: "12" },
+  { value: "14", label: "14" },
+  { value: "16", label: "16" },
+  { value: "18", label: "18" },
+  { value: "20", label: "20" },
+  { value: "24", label: "24" },
+  { value: "28", label: "28" },
+  { value: "32", label: "32" },
+  { value: "36", label: "36" },
+  { value: "42", label: "42" },
+  { value: "48", label: "48" },
 ];
 
 const HIGHLIGHT_COLORS = [
@@ -95,6 +100,29 @@ function sanitizeHtml(html: string): string {
     .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, "")
     .replace(/\son\w+="[^"]*"/gi, "")
     .replace(/\son\w+='[^']*'/gi, "");
+}
+
+function isSelectionInsideEditor(editor: HTMLElement, selection: Selection | null) {
+  if (!selection || selection.rangeCount === 0) return false;
+  const range = selection.getRangeAt(0);
+  return editor.contains(range.commonAncestorContainer);
+}
+
+function wrapSelection(editor: HTMLElement, style: Partial<CSSStyleDeclaration>) {
+  const selection = window.getSelection();
+  if (!isSelectionInsideEditor(editor, selection)) return false;
+  const range = selection.getRangeAt(0);
+  if (range.collapsed) return false;
+
+  const span = document.createElement("span");
+  Object.assign(span.style, style);
+  span.appendChild(range.extractContents());
+  range.insertNode(span);
+  range.selectNodeContents(span);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return true;
 }
 
 function FormattingToolbar({
@@ -141,47 +169,92 @@ function FormattingToolbar({
     editorRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
+  const preventFocusLoss = (event: React.MouseEvent | React.PointerEvent) => {
+    event.preventDefault();
+  };
+
   const handleFontSizeChange = (sizeValue: string) => {
     setCurrentFontSize(sizeValue);
-    const selection = restoreSelection();
-    document.execCommand("styleWithCSS", false, "true");
+    restoreSelection();
+    const editor = editorRef.current;
     const pxSize = parseInt(sizeValue, 10);
-    const text = selection?.toString() || "";
-    if (text.trim().length > 0) {
-      document.execCommand("insertHTML", false, `<span style="font-size: ${pxSize}px">${text}</span>`);
-    } else {
+    if (!editor || !wrapSelection(editor, { fontSize: `${pxSize}px` })) {
       const sizeMap: Record<string, string> = {
         "12": "1", "14": "2", "16": "3", "18": "3",
         "20": "4", "24": "4", "28": "5", "32": "5",
         "36": "6", "42": "6", "48": "7",
       };
+      document.execCommand("styleWithCSS", false, "true");
       document.execCommand("fontSize", false, sizeMap[sizeValue] || "3");
     }
     editorRef.current?.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
+  const handleHighlight = (color: string) => {
+    restoreSelection();
+    const editor = editorRef.current;
+    if (!editor || !wrapSelection(editor, { backgroundColor: color })) {
+      exec("backColor", color);
+      return;
+    }
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
   return (
     <div
-      onMouseDown={(event) => event.preventDefault()}
-      onPointerDown={(event) => event.preventDefault()}
-      className="sticky top-0 z-30 flex flex-wrap items-center gap-0.5 rounded-t-lg border border-border/60 bg-card/95 px-2 py-1.5 shadow-sm backdrop-blur"
+      className="sticky top-0 z-30 flex flex-wrap items-center gap-1 rounded-lg border border-border/70 bg-card/95 px-2 py-2 shadow-lg backdrop-blur"
     >
-      {/* Bold */}
+      <div className="flex items-center gap-0.5 rounded-md bg-background/45 p-0.5">
       <Toggle
         size="sm"
-        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
         onClick={() => exec("bold")}
         title="Negrito (Ctrl+B)"
         aria-label="Negrito"
       >
         <Bold className="h-3.5 w-3.5" />
       </Toggle>
+      <Toggle
+        size="sm"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
+        onClick={() => exec("italic")}
+        title="Itálico"
+        aria-label="Itálico"
+      >
+        <Italic className="h-3.5 w-3.5" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
+        onClick={() => exec("underline")}
+        title="Sublinhado"
+        aria-label="Sublinhado"
+      >
+        <Underline className="h-3.5 w-3.5" />
+      </Toggle>
+      <Toggle
+        size="sm"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
+        onClick={() => exec("strikeThrough")}
+        title="Tachado"
+        aria-label="Tachado"
+      >
+        <Strikethrough className="h-3.5 w-3.5" />
+      </Toggle>
+      </div>
 
-      <Separator orientation="vertical" className="mx-1 h-6" />
-
-      {/* Font Size */}
+      <div className="flex items-center gap-1 rounded-md bg-background/45 p-0.5">
+      <Pilcrow className="ml-2 h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
       <Select value={currentFontSize} onValueChange={handleFontSizeChange}>
-        <SelectTrigger className="h-8 w-[68px] text-[11px]">
+        <SelectTrigger className="h-9 w-[72px] border-0 bg-transparent text-xs shadow-none focus:ring-1 focus:ring-ring">
           <SelectValue placeholder="16" />
         </SelectTrigger>
         <SelectContent className="max-h-52">
@@ -192,15 +265,14 @@ function FormattingToolbar({
           ))}
         </SelectContent>
       </Select>
+      </div>
 
-      <Separator orientation="vertical" className="mx-1 h-6" />
-
-      {/* Highlight / Text Marker */}
+      <div className="flex items-center gap-0.5 rounded-md bg-background/45 p-0.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Toggle
             size="sm"
-            className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
             title="Marcador de texto"
             aria-label="Marcador de texto"
           >
@@ -217,8 +289,7 @@ function FormattingToolbar({
                 key={color}
                 type="button"
                 onClick={() => {
-                  document.execCommand("styleWithCSS", false);
-                  exec("backColor", color);
+                  handleHighlight(color);
                 }}
                 className="flex h-7 w-7 items-center justify-center rounded border border-border/50 transition-transform hover:scale-110"
                 style={{ backgroundColor: color }}
@@ -236,13 +307,25 @@ function FormattingToolbar({
           </button>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <Separator orientation="vertical" className="mx-1 h-6" />
-
-      {/* Lists */}
       <Toggle
         size="sm"
-        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
+        onClick={() => exec("removeFormat")}
+        title="Limpar formatação"
+        aria-label="Limpar formatação"
+      >
+        <RemoveFormatting className="h-3.5 w-3.5" />
+      </Toggle>
+      </div>
+
+      <div className="flex items-center gap-0.5 rounded-md bg-background/45 p-0.5">
+      <Toggle
+        size="sm"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
         onClick={() => exec("insertUnorderedList")}
         title="Lista não numerada"
         aria-label="Lista não numerada"
@@ -251,7 +334,9 @@ function FormattingToolbar({
       </Toggle>
       <Toggle
         size="sm"
-        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
         onClick={() => exec("insertOrderedList")}
         title="Lista numerada"
         aria-label="Lista numerada"
@@ -262,20 +347,23 @@ function FormattingToolbar({
       {/* Checklist inline — inserts a ballot-box symbol (U+2610) */}
       <Toggle
         size="sm"
-        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
         onClick={() => exec("insertHTML", "☐ ")}
         title="Caixa de seleção"
         aria-label="Caixa de seleção"
       >
         <CheckSquare className="h-3.5 w-3.5" />
       </Toggle>
+      </div>
 
-      <Separator orientation="vertical" className="mx-1 h-6" />
-
-      {/* Indentation */}
+      <div className="flex items-center gap-0.5 rounded-md bg-background/45 p-0.5">
       <Toggle
         size="sm"
-        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
         onClick={() => exec("indent")}
         title="Aumentar recuo"
         aria-label="Aumentar recuo"
@@ -284,13 +372,16 @@ function FormattingToolbar({
       </Toggle>
       <Toggle
         size="sm"
-        className="h-8 w-8 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        className="h-9 w-9 rounded-md data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+        onMouseDown={preventFocusLoss}
+        onPointerDown={preventFocusLoss}
         onClick={() => exec("outdent")}
         title="Diminuir recuo"
         aria-label="Diminuir recuo"
       >
         <Minus className="h-3.5 w-3.5" />
       </Toggle>
+      </div>
     </div>
   );
 }
