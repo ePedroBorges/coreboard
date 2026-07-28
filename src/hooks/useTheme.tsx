@@ -126,23 +126,67 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const initial = useMemo(readInitialAppearance, []);
+  const draftAppearanceRef = useRef<AppearanceSnapshot>(initial);
   const [storageHydrated, setStorageHydrated] = useState(false);
   const [savedAppearance, setSavedAppearance] = useState(initial);
-  const [theme, setTheme] = useState<Mode>(initial.theme);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(initial.colorScheme);
-  const [visualTheme, setVisualTheme] = useState<VisualTheme>(initial.visualTheme);
-  const [fontFamily, setFontFamily] = useState<FontFamily>(initial.fontFamily);
-  const [reducedMotion, setReducedMotion] = useState(initial.reducedMotion);
-  const [enhancedEffects, setEnhancedEffects] = useState(initial.enhancedEffects);
+  const [theme, setThemeState] = useState<Mode>(initial.theme);
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(initial.colorScheme);
+  const [visualTheme, setVisualThemeState] = useState<VisualTheme>(initial.visualTheme);
+  const [fontFamily, setFontFamilyState] = useState<FontFamily>(initial.fontFamily);
+  const [reducedMotion, setReducedMotionState] = useState(initial.reducedMotion);
+  const [enhancedEffects, setEnhancedEffectsState] = useState(initial.enhancedEffects);
+
+  const patchDraftAppearance = useCallback((updates: Partial<AppearanceSnapshot>) => {
+    draftAppearanceRef.current = { ...draftAppearanceRef.current, ...updates, version: 2 };
+  }, []);
 
   const apply = useCallback((snapshot: AppearanceSnapshot) => {
-    setTheme(snapshot.theme);
-    setColorScheme(snapshot.colorScheme);
-    setVisualTheme(snapshot.visualTheme);
-    setFontFamily(snapshot.fontFamily);
-    setReducedMotion(snapshot.reducedMotion);
-    setEnhancedEffects(snapshot.enhancedEffects);
+    draftAppearanceRef.current = snapshot;
+    setThemeState(snapshot.theme);
+    setColorSchemeState(snapshot.colorScheme);
+    setVisualThemeState(snapshot.visualTheme);
+    setFontFamilyState(snapshot.fontFamily);
+    setReducedMotionState(snapshot.reducedMotion);
+    setEnhancedEffectsState(snapshot.enhancedEffects);
   }, []);
+
+  const setTheme = useCallback((mode: Mode) => {
+    patchDraftAppearance({ theme: mode });
+    setThemeState(mode);
+  }, [patchDraftAppearance]);
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((current) => {
+      const next = current === "dark" ? "light" : "dark";
+      patchDraftAppearance({ theme: next });
+      return next;
+    });
+  }, [patchDraftAppearance]);
+
+  const setColorScheme = useCallback((scheme: ColorScheme) => {
+    patchDraftAppearance({ colorScheme: scheme });
+    setColorSchemeState(scheme);
+  }, [patchDraftAppearance]);
+
+  const setVisualTheme = useCallback((nextTheme: VisualTheme) => {
+    patchDraftAppearance({ visualTheme: nextTheme });
+    setVisualThemeState(nextTheme);
+  }, [patchDraftAppearance]);
+
+  const setFontFamily = useCallback((font: FontFamily) => {
+    patchDraftAppearance({ fontFamily: font });
+    setFontFamilyState(font);
+  }, [patchDraftAppearance]);
+
+  const setReducedMotion = useCallback((reduced: boolean) => {
+    patchDraftAppearance({ reducedMotion: reduced });
+    setReducedMotionState(reduced);
+  }, [patchDraftAppearance]);
+
+  const setEnhancedEffects = useCallback((enabled: boolean) => {
+    patchDraftAppearance({ enhancedEffects: enabled });
+    setEnhancedEffectsState(enabled);
+  }, [patchDraftAppearance]);
 
   useEffect(() => {
     let active = true;
@@ -184,6 +228,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     enhancedEffects,
   }), [colorScheme, enhancedEffects, fontFamily, reducedMotion, savedAppearance.updatedAt, theme, visualTheme]);
 
+  useEffect(() => {
+    draftAppearanceRef.current = currentAppearance;
+  }, [currentAppearance]);
+
   const appearanceSignature = (value: AppearanceSnapshot) => JSON.stringify({
     theme: value.theme,
     colorScheme: value.colorScheme,
@@ -195,11 +243,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const hasUnsavedAppearance = appearanceSignature(currentAppearance) !== appearanceSignature(savedAppearance);
 
   const saveAppearance = useCallback(async (overrides: Partial<AppearanceSnapshot> = {}) => {
-    const next: AppearanceSnapshot = { ...currentAppearance, ...overrides, version: 2, updatedAt: Date.now() };
+    const next: AppearanceSnapshot = { ...draftAppearanceRef.current, ...overrides, version: 2, updatedAt: Date.now() };
     apply(next);
     await persistAppearance(next);
     setSavedAppearance(next);
-  }, [apply, currentAppearance]);
+  }, [apply]);
 
   const restoreSavedAppearance = useCallback(() => apply(savedAppearance), [apply, savedAppearance]);
 
@@ -214,7 +262,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     hasUnsavedAppearance,
     theme,
     setTheme,
-    toggleTheme: () => setTheme((current) => current === "dark" ? "light" : "dark"),
+    toggleTheme,
     colorScheme,
     setColorScheme,
     visualTheme,
@@ -229,7 +277,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     saveAppearance,
     restoreSavedAppearance,
     applyCloudAppearance,
-  }), [applyCloudAppearance, colorScheme, enhancedEffects, fontFamily, hasUnsavedAppearance, reducedMotion, restoreSavedAppearance, saveAppearance, savedAppearance, storageHydrated, theme, visualTheme]);
+  }), [applyCloudAppearance, colorScheme, enhancedEffects, fontFamily, hasUnsavedAppearance, reducedMotion, restoreSavedAppearance, saveAppearance, savedAppearance, setColorScheme, setEnhancedEffects, setFontFamily, setReducedMotion, setTheme, setVisualTheme, storageHydrated, theme, toggleTheme, visualTheme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

@@ -53,6 +53,7 @@ export const nativeStorage = {
   },
   setItem: async (key: string, value: string) => {
     let persisted = false;
+    mirrorBrowserStorage(key, value);
     if (typeof window !== "undefined" && window.vistaStorage) {
       try {
         await window.vistaStorage.setItem(key, value);
@@ -69,7 +70,6 @@ export const nativeStorage = {
         // Continue to the browser/memory fallback.
       }
     }
-    mirrorBrowserStorage(key, value);
     if (!persisted && !memoryStorage.has(key)) memoryStorage.set(key, value);
   },
   removeItem: async (key: string) => {
