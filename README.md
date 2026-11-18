@@ -15,7 +15,7 @@
     <a href="https://github.com/ePedroBorges/smart-notes-brain/releases/latest/download/CoreBoard-Setup-Windows.exe">
       <img src="https://img.shields.io/badge/Download%20Windows-.exe-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Baixar Windows (.exe)" />
     </a>
-    <a href="https://github.com/ePedroBorges/smart-notes-brain/releases/latest">
+    <a href="https://github.com/ePedroBorges/smart-notes-brain/releases">
       <img src="https://img.shields.io/badge/Releases-Todas%20as%20vers%C3%B5es-1E293B?style=for-the-badge&logo=github" alt="Ver todas as versões" />
     </a>
   </p>
@@ -33,7 +33,7 @@ Use o **CoreBoard** diretamente no navegador ou instale no seu celular Android e
 | **Android (`.apk`)** | [Baixar CoreBoard-Android.apk](https://github.com/ePedroBorges/smart-notes-brain/releases/latest/download/CoreBoard-Android.apk) | Baixe o `.apk` no celular e toque para instalar. Se o Android solicitar, habilite **"Instalar apps desconhecidos"** para o seu navegador ou gerenciador de arquivos. |
 | **Windows (`.exe`)** | [Baixar CoreBoard-Setup-Windows.exe](https://github.com/ePedroBorges/smart-notes-brain/releases/latest/download/CoreBoard-Setup-Windows.exe) | Instalador Windows x64 (NSIS) com atalho na Área de Trabalho e no Menu Iniciar. Caso o Windows SmartScreen exiba aviso por ser um instalador independente, clique em **"Mais informações" → "Executar assim mesmo"**. |
 
-> Todas as versões e histórico de lançamentos também ficam disponíveis na página de [Releases do repositório](https://github.com/ePedroBorges/smart-notes-brain/releases/latest).
+> Todas as versões e histórico de lançamentos também ficam disponíveis na página de [Releases do repositório](https://github.com/ePedroBorges/smart-notes-brain/releases).
 
 ---
 

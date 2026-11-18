@@ -2,14 +2,28 @@ name: Release CoreBoard (Android & Windows)
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "public/**"
+      - "electron/**"
+      - "android/**"
+      - "scripts/**"
+      - "package.json"
+      - "capacitor.config.ts"
+      - "index.html"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
     inputs:
       tag:
         description: "Tag da release (ex.: v1.0.0)"
         required: true
         default: "v1.0.0"
+
+concurrency:
+  group: release-coreboard
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -33,6 +47,12 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "21"
+
+      - name: Accept Android SDK licenses
+        run: |
+          if [ -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          fi
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
@@ -104,6 +124,9 @@ jobs:
     needs: [build-android, build-windows]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
@@ -118,15 +141,18 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
-          else
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
             TAG="${{ github.ref_name }}"
+          else
+            TAG="v$(jq -r '.version' package.json)"
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: CoreBoard ${{ steps.meta.outputs.tag }}
           make_latest: true
           generate_release_notes: true
