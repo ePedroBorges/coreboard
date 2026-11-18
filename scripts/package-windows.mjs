@@ -30,6 +30,8 @@ run("Empacotamento Electron/NSIS", process.execPath, [
   builderCli,
   "--win",
   "nsis",
+  "--publish",
+  "never",
   `--config.directories.output=${tempOutput}`,
 ], {
   ...process.env,
