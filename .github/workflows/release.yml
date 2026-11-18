@@ -1,0 +1,144 @@
+name: Release CoreBoard (Android & Windows)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da release (ex.: v1.0.0)"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Build web bundle & sync Capacitor Android
+        run: npm run build:android
+
+      - name: Build Android APK
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew --no-daemon --console=plain assembleDebug
+
+      - name: Prepare APK release asset
+        run: |
+          mkdir -p release-assets
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-assets/CoreBoard-Android.apk
+          ls -lh release-assets/CoreBoard-Android.apk
+
+      - name: Upload Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: release-assets/CoreBoard-Android.apk
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows Installer (.exe)
+    runs-on: windows-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { npm install --no-audit --no-fund }
+
+      - name: Package Windows NSIS installer
+        run: npm run package:windows
+
+      - name: Prepare Windows EXE release asset
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $exe = Get-ChildItem -Path artifacts/windows -Filter "*.exe" | Select-Object -First 1
+          if (-not $exe) { throw "Instalador .exe nao encontrado em artifacts/windows." }
+          Copy-Item -Path $exe.FullName -Destination release-assets/CoreBoard-Setup-Windows.exe
+          Get-Item release-assets/CoreBoard-Setup-Windows.exe | Select-Object Name, Length
+
+      - name: Upload Windows EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: release-assets/CoreBoard-Setup-Windows.exe
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Verify release assets
+        run: ls -lh release-assets
+
+      - name: Resolve release tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: CoreBoard ${{ steps.meta.outputs.tag }}
+          make_latest: true
+          generate_release_notes: true
+          body: |
+            ## CoreBoard ${{ steps.meta.outputs.tag }} — AnchorLab Studio
+
+            ### Acessar no navegador
+            - **Web App:** https://coreboard.anchorlabstudio.com.br
+
+            ### Downloads diretos
+            - **Android (`.apk`):** baixe `CoreBoard-Android.apk` nos arquivos abaixo e instale no aparelho (habilite *Fontes desconhecidas* se solicitado).
+            - **Windows (`.exe`):** baixe `CoreBoard-Setup-Windows.exe` nos arquivos abaixo e execute o instalador (em caso de aviso do SmartScreen, clique em *Mais informações → Executar assim mesmo*).
+          files: |
+            release-assets/CoreBoard-Android.apk
+            release-assets/CoreBoard-Setup-Windows.exe
